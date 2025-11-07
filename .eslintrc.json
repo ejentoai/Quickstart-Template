@@ -1,0 +1,14 @@
+{
+  "extends": ["next/core-web-vitals", "next/typescript"],
+  "rules": { 
+     // Allow unused variables starting with underscores
+    "@typescript-eslint/no-unused-vars": "off",
+    "@typescript-eslint/no-explicit-any": "off",
+    // Allow usage of wrapper object types like Boolean
+    "@typescript-eslint/no-wrapper-object-types": "off",
+    "@typescript-eslint/no-empty-object-type": "off",
+
+    // Allow 'let' even if not reassigned
+    "prefer-const": "off"
+   }
+}
