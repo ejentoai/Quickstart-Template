@@ -1,4 +1,4 @@
-# Ejento AI Template
+# Quick-start Ejento AI Template
 
 A flexible Next.js template for building AI-powered chat applications with the Ejento AI platform. This template provides a complete chat interface with streaming responses, message history, and flexible configuration options. Users are encouraged to build up on this template to utilize Ejento AI's capabilities by taking advantage of [Ejento AI APIs](https://api.ejento.ai/).
 
@@ -73,7 +73,7 @@ ENV_DRIVEN=true
 
 # Ejento API Configuration
 EJENTO_BASE_URL=https://api.yourdomain.com
-EJENTO_API_KEY=your-api-subscription-key
+EJENTO_API_KEY=your-ocp-apim-subscription-key
 EJENTO_ACCESS_TOKEN=Bearer your-access-token
 EJENTO_AGENT_ID=your-agent-id
 
@@ -116,7 +116,7 @@ ENV_DRIVEN=false
 
 # Ejento API Configuration
 EJENTO_BASE_URL=https://api.yourdomain.com
-EJENTO_API_KEY=your-api-subscription-key
+EJENTO_API_KEY=your-ocp-apim-subscription-key
 EJENTO_ACCESS_TOKEN=Bearer your-access-token
 EJENTO_AGENT_ID=your-agent-id
 
@@ -163,8 +163,8 @@ The configuration will be saved to browser localStorage and validated automatica
 | Variable | Description | Example |
 |----------|-------------|---------|
 | `ENV_DRIVEN` | Enable environment-driven configuration | `true` |
-| `EJENTO_BASE_URL` | Base URL for Ejento API | `https://api.ejento.com` |
-| `EJENTO_API_KEY` | API subscription key | `your-subscription-key` |
+| `EJENTO_BASE_URL` | Base URL for Ejento API server | e.g. `https://api.ejento.com` |
+| `EJENTO_API_KEY` | API subscription key | `your-ocp-apim-subscription-key` |
 | `EJENTO_ACCESS_TOKEN` | Authentication access token |Bearer `your-access-token` |
 | `EJENTO_AGENT_ID` | Agent ID | `123` |
 | `NEXT_PUBLIC_AGENT` | Enable public agent mode | `false` |
@@ -197,7 +197,7 @@ The configuration will be saved to browser localStorage and validated automatica
 
 - **Streaming Responses**: Real-time streaming of AI responses
 - **Message History**: Persistent chat threads with date-based organization
-- **Message Actions**: Upvite, downvote, regenerate and provide feedback to responses
+- **Message Actions**: Upvote, downvote, regenerate and provide feedback to responses
 - **Thread Management**: Create new chats, navigate between threads
 
 ## 🎨 Use Cases
@@ -302,7 +302,7 @@ ejento_template/
 
 ## 📝 License
 
-This template is provided as-is for building Ejento AI applications. Please refer to your organization's licensing terms.
+MIT License
 
 ## 🤝 Contributing
 
