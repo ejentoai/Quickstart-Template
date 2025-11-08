@@ -163,12 +163,12 @@ The configuration will be saved to browser localStorage and validated automatica
 | Variable | Description | Example |
 |----------|-------------|---------|
 | `ENV_DRIVEN` | Enable environment-driven configuration | `true` |
-| `EJENTO_BASE_URL` | Base URL for Ejento API server | e.g. `https://api.ejento.com` |
+| `EJENTO_BASE_URL` | Base URL for Ejento AI API server | `https://{your-server-name}` |
 | `EJENTO_API_KEY` | API subscription key | `your-ocp-apim-subscription-key` |
 | `EJENTO_ACCESS_TOKEN` | Authentication access token |Bearer `your-access-token` |
 | `EJENTO_AGENT_ID` | Agent ID | `123` |
 | `NEXT_PUBLIC_AGENT` | Enable public agent mode | `false` |
-| `NEXT_PUBLIC_AGENT_IMAGE` | Custom agent logo/image URL | Uses default Ejento logo |
+| `NEXT_PUBLIC_AGENT_IMAGE` | Custom agent logo/image URL | Uses default Ejento AI logo |
 | `NEXT_PUBLIC_AGENT_HEADER_TEXT` | Custom header text for agent | Default header |
 | `NEXT_PUBLIC_STREAM_CHAT` | Enable streaming chat responses | `true` |
 | `NEXT_PUBLIC_SECRET_KEY` | Secret key for encryption | A JWT Secret Key of your choice|
@@ -266,7 +266,7 @@ ejento_template/
 **Problem**: "Configuration Validation Failed"
 - ✅ Check that all environment variables are set correctly
 - ✅ Verify your API credentials are valid
-- ✅ Ensure Ejento Access Token is not expired (It expires every 7 Days)
+- ✅ Ensure Ejento Access Token is not expired (It expires every 7 Days). Refer this [Guide](https://api.ejento.ai/getting-started-with-authentication) to generate a new one.
 - ✅ Ensure the API endpoint is accessible from your server
 - ✅ Check server logs for detailed error messages
 - ✅ Restart the server after updating environment variables
@@ -313,6 +313,8 @@ This is a template repository. Feel free to:
 
 ## 📚 Additional Resources
 
+- [Ejento AI Documentation](https://docshub.ejento.ai/)
+- [Ejento AI API Documentation](https://api.ejento.ai/)
 - [Next.js Documentation](https://nextjs.org/docs)
 - [React Documentation](https://react.dev)
 - [Tailwind CSS Documentation](https://tailwindcss.com/docs)
@@ -322,7 +324,7 @@ This is a template repository. Feel free to:
 
 For issues related to:
 - **Template/Code**: Open an issue in this repository
-- **Ejento API**: Contact your Ejento API provider
+- **Ejento AI APIs**: Contact your Ejento AI provider via `developer.support@ejento.ai`
 - **Deployment**: Refer to your hosting platform's documentation
 
 ---
