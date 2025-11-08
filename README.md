@@ -41,7 +41,7 @@ A flexible Next.js template for building AI-powered chat applications with the E
 
 ```bash
 git clone <repository-url>
-cd sample_app
+cd Quickstart-Template
 ```
 
 ### 2. Install Dependencies
