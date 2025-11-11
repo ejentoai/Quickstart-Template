@@ -1,6 +1,7 @@
 # Quick-start Ejento AI Template
 
 A flexible Next.js template for building AI-powered chat applications with the Ejento AI platform. This template provides a complete chat interface with streaming responses, message history, and flexible configuration options. Users are encouraged to build up on this template to utilize Ejento AI's capabilities by taking advantage of [Ejento AI APIs](https://api.ejento.ai/).
+The [Quick-start Template for Building an App Guide](https://api.ejento.ai/guide/quick-start-template-for-building-an-app) will walk you through the steps required to get started.
 
 ## 🚀 Features
 
