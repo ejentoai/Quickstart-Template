@@ -87,6 +87,9 @@ NEXT_PUBLIC_AGENT_HEADER_TEXT=Your Custom Header Text
 
 # Enable streaming chat
 NEXT_PUBLIC_STREAM_CHAT=true
+
+# A JWT Secret Key of your choice for encryption of chatId
+NEXT_PUBLIC_SECRET_KEY=secret-key-for-encryption
 ```
 2. Start the development server:
 
@@ -132,7 +135,7 @@ NEXT_PUBLIC_AGENT_HEADER_TEXT=Your Custom Header Text
 NEXT_PUBLIC_STREAM_CHAT=true
 
 # A JWT Secret Key of your choice for encryption of chatId
-NEXT_PUBLIC_SECRET_KEY
+NEXT_PUBLIC_SECRET_KEY=secret-key-for-encryption
 ```
 
 2. Start the development server:
