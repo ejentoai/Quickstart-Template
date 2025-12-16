@@ -1,0 +1,35 @@
+trigger:
+  branches:
+    include:
+      - main
+
+
+
+resources:
+  repositories:
+    - repository: self
+    - repository: tools
+      type: git
+      name: ejento.ai/central_security_compliance_scripts
+      ref: refs/heads/master
+
+variables:
+
+- group: 'SCA-variables'
+
+stages:
+- stage: Secret_Scanning
+  displayName: Secret Scanning Stage 
+  jobs:
+  - job: Secret_scan
+    steps:
+    - template: /templates/Secret-Scanning.yml@tools
+
+- stage: Check_CVEs_and_Licenses_of_New_Packages
+  displayName: Check CVEs and Licenses of New Packages
+  dependsOn: Secret_Scanning
+  jobs:
+  - job: Check_CVEs_and_Licenses_of_New_Packages
+    displayName: Check CVEs and Licenses of New Packages
+    steps:
+      - template: /templates/CVE_License_Scanning-Frontend.yml@tools
