@@ -33,3 +33,47 @@ stages:
     displayName: Check CVEs and Licenses of New Packages
     steps:
       - template: /templates/CVE_License_Scanning-Frontend.yml@tools
+
+- stage: Generate_SBOM
+  displayName: Generate SBOM
+  dependsOn: Check_CVEs_and_Licenses_of_New_Packages
+
+  jobs:
+    - job: Generate_SBOM
+   
+      steps:
+        - script: |
+            if [ ! -f "package-lock.json" ]; then
+              echo "package-lock.json not found. Generating with npm install --package-lock-only..."
+              npm_config_ignore_scripts=true npm install --package-lock-only --legacy-peer-dep
+            else
+              echo "package-lock.json already exists. Skipping."
+            fi
+          workingDirectory: '$(Build.SourcesDirectory)'
+          displayName: "Generate package-lock.json if missing"
+        - task: ArchiveFiles@2
+          inputs:
+            rootFolderOrFile: '$(Build.SourcesDirectory)'  # Or your build folder
+            includeRootFolder: false
+            archiveType: 'zip'
+            archiveFile: '$(Build.ArtifactStagingDirectory)/app.zip'
+            replaceExistingArchive: true
+
+        - task: PublishBuildArtifacts@1
+          inputs:
+            PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+            ArtifactName: 'sbom-input'
+            publishLocation: 'Container'
+
+        - script: |
+            response=$(curl -X POST "https://fnapp-generate-sbom-ejento-dev-eastus-001.azurewebsites.net/api/generate_sbom" \
+              -H "Content-Type: application/json" \
+              -d "{
+                \"artifact_url\": \"https://dev.azure.com/dsdojo-services/OneClick_SAAS/_apis/build/builds/$(Build.BuildId)/artifacts?artifactName=sbom-input&api-version=6.0&%24format=zip\",
+                \"package_name\": \"ejento.ai/Quickstart-Template\",
+                \"package_version\": \"$(Build.BuildNumber)\",
+                \"pat\": \"$(AZDO_PAT)\",
+                \"package_manager\": \"npm\"
+              }")  
+            echo "response is this: $response" 
+          displayName: "Trigger SBOM Azure Function"
