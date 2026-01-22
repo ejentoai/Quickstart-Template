@@ -34,7 +34,7 @@ export class ApiService {
     // For environment-driven config, credentials may not be in client config
     // They are retrieved server-side via proxy. Use empty strings as fallback.
     return getApiHeaders(
-      baseUrl || this.config.baseUrl,
+      baseUrl || this.config.baseUrl, 
       this.config.ejentoAccessToken || '',
       this.config.apiKey || ''
     );
@@ -51,9 +51,6 @@ export class ApiService {
       });
       return response.data;
     } catch (error: any) {
-      if (error.response) {
-        return error.response.status;
-      }
       throw error;
     }
   }
@@ -90,6 +87,7 @@ export class ApiService {
         ? `${this.config.baseUrl}/api/v2/agents/${this.config.agentId}/corpora?verbosity=medium&is_enabled=true`
         : `/api/v2/agents/${this.config.agentId}/corpora?verbosity=medium&is_enabled=true`;
       const url = getProxiedUrl(urlPath, this.config.baseUrl);
+      console.log(this.getHeaders(),'getHeadres for coprora')
       const response = await axios.get(url, {
         headers: this.getHeaders(),
       });
@@ -193,6 +191,7 @@ export class ApiService {
         `${this.config.baseUrl}/api/v2/chat-threads/${threadID}/agent-responses?include_steps=true`,
         this.config.baseUrl
       );
+      console.log(this.getHeaders(),'headers for chat ')
       const response = await axios.get<ChatThreadAgentResponsesV2>(url, {
         headers: this.getHeaders(),
       });
@@ -227,7 +226,7 @@ export class ApiService {
         const errorData = error.response.data;
         throw new Error(errorData.message || 'Failed to record feedback.');
       }
-      throw new Error('An error occurred while making the request.');
+      throw new Error('An error oeccurred while making the request.');
     }
   }
 
@@ -376,4 +375,215 @@ export class ApiService {
       throw new Error("An unexpected error occurred while updating the chat thread title.");
     }
   }
-}
+
+    // ==================== Authentication METHODS ====================
+
+    async passwordlessAuth(email: string, otp_session_id : string) {
+      if (!email) {
+        throw new Error("Email is required for passwordless authentication.");
+      }
+    
+      try {
+        const url = getProxiedUrl(
+          `${this.config.baseUrl}/auth-service/api/v2/users/passwordless-auth`,
+          this.config.baseUrl
+        );
+
+        const path = `${process.env.NEXT_PUBLIC_APP_URL}/auth/confirmation/`
+
+        const payload: {
+          email: string;
+          next: string;
+          otp_session_id?: string;
+        } = {
+          email,
+          next: path,
+        };
+        
+        if (otp_session_id) {
+          payload.otp_session_id = otp_session_id; //needed when we are requiring a new otp code 
+        }
+    
+        const response = await axios.post(url, payload, {
+          headers: getApiHeaders(
+            this.config.baseUrl,
+            this.config.ejentoAccessToken || '',
+            this.config.apiKey || ''
+          ),
+        });
+    
+        return {
+          success: true,
+          message: "Email sent successfully.",
+          data: response.data || {},
+        };
+      } catch (error: any) {
+        
+        const status = error?.response?.status;
+        let userMessage;
+
+        if( status === 401 ) { userMessage = 'you are not authorized' }
+        else if (status === 500) userMessage = "Server error. Try again later.";
+        else{
+          userMessage = error?.response?.data?.detail || "Something went wrong. Please try again.";
+        }
+
+        if (axios.isAxiosError(error) && error.response) {
+          return {
+            success: false,
+            message: userMessage,
+          };
+        }
+    
+        return {
+          success: false,
+          message: "An unexpected error occurred.",
+        };
+      }
+    };
+
+    async featureFlags() {
+      try {
+        const url = getProxiedUrl(
+          `${this.config.baseUrl}/auth-service/api/v2/feature-flags/logins`,
+          this.config.baseUrl
+        );
+    
+        const response = await axios.get(url,{
+          headers: getApiHeaders(
+            this.config.baseUrl,
+            this.config.ejentoAccessToken || '',
+            this.config.apiKey || ''
+          ),
+        });
+    
+        return {
+          success: true,
+          data: response.data || {},
+        };
+      } catch (error: any) {
+        
+        if (axios.isAxiosError(error) && error.response) {
+          return {
+            success: false,
+            error: error,
+          };
+        }
+    
+        throw new Error('An unexpected error occurred.');
+        };
+    }
+
+    async validateMagicLink(token : string) {
+      if (!token) {
+        throw new Error("Token is required for magic link validation.");
+      }
+    
+      try {
+        const url = getProxiedUrl(
+          `${this.config.baseUrl}/auth-service/api/v2/users/validate-magic-link`,
+          this.config.baseUrl
+        );
+
+        const response = await axios.post(url, {token}, {
+          headers: getApiHeaders(
+            this.config.baseUrl,
+            this.config.ejentoAccessToken || '',
+            this.config.apiKey || ''
+          ),
+        });
+         
+        if(response?.data?.success){
+           
+          return {
+            success: true,
+            message: "Magic link validated successfully",
+            data: response.data || {},
+          };
+
+        }
+        else{
+          return {
+            success: false,
+            message: response.data.message || 'Unable to validate magic link',
+            data: response.data || {},
+          };
+        }
+    
+      } catch (error : any) {
+        const status = error?.response?.status;
+        let userMessage;
+        if (status === 401) userMessage = "You are not authorized.";
+        else if (status === 500) userMessage = "Server error. Try again later.";
+        else {
+          userMessage = error?.response?.data?.detail || "Something went wrong. Please try again.";
+        }
+    
+        return {
+          success: false,
+          message: userMessage,
+        };
+      }
+    }
+
+    async validateOtp(otp_session_id : string, code : string) {
+      if (!otp_session_id && !code) {
+        throw new Error("Something went wrong. Please try again.");
+      }
+    
+      try {
+        const url = getProxiedUrl(
+          `${this.config.baseUrl}/auth-service/api/v2/users/verify-otp`,
+          this.config.baseUrl
+        );
+    
+        const response = await axios.post(url, {otp_session_id,code}, {
+          headers: getApiHeaders(
+            this.config.baseUrl,
+            this.config.ejentoAccessToken || '',
+            this.config.apiKey || ''
+          ),
+        });
+    
+        return {
+          success: true,
+          message: "otp validated successfully",
+          data: response.data || {},
+        };
+    
+      } catch (error : any) {
+        const status = error?.response?.status;
+        let userMessage;
+        if (status === 401) userMessage = "You are not authorized.";
+        else if (status === 500) userMessage = "Server error. Try again later.";
+        else{
+          userMessage = error?.response?.data?.detail || 'Something went wrong. Please try again.'
+        }
+    
+        return {
+          success: false,
+          message: userMessage,
+        };
+      }
+    }
+
+    // ==================== SSO METHODS ====================
+
+    async SSO_PROVIDER(provider: string): Promise<string | null> {
+      try {
+        const res = await fetch(`/api/sso/${provider}`);
+        const data = await res.json();
+    
+        if (data?.success && data?.redirectUrl) {
+          return data.redirectUrl;
+        }
+    
+        return null;
+      } catch (error) {
+        console.error(error);
+        return null;
+      }
+    }
+    
+  }
+  

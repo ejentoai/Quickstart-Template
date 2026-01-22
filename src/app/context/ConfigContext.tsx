@@ -1,6 +1,5 @@
 'use client';
 
-import { useApiService } from '@/hooks/useApiService';
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { setUserToStorage } from '@/cookie';
 
@@ -14,6 +13,7 @@ export interface UserConfig {
   
   // User Information (optional, can be fetched)
   userInfo?: {
+    id?: string;
     first_name: string;
     last_name: string;
     name: string;
@@ -45,6 +45,7 @@ interface ConfigContextType {
 
 const ConfigContext = createContext<ConfigContextType | undefined>(undefined);
 
+
 export function useConfig() {
   const context = useContext(ConfigContext);
   if (!context) {
@@ -59,6 +60,8 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isValidating, setIsValidating] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const isAuthEnabled = process.env.NEXT_PUBLIC_AUTH_FLOW === 'true';
+
 
   const updateConfig = (newConfig: Partial<UserConfig>) => {
     setConfig(prev => prev ? { ...prev, ...newConfig } : newConfig as UserConfig);
@@ -70,6 +73,10 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
   };
 
   const clearConfig = async () => {
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+
     setConfig(null);
     setConfigSource(null);
     
@@ -83,10 +90,14 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     try {
       await fetch('/api/config', {
         method: 'DELETE',
+        signal : controller.signal
       });
     } catch (error) {
       console.error('Failed to clear server-side credentials:', error);
       // Continue even if this fails - localStorage is already cleared
+    }
+    finally {
+      clearTimeout(timeout); 
     }
   };
 
@@ -103,6 +114,10 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
    * This ensures env config is valid before the app uses it
    */
   const validateEnvConfig = async (configToValidate: UserConfig): Promise<boolean> => {
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+
     setIsValidating(true);
     setValidationError(null);
 
@@ -113,67 +128,106 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ config: configToValidate }),
+        signal : controller.signal
       });
 
       const result = await response.json();
+      
+      //if auth flow is enabled then we donot handle userData at this point
+      //because userData will be available after successful login
+      if(isAuthEnabled){
+        if(result.success){
+          // Clear any validation errors
+          setValidationError(null);
+          return true;
+        }
+        else {
+          // Validation failed
+          const errorMessage = result.message || 'Configuration validation failed';
+          setValidationError(errorMessage);
+          return false;
+        }
+      }
+      else{
+        if (result.success && result.userData) {
 
-      if (result.success && result.userData) {
-
-        const user = result.userData.data ? result.userData.data : result.userData;
-  
-        const filteredUser = {
-          first_name: user.first_name || '',
-          last_name: user.last_name || '',
-          name: user.full_name || '' + ' ' + user.last_name || '',
-          email: user.email || '',
-          is_staff: user.is_staff || false,
-          is_superuser: user.is_superuser || false,
-        };
-
-        // Validation successful - store filtered user info
-        // The sidebar expects the user data in a specific format with a 'data' property
-        // Always use filteredUser to ensure only required fields are stored
-        const userInfoToStore = { 
-          success: true, 
-          message: 'User data loaded', 
-          data: filteredUser
-        };
-        setUserToStorage(userInfoToStore);
-        
-        // Update config with user info
-        // Ensure config is updated synchronously so isConfigured calculation works
-        setConfig(prev => {
-          if (!prev) {
-            // This shouldn't happen if validation was called with a config, but handle it
-            return prev;
-          }
-          return {
-            ...prev,
-            userInfo: filteredUser
+          const user = result.userData.data ? result.userData.data : result.userData;
+    
+          const filteredUser = {
+            first_name: user.first_name || '',
+            last_name: user.last_name || '',
+            name: user.full_name || '' + ' ' + user.last_name || '',
+            email: user.email || '',
+            is_staff: user.is_staff || false,
+            is_superuser: user.is_superuser || false,
           };
-        });
-        
-        // Clear any validation errors
-        setValidationError(null);
-        return true;
-      } else {
-        // Validation failed
-        const errorMessage = result.message || 'Configuration validation failed';
-        setValidationError(errorMessage);
-        console.error('Env config validation failed:', errorMessage);
-        return false;
+  
+          // Validation successful - store filtered user info
+          // The sidebar expects the user data in a specific format with a 'data' property
+          // Always use filteredUser to ensure only required fields are stored
+          const userInfoToStore = { 
+            success: true, 
+            message: 'User data loaded', 
+            data: filteredUser
+          };
+          setUserToStorage(userInfoToStore);
+          
+          // Update config with user info
+          // Ensure config is updated synchronously so isConfigured calculation works
+          //if auth flow is enabled then user info will not store in config
+            //because user data will be available after login
+          setConfig(prev => {
+            if (!prev) {
+              // This shouldn't happen if validation was called with a config, but handle it
+              return prev;
+            }
+            if(isAuthEnabled){
+              return {
+                ...prev,
+              };
+            }
+            else{
+              return {
+                ...prev,
+                userInfo: filteredUser
+              };
+            }
+            
+          });
+          
+          // Clear any validation errors
+          setValidationError(null);
+          return true;
+        } else {
+          // Validation failed
+          const errorMessage = result.message || 'Configuration validation failed';
+          setValidationError(errorMessage);
+          return false;
+        }
       }
     } catch (error: any) {
-      const errorMessage = error.message || 'Failed to validate configuration';
-      setValidationError(errorMessage);
-      console.error('Error validating env config:', error);
-      return false;
+        let errorMessage;
+        if(error.name === 'AbortError'){
+          errorMessage = 'Validation timed out. Please check your environment variables or server.'
+          setValidationError(errorMessage);
+        }
+        else{
+          errorMessage = error.message || 'Failed to validate configuration';
+          setValidationError(errorMessage);
+          console.error('Error validating env config:', error);
+        }
+        return false;
     } finally {
       setIsValidating(false);
+        clearTimeout(timeout); 
     }
   };
 
   const loadConfig = async () => {
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+
     if (typeof window === 'undefined') {
       setIsLoading(false);
       return;
@@ -183,7 +237,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
       // Step 1: Check for environment-based configuration first
       // The API endpoint will respect ENV_DRIVEN flag and return appropriate response
       try {
-        const envConfigResponse = await fetch('/api/config');
+        const envConfigResponse = await fetch('/api/config',{signal : controller.signal});
         if (envConfigResponse.ok) {
           const envConfigData = await envConfigResponse.json();
           
@@ -207,7 +261,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
               setConfig(null);
               // Keep configSource as 'environment' so validation error can be displayed
               // This allows the UI to show that it was an env config validation failure
-              console.error('Environment configuration validation failed. App will not start with invalid credentials.');
+              // console.error('Environment configuration validation failed. App will not start with invalid credentials.');
             }
             
             setIsLoading(false);
@@ -243,6 +297,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
       console.error('Failed to load config:', error);
     } finally {
       setIsLoading(false);
+      clearTimeout(timeout); 
     }
   };
 
@@ -264,12 +319,15 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
   // agentId is not sensitive and is required for both modes
   const isConfigured = Boolean(
     config?.agentId &&
-    // For localStorage config, require baseUrl and credentials (they're stored client-side)
-    // For environment config, baseUrl and credentials are server-side only (validation confirms they exist)
-    (configSource === 'environment' || (config?.baseUrl && config?.apiKey && config?.ejentoAccessToken)) &&
-    // For env config, ensure validation passed (no error)
-    (configSource !== 'environment' || !validationError)
+    (
+      configSource === 'environment' 
+        ? !validationError // env config just needs validation
+        : isAuthEnabled 
+          ? (config?.baseUrl && config?.apiKey) // localStorage config with auth flow true only requires baseUrl and agentId
+          : (config?.baseUrl && config?.apiKey && config?.ejentoAccessToken) // normal localStorage config
+    )
   );
+  
 
   const isEnvConfigured = configSource === 'environment';
 

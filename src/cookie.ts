@@ -2,21 +2,74 @@
 
 import Cookies from 'js-cookie';
 
+export const setAccessToken = (access_token : any) => {
+  try {
+    Cookies.set('token', access_token, {
+      expires: 7,
+      path: '/',
+      sameSite: 'Lax',
+      secure: false
+    }); 
+    return true;
+  } catch (error) {
+    console.error('Failed to set access token:', error);
+    return false;
+  }
+};
+
+export const removeAccessToken = () => {
+  try {
+    Cookies.remove('token',{
+      path: '/',
+    }); 
+    return true;
+  } catch (error) {
+    console.error('Failed to remove access token:', error);
+    return false;
+  }
+};
+
+export const setEjentoAccessToken = (ejento_access_token : any) => {
+  try {
+    Cookies.set('ejento_access_token',ejento_access_token, {
+      expires: 7,
+      path: '/',
+      sameSite: 'Lax',
+      secure: false
+    }); 
+    return true;
+  } catch (error) {
+    console.error('Failed to set access ejento token:', error);
+    return false;
+  }
+};
+
+export const removeEjentoAccessToken = () => {
+  try {
+    Cookies.remove('ejento_access_token',{
+      path: '/',
+    }); 
+    return true;
+  } catch (error) {
+    console.error('Failed to remove ejento access token:', error);
+    return false;
+  }
+};
+
 export const getAccessToken = () => {
-  let access_token = Cookies.get('access_token');
+  let access_token = Cookies.get('token');
   if (access_token) {
-    access_token = JSON.parse(access_token)
     return access_token
   } else {
     return null
   }
 };
 
+
 export const getEjentoAccessToken = () => {
-  let access_token = Cookies.get('ejento_access_token');
-  if (access_token) {
-    access_token = JSON.parse(access_token)
-    return access_token
+  let ejento_access_token = Cookies.get('ejento_access_token');
+  if (ejento_access_token) {
+    return ejento_access_token
   } else {
     return null
   }

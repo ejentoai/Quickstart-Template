@@ -81,12 +81,12 @@ export function ConfigGuard({ children, requireConfig = true }: ConfigGuardProps
           
           <div className="space-y-3 mt-4">
             <p className="text-sm text-gray-500">
-              You'll need to provide:
+              You&apos;ll need to provide:
             </p>
             <ul className="text-sm text-gray-600 text-left space-y-1 bg-gray-50 rounded-lg p-4">
               <li>• Base URL</li>
               <li>• API Key</li>
-              <li>• Ejento Access Token</li>
+              {process.env.NEXT_PUBLIC_AUTH_FLOW === 'true' ? '' : <li>• Ejento Access Token</li>}
               <li>• Agent ID</li>
             </ul>
           </div>

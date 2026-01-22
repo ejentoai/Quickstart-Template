@@ -87,15 +87,8 @@ export function AppSidebar() {
   const { config } = useConfig();
   
   // PUBLIC_AGENT mode: Get session context
-  const isPublicAgent = isPublicAgentMode();
-  let publicAgentSession: ReturnType<typeof usePublicAgentSession> | null = null;
-  try {
-    if (isPublicAgent) {
-      publicAgentSession = usePublicAgentSession();
-    }
-  } catch (error) {
-    // Context not available, continue without it
-  }
+  const publicAgentSession = usePublicAgentSession(); 
+  const isPublicAgent = isPublicAgentMode(); 
 
   const agentImageUrl = process.env.NEXT_PUBLIC_AGENT_IMAGE?.trim();
 

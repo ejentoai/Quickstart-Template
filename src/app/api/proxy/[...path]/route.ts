@@ -1,186 +1,160 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ path: string[] }> }
-) {
+// APIs that don't need Authorization token - because token will be available after login
+//so login pages donot require tokens
+const NO_AUTH_ROUTES = [
+  'auth-service/api/v2/users/passwordless-auth',
+  'auth-service/api/v2/users/verify-otp',
+  'auth-service/api/v2/users/validate-magic-link',
+  'auth-service/api/v2/feature-flags/logins',
+];
+
+// HTTP methods
+export async function GET(request: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   const resolvedParams = await params;
   return proxyRequest(request, resolvedParams.path, 'GET');
 }
-
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ path: string[] }> }
-) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   const resolvedParams = await params;
   return proxyRequest(request, resolvedParams.path, 'POST');
 }
-
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ path: string[] }> }
-) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   const resolvedParams = await params;
   return proxyRequest(request, resolvedParams.path, 'PUT');
 }
-
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ path: string[] }> }
-) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   const resolvedParams = await params;
   return proxyRequest(request, resolvedParams.path, 'DELETE');
 }
-
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ path: string[] }> }
-) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   const resolvedParams = await params;
   return proxyRequest(request, resolvedParams.path, 'PATCH');
-}
+};
 
 /**
- * Retrieves API credentials from server-side sources
- * SECURITY: Credentials are never sent from client, only retrieved server-side
- * - ENV_DRIVEN=true: Reads from environment variables
- * - ENV_DRIVEN=false: Reads from secure httpOnly cookies (set after validation)
+ * Get server-side credentials (subscription key and base URL)
  */
-async function getServerSideCredentials(): Promise<{
-  baseUrl: string;
-  authorization: string;
-  apiKey: string;
-} | null> {
-  // Check if ENV_DRIVEN mode is enabled
+async function getServerSideCredentials() {
   const envDriven = process.env.ENV_DRIVEN === 'true' || process.env.ENV_DRIVEN === '1';
-  
+  const authFlowEnabled = process.env.NEXT_PUBLIC_AUTH_FLOW === 'true';
+  const cookieStore = await cookies();
+
+  let baseUrl: string | undefined;
+  let apiKey: string | undefined;
+  let ejentoAccessToken: string | undefined;
+
   if (envDriven) {
-    // ENV_DRIVEN=true: Get credentials from environment variables
-    const baseUrl = process.env.EJENTO_BASE_URL;
-    const apiKey = process.env.EJENTO_API_KEY;
-    const ejentoAccessToken = process.env.EJENTO_ACCESS_TOKEN;
-    
-    if (baseUrl && apiKey && ejentoAccessToken) {
-      return {
-        baseUrl: baseUrl.trim(),
-        authorization: ejentoAccessToken.trim(),
-        apiKey: apiKey.trim(),
-      };
-    }
+    baseUrl = process.env.EJENTO_BASE_URL?.trim();
+    apiKey = process.env.EJENTO_API_KEY?.trim();
+    ejentoAccessToken = process.env.EJENTO_ACCESS_TOKEN?.trim();
   } else {
-    // ENV_DRIVEN=false: Get credentials from secure httpOnly cookies
-    const cookieStore = await cookies();
-    const credentialsCookie = cookieStore.get('ejento_api_credentials');
-    
-    if (credentialsCookie?.value) {
+    const cookieValue = cookieStore.get('ejento_api_credentials')?.value;
+    if (cookieValue) {
       try {
-        const credentials = JSON.parse(credentialsCookie.value);
-        if (credentials.baseUrl && credentials.apiKey && credentials.ejentoAccessToken) {
-          return {
-            baseUrl: credentials.baseUrl,
-            authorization: credentials.ejentoAccessToken,
-            apiKey: credentials.apiKey,
-          };
-        }
+        const credentials = JSON.parse(cookieValue);
+        baseUrl = credentials.baseUrl?.trim();
+        apiKey = credentials.apiKey?.trim();
+        ejentoAccessToken = credentials.ejentoAccessToken?.trim();
       } catch (error) {
         console.error('Failed to parse credentials cookie:', error);
       }
     }
   }
-  
-  return null;
-}
 
-async function proxyRequest(
-  request: NextRequest,
-  pathArray: string[],
-  method: string
-) {
+  if (!baseUrl || !apiKey) return null;
+  if (authFlowEnabled) return { baseUrl, apiKey };
+  if (!ejentoAccessToken) return null;
+
+  return { baseUrl, apiKey, authorization: ejentoAccessToken };
+}
+/**
+ * Core proxy function
+ */
+async function proxyRequest(request: NextRequest, pathArray: string[], method: string) {
   try {
-    // SECURITY: Get credentials from server-side sources only
-    // Client should NOT send Authorization or Ocp-Apim-Subscription-Key headers
     const credentials = await getServerSideCredentials();
-    
     if (!credentials) {
-      return NextResponse.json(
-        { error: 'API credentials not configured. Please configure your credentials in settings or environment variables.' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'API credentials not configured' }, { status: 401 });
     }
 
-    const { baseUrl, authorization, apiKey } = credentials;
-    const contentType = request.headers.get('content-type');
+    const { baseUrl, apiKey } = credentials;
+    const cookieStore = await cookies();
 
-    // Construct the full path
+
+    // Build full path
     const path = pathArray.join('/');
     const targetUrl = `${baseUrl}/${path}`;
-
-    // Preserve query parameters
     const searchParams = request.nextUrl.searchParams.toString();
     const fullUrl = searchParams ? `${targetUrl}?${searchParams}` : targetUrl;
 
-    // Prepare headers for the proxied request
-    // SECURITY: Credentials are retrieved server-side, never from client headers
+    const contentType = request.headers.get('content-type') || 'application/json';
+
+    // Prepare headers
     const headers: HeadersInit = {
-      'Content-Type': contentType || 'application/json',
-      'Authorization': authorization,
+      'Content-Type': contentType,
       'Ocp-Apim-Subscription-Key': apiKey,
     };
 
-    // Prepare the fetch options
-    const fetchOptions: RequestInit = {
-      method,
-      headers,
-    };
+    // Only add Authorization if NOT in NO_AUTH_ROUTES
+    const isNoAuthRoute = NO_AUTH_ROUTES.some(route => path.includes(route));
+    if (!isNoAuthRoute) {
+      let authorization = credentials.authorization;
 
-    // Add body for methods that support it
-    if (method !== 'GET' && method !== 'HEAD') {
-      try {
-        const body = await request.text();
-        if (body) {
-          fetchOptions.body = body;
+      // Override with cookie token if NEXT_PUBLIC_AUTH_FLOW=true
+      if (process.env.NEXT_PUBLIC_AUTH_FLOW === 'true') {
+        try{
+          const tokenFromCookie = cookieStore.get('ejento_access_token');
+          if (tokenFromCookie?.value) {
+            const ejento_cookie = tokenFromCookie.value
+            const temp_authorization = ejento_cookie;
+            authorization = `Bearer ${temp_authorization}`
+          }
         }
-      } catch (error) {
-        console.error('Error reading request body:', error);
+        catch(error){
+          console.error('Failed to parse credentials cookie:', error);
+        }  
       }
+      headers['Authorization'] = authorization || '';
     }
 
-    // Make the proxied request
-    const response = await fetch(fullUrl, fetchOptions);
 
-    // Check if this is a streaming response
+    // Prepare fetch options
+    const fetchOptions: RequestInit = { method, headers };
+
+    if (method !== 'GET' && method !== 'HEAD') {
+      const body = await request.text();
+      if (body) fetchOptions.body = body;
+    }
+
+    const response = await fetch(fullUrl, fetchOptions);
     const contentTypeHeader = response.headers.get('content-type');
-    const isStreaming = contentTypeHeader?.includes('text/event-stream') || 
-                       contentTypeHeader?.includes('text/plain') ||
-                       response.headers.get('cache-control')?.includes('no-cache');
+
+    // Streaming response handling
+    const isStreaming =
+      contentTypeHeader?.includes('text/event-stream') ||
+      contentTypeHeader?.includes('text/plain') ||
+      response.headers.get('cache-control')?.includes('no-cache');
 
     if (isStreaming) {
-      // Create a readable stream for Server-Sent Events
       const stream = new ReadableStream({
-        start(controller) {
+        async start(controller) {
           const reader = response.body?.getReader();
-          if (!reader) {
-            controller.close();
-            return;
-          }
+          if (!reader) return controller.close();
 
-          function pump(): Promise<void> {
-            return reader!.read().then(({ done, value }) => {
-              if (done) {
-                controller.close();
-                return;
-              }
-              controller.enqueue(value);
-              return pump();
-            }).catch((error) => {
-              console.error('Stream pump error:', error);
-              controller.error(error);
-            });
+          async function pump() {
+            const result = await reader?.read();
+            if(!result){
+              console.error('no reader available')
+              return
+            }
+            const {done, value} = result
+            if (done) return controller.close();
+            controller.enqueue(value);
+            await pump();
           }
-
-          return pump();
-        }
+          await pump();
+        },
       });
 
       return new Response(stream, {
@@ -188,7 +162,7 @@ async function proxyRequest(
         headers: {
           'Content-Type': contentTypeHeader || 'text/event-stream',
           'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive',
+          Connection: 'keep-alive',
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': 'GET,PUT,POST,DELETE,PATCH,OPTIONS',
           'Access-Control-Allow-Headers': 'Content-Type',
@@ -196,7 +170,7 @@ async function proxyRequest(
       });
     }
 
-    // Handle non-streaming responses
+    // Non-streaming response
     let data;
     if (contentTypeHeader?.includes('application/json')) {
       data = await response.json();
@@ -204,14 +178,7 @@ async function proxyRequest(
       data = await response.text();
     }
 
-
-    // Return the response with the same status code
-    return NextResponse.json(data, {
-      status: response.status,
-      headers: {
-        'Content-Type': contentTypeHeader || 'application/json',
-      },
-    });
+    return NextResponse.json(data, { status: response.status, headers: { 'Content-Type': contentTypeHeader || 'application/json' } });
   } catch (error) {
     console.error('Proxy error:', error);
     return NextResponse.json(
@@ -220,4 +187,3 @@ async function proxyRequest(
     );
   }
 }
-

@@ -233,15 +233,8 @@ export function SidebarHistory({ fetchThreads, threads, groupedChats, setThreads
   const [deleteId, setDeleteId] = useState<number | null>(null);
   
   // PUBLIC_AGENT mode: Get session context
+  const publicAgentSession = usePublicAgentSession();
   const isPublicAgent = isPublicAgentMode();
-  let publicAgentSession: ReturnType<typeof usePublicAgentSession> | null = null;
-  try {
-    if (isPublicAgent) {
-      publicAgentSession = usePublicAgentSession();
-    }
-  } catch (error) {
-    // Context not available, continue without it
-  }
 
 
   useEffect(() => {

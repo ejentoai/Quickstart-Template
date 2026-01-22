@@ -13,10 +13,12 @@ export default function Home() {
   const router = useRouter();
   const { isConfigured, isLoading, isValidating, validationError, configSource, config } = useConfig();
   const isPublicAgent = isPublicAgentMode();
+  const isAuthFlowEnabled = process.env.NEXT_PUBLIC_AUTH_FLOW === 'true'
+  let path;
 
   useEffect(() => {
     // Wait for loading and validation to complete before routing
-    if (isLoading || isValidating) {
+    if (isLoading || (isValidating)) {
       return; // Still loading/validating
     }
 
@@ -27,8 +29,9 @@ export default function Home() {
       // Check if env config is available (via ENV_DRIVEN mode)
       if (configSource === 'environment') {
         if (config && !validationError && isConfigured) {
-          // Env config validated successfully - route to chat
-          router.replace('/chat');
+          // Env config validated successfully - route to login page if auth flow is enabled otherwise route to chat page
+          path = isAuthFlowEnabled ? '/auth/login' : '/chat';
+          router.replace(path);
           return;
         } else if (validationError) {
           // Show validation error
@@ -52,8 +55,9 @@ export default function Home() {
     // For env config, ensure we have valid config (not null) and no validation error
     if (configSource === 'environment') {
       if (config && !validationError && isConfigured) {
-        // Env config validated successfully - automatically route to chat
-        router.replace('/chat');
+        // Env config validated successfully - route to login page if auth flow is enabled otherwise route to chat page
+        path = isAuthFlowEnabled ? '/auth/login' : '/chat';
+        router.replace(path);
         return;
       } else if (!config || validationError) {
         // Env config invalid or validation failed - don't route (show error)
@@ -63,12 +67,13 @@ export default function Home() {
 
     // For localStorage config or no config source
     if (isConfigured && config) {
-      router.replace('/chat');
+      path = isAuthFlowEnabled ? '/auth/login' : '/chat';
+      router.replace(path);
     } else {
       // Only route to settings if we're fully done loading and no config
       router.replace('/settings');
     }
-  }, [router, isConfigured, isLoading, isValidating, validationError, configSource, config, isPublicAgent]);
+  }, [router,isConfigured, isLoading, isValidating, validationError, configSource, config, isPublicAgent]);
 
   // Show loading state while config is being loaded or validated
   if (isLoading || isValidating) {
@@ -191,7 +196,7 @@ export default function Home() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen">
       <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
-      <p className="mt-4 text-gray-600">Loading...</p>
+      <p className="mt-4 text-gray-600">Loading....</p>
     </div>
   );
 }

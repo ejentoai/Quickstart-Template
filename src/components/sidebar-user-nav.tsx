@@ -21,10 +21,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useRouter } from 'next/navigation';
-import { getUserFromStorage, setUserToStorage } from '@/cookie';
+import { clearUserFromStorage, getUserFromStorage, removeAccessToken, removeEjentoAccessToken, setUserToStorage } from '@/cookie';
 import { toast } from 'sonner';
-import { Eye, EyeOff } from 'lucide-react';
-import { ApiService } from '@/api';
+import { Eye, EyeOff,LogOut } from 'lucide-react';
 
 export function SidebarUserNav() {
   const { config, clearConfig, updateConfig, saveConfig, configSource } = useConfig();
@@ -64,9 +63,20 @@ export function SidebarUserNav() {
     ejentoAccessToken: false,
   });
   const [isSavingConfig, setIsSavingConfig] = useState(false);
+  const isAuthFlowEnabled = process.env.NEXT_PUBLIC_AUTH_FLOW === 'true';
 
   useEffect(() => {
-    setUserInfo(getUserFromStorage());
+    if (isAuthFlowEnabled) {
+      const user_info = getUserFromStorage()
+      const temp_user = {
+        success : true,
+        message : 'successfull',
+        data : user_info
+      }
+      setUserInfo(temp_user)
+    } else {
+      setUserInfo(getUserFromStorage());
+    }
   }, []);
 
   useEffect(() => {
@@ -80,9 +90,27 @@ export function SidebarUserNav() {
     }
   }, [isManageConfigOpen, config]);
 
+  const clearTokens = () => {
+    const responseOfAccessToken = removeAccessToken()
+    const responseOfEjentoAccessToken = removeEjentoAccessToken()
+    if(responseOfAccessToken && responseOfEjentoAccessToken){
+      return true
+    }
+    else{
+      return false
+    }
+  }
+
   const handleLogout = () => {
-    clearConfig();
-    router.push('/settings');
+    const result = clearTokens()
+    const removed = clearUserFromStorage()
+    if(result && removed){
+      toast.success('Logout Successfully')
+      router.push('/');
+    }
+    else{
+      toast.error('Something went wrong while logging out. Please try again.');
+    }
   };
 
   const handleConfigChange = (field: string, value: string) => {
@@ -97,77 +125,102 @@ export function SidebarUserNav() {
   };
 
   const handleSaveConfig = async () => {
+
     // Prevent saving if config is environment-driven
     if (configSource === 'environment') {
       toast.error('Configuration cannot be modified. This application uses environment-driven configuration.');
       setIsManageConfigOpen(false);
       return;
     }
-
-    if (!configForm.baseUrl || !configForm.ejentoAccessToken || !configForm.apiKey || !configForm.agentId) {
-      toast.error('Please fill in all required fields');
-      return;
+  
+    // Check required fields based on auth flow
+    if (process.env.NEXT_PUBLIC_AUTH_FLOW === 'true') {
+      if (!configForm.baseUrl || !configForm.apiKey || !configForm.agentId) {
+        toast.error('Please fill in all required fields');
+        return;
+      }
+    } else {
+      if (!configForm.baseUrl || !configForm.ejentoAccessToken || !configForm.apiKey || !configForm.agentId) {
+        toast.error('Please fill in all required fields');
+        return;
+      }
     }
-
+    
     setIsSavingConfig(true);
-
+  
     try {
-      const newConfig = {
-        baseUrl: configForm.baseUrl.trim(),
-        ejentoAccessToken: configForm.ejentoAccessToken.trim(),
-        apiKey: configForm.apiKey.trim(),
-        agentId: configForm.agentId.trim(),
-        // Keep existing user info if available
-        userInfo: config?.userInfo || {
-          id: 'user-1',
-          name: '',
-          email: '',
-        }
-      };
-
-      // Validate user and agent before saving
-      const tempApiService = new ApiService(newConfig);
-      
-      // 1. Validate user exists
-      const userData = await tempApiService.getCurrentUser();
-      if (!userData || typeof userData === 'number' || Number.isInteger(userData)) {
-        toast.error('Could not verify credentials. Please make sure your provided values are correct.');
+      // Create config object based on auth flow
+      let newConfig;
+      if (process.env.NEXT_PUBLIC_AUTH_FLOW === 'true') {
+        newConfig = {
+          baseUrl: configForm.baseUrl.trim(),
+          apiKey: configForm.apiKey.trim(),
+          agentId: configForm.agentId.trim(),
+        };
+      } else {
+        newConfig = {
+          baseUrl: configForm.baseUrl.trim(),
+          ejentoAccessToken: configForm.ejentoAccessToken.trim(),
+          apiKey: configForm.apiKey.trim(),
+          agentId: configForm.agentId.trim(),
+          // Keep existing user info if available
+          userInfo: config?.userInfo || {
+            id: 'user-1',
+            name: '',
+            email: '',
+          }
+        };
+      }
+  
+      // Call server-side validation endpoint
+      const response = await fetch('/api/config/validate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ config: newConfig }),
+      });
+  
+      const validationResult = await response.json();
+  
+      if (!validationResult.success) {
+        toast.error(validationResult.message || 'Failed to validate configuration');
         setIsSavingConfig(false);
         return;
       }
-
-      // 2. Validate agent exists
-      const agentResponse = await tempApiService.getAgent(newConfig.agentId);
-      if (!agentResponse.success || !agentResponse.data) {
-        const errorMessage = agentResponse.message || 'Agent could not be retrieved';
-        toast.error(`Invalid agent ID. ${errorMessage}. Please check your Agent ID.`);
-        setIsSavingConfig(false);
-        return;
-      }
-
+  
       // Both validations passed, proceed with saving
-      // Check if critical config values have changed (agentId, baseUrl, or ejentoAccessToken)
-      const configChanged = !config || 
-        config.agentId !== newConfig.agentId ||
-        config.baseUrl !== newConfig.baseUrl ||
-        config.ejentoAccessToken !== newConfig.ejentoAccessToken ||
-        config.apiKey !== newConfig.apiKey;
-
-      // Store user data
-      if (userData && typeof userData === 'object' && !Number.isInteger(userData)) {
+      // Check if critical config values have changed
+      let configChanged;
+      if (process.env.NEXT_PUBLIC_AUTH_FLOW === 'true') {
+        configChanged = !config || 
+          config.agentId !== newConfig.agentId ||
+          config.baseUrl !== newConfig.baseUrl ||
+          config.apiKey !== newConfig.apiKey;
+      } else {
+        configChanged = !config || 
+          config.agentId !== newConfig.agentId ||
+          config.baseUrl !== newConfig.baseUrl ||
+          config.ejentoAccessToken !== newConfig.ejentoAccessToken ||
+          config.apiKey !== newConfig.apiKey;
+      }
+  
+      // For non-auth flow mode, update user data if available
+      if (process.env.NEXT_PUBLIC_AUTH_FLOW !== 'true' && validationResult.userData) {
+        const userData = validationResult.userData;
         setUserToStorage(userData);
         
         // Update the config with the fetched user info
         const updatedConfig = {
           ...newConfig,
           userInfo: {
-            id: userData.id || userData.user_id || newConfig.userInfo.id,
-            name: userData.name || userData.full_name || newConfig.userInfo.name,
-            email: userData.email || newConfig.userInfo.email,
+            id: userData.id || userData?.user_id || newConfig?.userInfo?.id,
+            name: userData.name || userData.full_name || newConfig?.userInfo?.name,
+            email: userData.email || newConfig?.userInfo?.email,
           }
         };
         
-        updateConfig(updatedConfig);
+        updateConfig(updatedConfig as any);
         saveConfig();
         setUserInfo(getUserFromStorage()); // Refresh user info display
         setIsManageConfigOpen(false);
@@ -179,18 +232,20 @@ export function SidebarUserNav() {
             window.location.reload();
           }, 500); // Small delay to allow toast to show
         }
-      } else {
-        updateConfig(newConfig);
-        saveConfig();
-        setIsManageConfigOpen(false);
-        toast.success('Configuration updated successfully!');
-        
-        // If critical config changed, reload the page to refresh all components
-        if (configChanged) {
-          setTimeout(() => {
-            window.location.reload();
-          }, 500); // Small delay to allow toast to show
-        }
+        return;
+      }
+      
+      // For auth flow mode or when user data is not available
+      updateConfig(newConfig as any);
+      saveConfig();
+      setIsManageConfigOpen(false);
+      toast.success('Configuration updated successfully!');
+      
+      // If critical config changed, reload the page to refresh all components
+      if (configChanged) {
+        setTimeout(() => {
+          window.location.reload();
+        }, 500); // Small delay to allow toast to show
       }
     } catch (error) {
       console.error('Error saving configuration:', error);
@@ -237,7 +292,7 @@ export function SidebarUserNav() {
               
               {(user_info?.data?.first_name || user_info?.data?.last_name) && (
                 <div>
-                  <h3 className="text-sm font-medium mb-1">Full Name</h3>
+                  <h3 className="text-sm font-medium mb-1">User Name</h3>
                   <p className="text-sm text-muted-foreground">{`${user_info.data?.first_name || ''} ${user_info.data?.last_name || ''}`.trim()}</p>
                 </div>
               )}
@@ -345,9 +400,11 @@ export function SidebarUserNav() {
                 </Button>
               </div>
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="ejentoAccessToken">Ejento Access Token *</Label>
+            {
+              process.env.NEXT_PUBLIC_AUTH_FLOW === 'true' ? '' 
+              : 
+              <div className="space-y-2">
+              <Label htmlFor="ejentoAccessToken">Ejento Access Token</Label>
               <div className="relative">
                 <Input
                   id="ejentoAccessToken"
@@ -370,8 +427,7 @@ export function SidebarUserNav() {
                 </Button>
               </div>
             </div>
-            
-
+            }
             <div className="space-y-2">
               <Label htmlFor="agentId">Agent ID *</Label>
               <Input
@@ -467,12 +523,31 @@ export function SidebarUserNav() {
               )}
               
               {configSource === 'environment' && (
-                <DropdownMenuItem disabled className="opacity-60 cursor-not-allowed">
-                  <span className="text-xs text-muted-foreground">
-                    Configuration managed via environment variables
-                  </span>
-                </DropdownMenuItem>
+                <>
+                  <DropdownMenuItem disabled className="opacity-60 cursor-not-allowed">
+                    <span className="text-xs text-muted-foreground">
+                      Configuration managed via environment variables
+                    </span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                </>
+                
               )}
+              {isAuthFlowEnabled ?
+               <DropdownMenuItem asChild>
+               <button
+                 type="button"
+                 className="w-full cursor-pointer text-red-500 flex items-center gap-2 font-semibold"
+                 onClick={handleLogout}
+               >
+                 <LogOut className='h-5 w-5 text-[#71717B]'/>
+                 Log out
+               </button>
+             </DropdownMenuItem>
+             :
+             ''
+              }
+                  
             </DropdownMenuContent>
           </DropdownMenu>
         </SidebarMenuItem>
