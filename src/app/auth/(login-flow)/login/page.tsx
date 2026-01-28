@@ -32,10 +32,12 @@ export default function LoginPage() {
   const apiService = useApiService();
 
   const [isOtpActive, setIsOtpActive] = useState<boolean>(false);
+  const [isMagicLinkActive, setIsMagicLinkActive] = useState<boolean>(false);
   const [activeSSOProvider, setActiveSSOProvider] = useState<SSOProvider[]>([]);
   const [featureArrayLoading, setFeatureArrayLoading] = useState(false);
   const [showVerifyOtp,setShowVerifyOtp] = useState(false);
   const [otpSessionId, setOtpSessionId] = useState<string | null>(null);
+  const [showLoginForm,setShowLoginForm] = useState<boolean>(false);
 
   useEffect(() => {
     if (!apiService) return;
@@ -56,7 +58,15 @@ export default function LoginPage() {
           );
 
           setIsOtpActive(otpMethod?.is_active ?? false);
-          
+
+          //check magic link is enabled or disabled 
+          const magicLinkMethod = featureArray.find(
+            (item : any) => item.name === "magic_link"
+          );
+
+          setIsMagicLinkActive(magicLinkMethod?.is_active ?? false);
+
+
           //decide the SSO which is to show 
           const activeSSOItems = featureArray.filter(
             (item: any) =>
@@ -121,14 +131,17 @@ export default function LoginPage() {
               name={item.name}
             />
           ))}
-
-          <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
-            <Separator className="flex-1  h-px bg-gray-200" />
-            OR
-            <Separator className="flex-1  h-px bg-gray-200" />
-          </div>
-
-          <LoginForm isOtpActive={isOtpActive} setShowVerifyOtp={setShowVerifyOtp} setOtpSessionId={setOtpSessionId}/>
+          {
+            ((isMagicLinkActive || isOtpActive) && (activeSSOProvider.length > 0)) &&
+            <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
+             <Separator className="flex-1  h-px bg-gray-200" />
+             OR
+             <Separator className="flex-1  h-px bg-gray-200" />
+           </div>
+          }
+          
+          {
+            (isMagicLinkActive || isOtpActive) && <LoginForm isOtpActive={isOtpActive} setShowVerifyOtp={setShowVerifyOtp} setOtpSessionId={setOtpSessionId}/>}
 
           <Separator className="w-full" />
 

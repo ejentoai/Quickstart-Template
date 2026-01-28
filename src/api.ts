@@ -87,11 +87,9 @@ export class ApiService {
         ? `${this.config.baseUrl}/api/v2/agents/${this.config.agentId}/corpora?verbosity=medium&is_enabled=true`
         : `/api/v2/agents/${this.config.agentId}/corpora?verbosity=medium&is_enabled=true`;
       const url = getProxiedUrl(urlPath, this.config.baseUrl);
-      console.log(this.getHeaders(),'getHeadres for coprora')
       const response = await axios.get(url, {
         headers: this.getHeaders(),
       });
-      // console.log(response.data);
       return response.data;
     } catch (error: any) {
       if (error.response) {
@@ -162,7 +160,6 @@ export class ApiService {
       const response = await axios.post<any>(url, data, {
         headers: this.getHeaders(),
       });
-      // console.log("sendChat response", response.data);
       return response.data;
     } catch (error: any) {
       if (error.response) {
@@ -191,11 +188,9 @@ export class ApiService {
         `${this.config.baseUrl}/api/v2/chat-threads/${threadID}/agent-responses?include_steps=true`,
         this.config.baseUrl
       );
-      console.log(this.getHeaders(),'headers for chat ')
       const response = await axios.get<ChatThreadAgentResponsesV2>(url, {
         headers: this.getHeaders(),
       });
-      // console.log(response.data);
       return response.data;
     } catch (error: any) {
       if (error.response) {
@@ -226,7 +221,7 @@ export class ApiService {
         const errorData = error.response.data;
         throw new Error(errorData.message || 'Failed to record feedback.');
       }
-      throw new Error('An error oeccurred while making the request.');
+      throw new Error('An error occurred while making the request.');
     }
   }
 
@@ -319,7 +314,6 @@ export class ApiService {
       const response = await axios.get<AllChatsResponseV2>(url, {
         headers: this.getHeaders(),
       });
-      // console.log(response.data);
       return response.data;
     } catch (error: any) {
       if (error.response) {
@@ -378,7 +372,7 @@ export class ApiService {
 
     // ==================== Authentication METHODS ====================
 
-    async passwordlessAuth(email: string, otp_session_id : string) {
+    async passwordlessAuth(email: string, otp_session_id? : string) {
       if (!email) {
         throw new Error("Email is required for passwordless authentication.");
       }

@@ -109,23 +109,19 @@ export async function POST(request: Request) {
       agentId = config?.agentId?.trim() || '';
     }
 
-    // Required field validation
-    if (isAuthEnabled && (!baseUrl || !apiKey || !agentId)) {
-      return errorResponse(
-        envDriven
-          ? 'Missing required environment variables.'
-          : 'Missing required configuration values.',
-        400
-      );
-    }
+    const hasMissingConfig =
+    !baseUrl ||
+    !apiKey ||
+    !agentId ||
+    (!isAuthEnabled && !ejentoAccessToken);
     
-    if (!isAuthEnabled && (!baseUrl || !apiKey || !ejentoAccessToken || !agentId)) {
-      return errorResponse(
-        envDriven
-          ? 'Missing required environment variables.'
-          : 'Missing required configuration values.',
-        400
-      );
+    if (hasMissingConfig) {
+    return errorResponse(
+    envDriven
+    ? 'Missing required environment variables.'
+    : 'Missing required configuration values.',
+    400
+    );
     }
 
     // For server-side validation, always use direct API calls (no proxy)
