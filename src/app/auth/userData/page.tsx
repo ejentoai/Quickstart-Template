@@ -36,8 +36,7 @@ const UserData = () => {
             toast.error(validationResult.message || 'Agent validation failed. Please check your configuration.');
             removeAccessToken()
             removeEjentoAccessToken()
-            localStorage.clear();
-            router.push("/settings");
+            router.push("/auth/login");
             return;
           }
           else if(validationResult.success && process.env.ENV_DRIVEN === 'false'){
