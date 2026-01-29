@@ -17,16 +17,12 @@ export function AuthGuard({ children }: AuthGuardProps) {
     const ejentoToken = getEjentoAccessToken();
     const user_info = localStorage.getItem('user_info')
 
-    const isAuthFlowEnabled =
-      process.env.NEXT_PUBLIC_AUTH_FLOW === 'true' ||
-      process.env.NEXT_PUBLIC_AUTH_FLOW === '1';
+    const isAuthFlowEnabled = process.env.NEXT_PUBLIC_AUTH_FLOW === 'true';
 
-    if (isAuthFlowEnabled) {
-      if (!token || !ejentoToken) {
+      if (isAuthFlowEnabled && (!token || !ejentoToken)) {
         router.push('/auth/login');
         return;
       }
-    }
 
     if(!user_info){
       router.push('/auth/userData')

@@ -72,7 +72,6 @@ function PureMultimodalInput({
     if (transcript !== '') {
       setInput(transcript);
     }
-      setInput(transcript);
   }, [transcript])
 
   const inactivityTimer = useRef<NodeJS.Timeout | null>(null);

@@ -17,17 +17,10 @@ interface SSOButtonProps {
 export default function SSOButton({ icon, label, name, className }: SSOButtonProps) {
 
   let url_name = name.split('_')
-  console.log(url_name)
 
   const { isLoading: configLoading } = useConfig();
   const apiService = useApiService();
 
-  if (configLoading) {
-    return (
-      <LoginSkeleton/>
-    );
-  }
-  
   // Show message if no config after loading
   if (!apiService) {
     return (

@@ -134,16 +134,14 @@ export function SidebarUserNav() {
     }
   
     // Check required fields based on auth flow
-    if (process.env.NEXT_PUBLIC_AUTH_FLOW === 'true') {
-      if (!configForm.baseUrl || !configForm.apiKey || !configForm.agentId) {
-        toast.error('Please fill in all required fields');
-        return;
-      }
-    } else {
-      if (!configForm.baseUrl || !configForm.ejentoAccessToken || !configForm.apiKey || !configForm.agentId) {
-        toast.error('Please fill in all required fields');
-        return;
-      }
+    if (
+      !configForm.baseUrl ||
+      !configForm.apiKey ||
+      !configForm.agentId ||
+      (process.env.NEXT_PUBLIC_AUTH_FLOW !== 'true' && !configForm.ejentoAccessToken)
+    ) {
+      toast.error('Please fill in all required fields');
+      return;
     }
     
     setIsSavingConfig(true);

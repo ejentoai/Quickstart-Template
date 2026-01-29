@@ -188,14 +188,33 @@ export async function POST(request: Request) {
         );
       }
     } catch (error: any) {
-      const { status, message } = parseAxiosError(
-        error,
-        'Failed to verify credentials'
-      );
+      const statusCode = error.response?.status || 500;
+      let errorMessage = 'Failed to verify credentials';
+      
+      // Provide more detailed error messages
+      if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
+        errorMessage = `Cannot connect to server. Please check that the server is reachable.`;
+      } else if (error.code === 'ETIMEDOUT' || error.message?.includes('timeout')) {
+        errorMessage = `Request timed out while connecting to server. Please check your network connection.`;
+      } else if (error.response) {
+        // HTTP error response
+        errorMessage = error.response.data?.message || error.response.data?.error || error.response.statusText || 'Failed to verify credentials';
+        
+        // Add specific guidance based on status code
+        if (statusCode === 401) {
+          errorMessage = 'Invalid credentials. Please verify your API key and access token are correct.';
+        } else if (statusCode === 403) {
+          errorMessage = 'Access forbidden. Your credentials may not have permission to access this resource.';
+        } else if (statusCode === 404) {
+          errorMessage = `API endpoint not found. Please verify server is reachable. Attempted: /api/v2/users/me`;
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
 
       return errorResponse(
-        `Credential validation failed: ${message}`,
-        status
+        `Credential validation failed: ${errorMessage}`,
+        statusCode
       );
     }
 

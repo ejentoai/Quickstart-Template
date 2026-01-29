@@ -1,4 +1,4 @@
-'use client'
+'use client';
 
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -11,29 +11,48 @@ import { loginSchema } from '@/lib/types';
 import { useConfig } from '@/app/context/ConfigContext';
 import { useAuth } from '@/app/context/AuthContext';
 import { useApiService } from '@/hooks/useApiService';
-import ConfigError from '../configError';
+import { ConfigError } from '../configError';
 import LoginSkeleton from './LoginSkeleton';
 
-export function LoginForm({ isOtpActive, setShowVerifyOtp, setOtpSessionId }) {
+interface LoginFormProps {
+  isOtpActive: boolean;
+  setShowVerifyOtp: (value: boolean) => void;
+  setOtpSessionId: (id: string) => void;
+}
+
+interface LoginFormValues {
+  email: string;
+}
+
+export function LoginForm({
+  isOtpActive,
+  setShowVerifyOtp,
+  setOtpSessionId,
+}: LoginFormProps) {
   const { isLoading: configLoading } = useConfig();
   const apiService = useApiService();
   const { setEmail } = useAuth();
 
-  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm({
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
   });
 
-  // Handle form submission
-  const onSubmit = async ({ email }) => {
+  const onSubmit = async ({ email }: LoginFormValues) => {
     try {
-      const response = await apiService.passwordlessAuth(email);
+      const response = await apiService?.passwordlessAuth(email);
       setEmail(email);
-      
+
       if (response?.success) {
         toast.success(response?.message || 'Email sent successfully!');
         const otpId = response?.data?.data?.otp_session_id;
 
         reset();
+
         if (isOtpActive && otpId) {
           setShowVerifyOtp(true);
           setOtpSessionId(otpId);
@@ -49,23 +68,21 @@ export function LoginForm({ isOtpActive, setShowVerifyOtp, setOtpSessionId }) {
     }
   };
 
-  // Loading state
   if (configLoading) return <LoginSkeleton />;
-
-  // Error if API service is not available
   if (!apiService) return <ConfigError />;
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div>
-        <Input 
-          {...register('email')} 
-          placeholder="Email" 
-          name="email" 
-          className="h-11" 
+        <Input
+          {...register('email')}
+          placeholder="Email"
+          className="h-11"
         />
         {errors.email && (
-          <p className="text-red-500 mt-1 text-sm">{errors.email.message}</p>
+          <p className="text-red-500 mt-1 text-sm">
+            {errors.email.message}
+          </p>
         )}
       </div>
 

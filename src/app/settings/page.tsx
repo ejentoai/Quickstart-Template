@@ -10,9 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { Eye, EyeOff, Save, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
-import { setUserToStorage } from '@/cookie';
-import LoginSkeleton from '@/components/authentication/LoginSkeleton';
+import { setUserToStorage, getAccessToken, getEjentoAccessToken } from '@/cookie';
 
 export default function SettingsPage() {
   const { config, updateConfig, isEnvConfigured, configSource, isLoading, isValidating, validationError, isConfigured } = useConfig();
@@ -86,7 +84,6 @@ export default function SettingsPage() {
           agentId: formData.agentId.trim(),
         };
       }
-      console.log(newConfig,'newConfig')
 
       // SECURITY FIX: Use the validation endpoint which validates AND stores credentials in secure cookie
       // This ensures credentials are available for proxy requests
@@ -151,8 +148,13 @@ export default function SettingsPage() {
       // Set redirecting state to show loading overlay
       setIsRedirecting(true);
       
-      // Redirect to chat page
-      router.push(redirectPath);
+      // Check if user has both tokens - if so, redirect directly to chat to avoid login page flash
+      const token = getAccessToken();
+      const ejentoToken = getEjentoAccessToken();
+      const finalRedirectPath = (token && ejentoToken) ? '/chat' : redirectPath;
+      
+      // Redirect to appropriate page
+      router.push(finalRedirectPath);
     } catch (error) {
       console.error('Error saving configuration:', error);
       toast.error('Failed to save configuration. Please verify your credentials and try again.');
@@ -169,40 +171,6 @@ export default function SettingsPage() {
     canProceed = formData.baseUrl.trim() && formData.apiKey.trim() && formData.ejentoAccessToken.trim() && formData.agentId.trim();
   }
   
-  const getSkeleton = () => {
-    if (process.env.NEXT_PUBLIC_AUTH_FLOW === 'true') {
-      return <LoginSkeleton />;
-    }
-    else{
-      return(
-        <div className="flex justify-center items-center w-full h-screen">
-          <div className="px-10 py-4 space-y-4 sm:w-full md:w-[50vw]">
-            <div className="flex justify-end">
-              <Skeleton className=" w-2/3 ml-auto" style={{ height: "5rem" }} />
-              <Skeleton className="w-8 h-8 rounded-full ml-2" />
-            </div>
-
-            <div className="flex items-start space-x-2">
-              <Skeleton className="w-8 h-8 rounded-full" />
-              <Skeleton className="w-3/4" style={{ height: "10rem" }} />
-            </div>
-
-            <div className="flex justify-end">
-              <Skeleton className=" w-2/3 ml-auto" style={{ height: "5rem" }} />
-              <Skeleton className="w-8 h-8 rounded-full ml-2" />
-            </div>
-
-            <div className="flex items-start space-x-2">
-              <Skeleton className="w-8 h-8 rounded-full" />
-              <Skeleton className="w-3/4" style={{ height: "10rem" }} />
-            </div>
-          </div>
-        </div>
-      )
-      
-    }
-
-  }
   // Redirect env-driven users away from settings page - they should go directly to chat
   useEffect(() => {
     // If env config is validated and configured, redirect to chat
@@ -214,12 +182,24 @@ export default function SettingsPage() {
 
   // Show loading state while checking config
   if (isLoading || isValidating) {
-    getSkeleton()
+    return(
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <p className="text-lg">Loading configuration...</p>
+        </div>
+      </div>
+    )
   }
 
   // If env config is active and valid, show skeleton while redirecting
   if ((isEnvConfigured || configSource === 'environment') && isConfigured && !validationError) {
-    getSkeleton()
+    return(
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <p className="text-lg">Loading...</p>
+        </div>
+      </div>
+    )
   }
 
   // Show pre-configured message if env config is active but invalid
@@ -381,7 +361,11 @@ export default function SettingsPage() {
   return (
     <div className="container mx-auto p-6 max-w-2xl relative">
       {isRedirecting && (
-        getSkeleton()
+        <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <p className="text-lg">Loading...</p>
+        </div>
+      </div>
       )}
       <div className="mb-8 text-center">
         <h1 className="text-3xl font-bold">Configuration</h1>

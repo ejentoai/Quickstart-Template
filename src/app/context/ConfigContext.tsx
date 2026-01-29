@@ -181,18 +181,10 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
               // This shouldn't happen if validation was called with a config, but handle it
               return prev;
             }
-            if(isAuthEnabled){
-              return {
-                ...prev,
-              };
-            }
-            else{
               return {
                 ...prev,
                 userInfo: filteredUser
               };
-            }
-            
           });
           
           // Clear any validation errors

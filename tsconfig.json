@@ -35,7 +35,7 @@
     "C:/NextBuilds/Quickstart-Template/.next/types/**/*.ts",
     "C:\\NextBuilds\\Quickstart-Template\\.next/types/**/*.ts",
     "next-env.d.ts",
-    "src/components/authentication/login-form.jsx",
+    "src/components/authentication/login-form.tsx",
     "../../NextBuilds/Quickstart-Template/.next/types/**/*.ts"
   ],
   "exclude": [

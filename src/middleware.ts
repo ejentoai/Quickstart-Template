@@ -74,9 +74,7 @@ export default function middleware(req: NextRequest) {
     '/auth/verification',
   ];
   
-  const isAuthFlowEnabled =
-    process.env.NEXT_PUBLIC_AUTH_FLOW === 'true' ||
-    process.env.NEXT_PUBLIC_AUTH_FLOW === '1';
+  const isAuthFlowEnabled = process.env.NEXT_PUBLIC_AUTH_FLOW === 'true';
 
   const publicPaths = ['/', '/settings','/auth/userData'];
 

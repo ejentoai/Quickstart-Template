@@ -43,7 +43,7 @@ export class ApiService {
   async getCurrentUser(): Promise<any> {
     try {
       const url = getProxiedUrl(
-        `${this.config.baseUrl}/api/v2/users/me`,
+        'api/v2/users/me',
         this.config.baseUrl
       );
       const response = await axios.get(url, {
@@ -58,7 +58,7 @@ export class ApiService {
   async getAgent(agentId: string): Promise<{success: boolean, message: string, data: any}> {
     try {
       const url = getProxiedUrl(
-        `${this.config.baseUrl}/api/v2/agents/${agentId}`,
+        `api/v2/agents/${agentId}`,
         this.config.baseUrl
       );
       const response = await axios.get(url, {
@@ -82,11 +82,10 @@ export class ApiService {
 
   async getCorpus(): Promise<any> {
     try {
-      // Construct URL path - when baseUrl is empty, just use the path directly
-      const urlPath = this.config.baseUrl 
-        ? `${this.config.baseUrl}/api/v2/agents/${this.config.agentId}/corpora?verbosity=medium&is_enabled=true`
-        : `/api/v2/agents/${this.config.agentId}/corpora?verbosity=medium&is_enabled=true`;
-      const url = getProxiedUrl(urlPath, this.config.baseUrl);
+      const url = getProxiedUrl(
+        `api/v2/agents/${this.config.agentId}/corpora?verbosity=medium&is_enabled=true`,
+        this.config.baseUrl
+      );
       const response = await axios.get(url, {
         headers: this.getHeaders(),
       });
@@ -113,7 +112,7 @@ export class ApiService {
   
     try {
       const url = getProxiedUrl(
-        `${this.config.baseUrl}/response-service/api/v2/agents/${agentId}/responses/stream`,
+        `response-service/api/v2/agents/${agentId}/responses/stream`,
         this.config.baseUrl
       );
       const headers = this.getHeaders();
@@ -154,7 +153,7 @@ export class ApiService {
     try {
       const { agent_id, ...rest } = data;
       const url = getProxiedUrl(
-        `${this.config.baseUrl}/response-service/api/v2/agents/${this.config.agentId}/responses`,
+        `response-service/api/v2/agents/${this.config.agentId}/responses`,
         this.config.baseUrl
       );
       const response = await axios.post<any>(url, data, {
@@ -185,7 +184,7 @@ export class ApiService {
   async getChatlogs(threadID: number): Promise<ChatThreadAgentResponsesV2> {
     try {
       const url = getProxiedUrl(
-        `${this.config.baseUrl}/api/v2/chat-threads/${threadID}/agent-responses?include_steps=true`,
+        `api/v2/chat-threads/${threadID}/agent-responses?include_steps=true`,
         this.config.baseUrl
       );
       const response = await axios.get<ChatThreadAgentResponsesV2>(url, {
@@ -208,7 +207,7 @@ export class ApiService {
 
     try {
       const url = getProxiedUrl(
-        `${this.config.baseUrl}/api/v2/agent-responses/${chatId}/feedbacks`,
+        `api/v2/agent-responses/${chatId}/feedbacks`,
         this.config.baseUrl
       );
       const response = await axios.post(url, body, {
@@ -233,7 +232,7 @@ export class ApiService {
 
     try {
       const url = getProxiedUrl(
-        `${this.config.baseUrl}/api/v2/agent-responses/${chatId}/feedbacks`,
+        `api/v2/agent-responses/${chatId}/feedbacks`,
         this.config.baseUrl
       );
       const response = await axios.post(url, body, {
@@ -258,7 +257,7 @@ export class ApiService {
         created_by: data?.created_by
       }
       const url = getProxiedUrl(
-        `${this.config.baseUrl}/api/v2/agent-responses/${data?.chat_id}/comments`,
+        `api/v2/agent-responses/${data?.chat_id}/comments`,
         this.config.baseUrl
       );
       const response = await axios.post(url, body, {
@@ -288,7 +287,7 @@ export class ApiService {
       };
 
       const url = getProxiedUrl(
-        `${this.config.baseUrl}/api/v2/agents/${agentId}/chat-threads`,
+        `api/v2/agents/${agentId}/chat-threads`,
         this.config.baseUrl
       );
       const response = await axios.post<ChatThreadResponse[]>(url, body, {
@@ -308,7 +307,7 @@ export class ApiService {
 
     try {
       const url = getProxiedUrl(
-        `${this.config.baseUrl}/api/v2/agents/${this.config.agentId}/chat-threads?query_source=app-ejento`,
+        `api/v2/agents/${this.config.agentId}/chat-threads?query_source=app-ejento`,
         this.config.baseUrl
       );
       const response = await axios.get<AllChatsResponseV2>(url, {
@@ -327,7 +326,7 @@ export class ApiService {
 
     try {
       const url = getProxiedUrl(
-        `${this.config.baseUrl}/api/v2/chat-threads/${deleteId}`,
+        `api/v2/chat-threads/${deleteId}`,
         this.config.baseUrl
       );
       const response = await axios.delete<any>(url, {
@@ -348,7 +347,7 @@ export class ApiService {
     const created_by = modifiedBy || this.config.userInfo?.email || 'user'
     try {
       const url = getProxiedUrl(
-        `${this.config.baseUrl}/api/v2/chat-threads/${chatId}`,
+        `api/v2/chat-threads/${chatId}`,
         this.config.baseUrl
       );
       const response = await axios.put<AllChatsResponseV2>(
@@ -379,7 +378,7 @@ export class ApiService {
     
       try {
         const url = getProxiedUrl(
-          `${this.config.baseUrl}/auth-service/api/v2/users/passwordless-auth`,
+          'auth-service/api/v2/users/passwordless-auth',
           this.config.baseUrl
         );
 
@@ -399,19 +398,16 @@ export class ApiService {
         }
     
         const response = await axios.post(url, payload, {
-          headers: getApiHeaders(
-            this.config.baseUrl,
-            this.config.ejentoAccessToken || '',
-            this.config.apiKey || ''
-          ),
+          headers: this.getHeaders(),
         });
-    
+        console.log('Response at line 401:', response); 
         return {
           success: true,
           message: "Email sent successfully.",
           data: response.data || {},
         };
       } catch (error: any) {
+        
         
         const status = error?.response?.status;
         let userMessage;
@@ -439,7 +435,7 @@ export class ApiService {
     async featureFlags() {
       try {
         const url = getProxiedUrl(
-          `${this.config.baseUrl}/auth-service/api/v2/feature-flags/logins`,
+          'auth-service/api/v2/feature-flags/logins',
           this.config.baseUrl
         );
     
@@ -475,7 +471,7 @@ export class ApiService {
     
       try {
         const url = getProxiedUrl(
-          `${this.config.baseUrl}/auth-service/api/v2/users/validate-magic-link`,
+          'auth-service/api/v2/users/validate-magic-link',
           this.config.baseUrl
         );
 
@@ -527,7 +523,7 @@ export class ApiService {
     
       try {
         const url = getProxiedUrl(
-          `${this.config.baseUrl}/auth-service/api/v2/users/verify-otp`,
+          'auth-service/api/v2/users/verify-otp',
           this.config.baseUrl
         );
     
