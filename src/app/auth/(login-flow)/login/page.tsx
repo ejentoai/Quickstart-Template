@@ -28,7 +28,7 @@ type SSOProvider = {
 };
 
 export default function LoginPage() {
-  const { isLoading: configLoading } = useConfig();
+  const { isLoading: configLoading, validationError } = useConfig();
   const apiService = useApiService();
 
   const [isOtpActive, setIsOtpActive] = useState<boolean>(false);
@@ -99,7 +99,7 @@ export default function LoginPage() {
 
   if (!apiService && !configLoading) {
     //although config is validated before login but for safe side we are checking it here 
-    return <ConfigError />;
+    return <ConfigError validationError={validationError}/>;
   }
   
   if (configLoading || featureArrayLoading) {

@@ -7,7 +7,7 @@ export default function middleware(req: NextRequest) {
   const url_access_token = url.searchParams.get('token');
   const url_ejento_access_token = url.searchParams.get('ejento_access_token');
   const x = url.searchParams.get('x');
-  console.log(pathname,'pathnamemiddleware')
+  const { NEXT_PUBLIC_AGENT, ENV_DRIVEN } = process.env;
 
   function isValidToken(token?: string) {
     return (
@@ -16,6 +16,12 @@ export default function middleware(req: NextRequest) {
       token !== 'undefined' &&
       token !== 'null'
     );
+  }
+
+  // Block access if ENV_DRIVEN is false
+  if (NEXT_PUBLIC_AGENT === 'true' && ENV_DRIVEN === 'false' && pathname !== '/') {
+    // Redirect to homepage
+    return NextResponse.redirect(new URL('/',req.url));
   }
 
   if (url_access_token && url_ejento_access_token && x) {

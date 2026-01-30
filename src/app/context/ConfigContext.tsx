@@ -41,6 +41,8 @@ interface ConfigContextType {
   isLoading: boolean;
   isValidating: boolean;
   validationError: string | null;
+  setConfigSource: (source: any) => void;
+  
 }
 
 const ConfigContext = createContext<ConfigContextType | undefined>(undefined);
@@ -86,7 +88,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     }
     
     // SECURITY: Clear server-side credentials cookie (for ENV_DRIVEN=false scenario)
-    // This ensures credentials are removed from secure storage when user logs out
+    // This ensures credentials are removed from secure storage
     try {
       await fetch('/api/config', {
         method: 'DELETE',
@@ -335,7 +337,8 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
       loadConfig,
       isLoading,
       isValidating,
-      validationError
+      validationError,
+      setConfigSource
     }}>
       {children}
     </ConfigContext.Provider>

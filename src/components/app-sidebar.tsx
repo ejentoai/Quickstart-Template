@@ -89,6 +89,7 @@ export function AppSidebar() {
   // PUBLIC_AGENT mode: Get session context
   const publicAgentSession = usePublicAgentSession(); 
   const isPublicAgent = isPublicAgentMode(); 
+  const isAuthFlowEnabled = process.env.NEXT_PUBLIC_AUTH_FLOW === 'true'
 
   const agentImageUrl = process.env.NEXT_PUBLIC_AGENT_IMAGE?.trim();
 
@@ -546,7 +547,7 @@ export function AppSidebar() {
         <SidebarHistory isLoading={isLoading} threads={threads} groupedChats={groupedChats} fetchThreads={fetchThreads} setThreads={setThreads} groupChatsByDate={groupChatsByDate} updateChatTitle={updateChatTitle} />
       </SidebarContent>
       <SidebarFooter>
-        { (isPublicAgent && publicAgentSession) ? null : (
+        { (isPublicAgent && publicAgentSession && !isAuthFlowEnabled) ? null : (
          <SidebarUserNav  />
         )}
       </SidebarFooter>

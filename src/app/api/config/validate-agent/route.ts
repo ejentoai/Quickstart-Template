@@ -7,13 +7,26 @@ import axios from 'axios';
  * This endpoint is specifically for /auth/userData page where we have the token in cookie
  * and want to validate the agent before proceeding
  */
+
 export async function POST(request: Request) {
+  let requestBody = null;
+  let bodyConfig;
+  try{
+     requestBody = await request.json()
+     bodyConfig = requestBody?.config;
+     console.log('here1')
+  }
+  catch(error){
+    console.log('here2')
+  }
   try {
+    console.log('here3')
     const cookieStore = await cookies();
     
     // Get token from cookie
     const tokenCookie = cookieStore.get('ejento_access_token');
     if (!tokenCookie?.value) {
+      console.log('here4')
       return NextResponse.json(
         {
           success: false,
@@ -30,40 +43,39 @@ export async function POST(request: Request) {
     let apiKey: string;
     let agentId: string;
 
-    if (envDriven) {
-      // For environment-driven config, read from server-side environment variables
+    if (bodyConfig?.baseUrl && bodyConfig?.apiKey && bodyConfig?.agentId) {
+      baseUrl = bodyConfig.baseUrl.trim();
+      apiKey = bodyConfig.apiKey.trim();
+      agentId = bodyConfig.agentId.trim();
+
+    } else if (envDriven) {
       baseUrl = process.env.EJENTO_BASE_URL?.trim() || '';
       apiKey = process.env.EJENTO_API_KEY?.trim() || '';
       agentId = process.env.EJENTO_AGENT_ID?.trim() || '';
+
     } else {
-      // For manual config, read from cookie
       const credentialsCookie = cookieStore.get('ejento_api_credentials');
-      if (credentialsCookie?.value) {
-        try {
-          const credentials = JSON.parse(credentialsCookie.value);
-          baseUrl = credentials.baseUrl?.trim() || '';
-          apiKey = credentials.apiKey?.trim() || '';
-          agentId = credentials.agentId?.trim() || '';
-        } catch (error) {
-          console.error(error)
-          return NextResponse.json(
-            {
-              success: false,
-              message: 'Invalid credentials configuration.',
-            },
-            { status: 400 }
-          );
-        }
-      } else {
+
+      if (!credentialsCookie?.value) {
         return NextResponse.json(
-          {
-            success: false,
-            message: 'API credentials not configured.',
-          },
+          { success: false, message: 'API credentials not configured.' },
           { status: 400 }
         );
       }
-    }
+
+      try {
+        const credentials = JSON.parse(credentialsCookie.value);
+        baseUrl = credentials.baseUrl?.trim() || '';
+        apiKey = credentials.apiKey?.trim() || '';
+        agentId = credentials.agentId?.trim() || '';
+      } catch (error) {
+        console.error(error);
+        return NextResponse.json(
+          { success: false, message: 'Invalid credentials configuration.' },
+          { status: 400 }
+        );
+      }
+}
 
     // Validate required fields
     if (!baseUrl || !apiKey || !agentId) {

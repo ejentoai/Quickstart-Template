@@ -24,6 +24,8 @@ import { useRouter } from 'next/navigation';
 import { clearUserFromStorage, getUserFromStorage, removeAccessToken, removeEjentoAccessToken, setUserToStorage } from '@/cookie';
 import { toast } from 'sonner';
 import { Eye, EyeOff,LogOut } from 'lucide-react';
+import { isPublicAgentMode } from '@/lib/storage/indexeddb';
+import { usePublicAgentSession } from '@/hooks/usePublicAgentSession';
 
 export function SidebarUserNav() {
   const { config, clearConfig, updateConfig, saveConfig, configSource } = useConfig();
@@ -64,6 +66,8 @@ export function SidebarUserNav() {
   });
   const [isSavingConfig, setIsSavingConfig] = useState(false);
   const isAuthFlowEnabled = process.env.NEXT_PUBLIC_AUTH_FLOW === 'true';
+  const publicAgentSession = usePublicAgentSession(); 
+  const isPublicAgent = isPublicAgentMode(); 
 
   useEffect(() => {
     if (isAuthFlowEnabled) {
@@ -169,7 +173,29 @@ export function SidebarUserNav() {
           }
         };
       }
-  
+
+      if(isAuthFlowEnabled){
+        //First, validate agent using token from cookie
+        const validationResponse = await fetch('/api/config/validate-agent', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ config: newConfig })
+        });
+
+        const validationResult = await validationResponse.json();
+
+        if (!validationResult.success) {
+          toast.error(validationResult.message || 'Agent validation failed. Please check your configuration.');
+          clearConfig()
+          removeAccessToken()
+          removeEjentoAccessToken()
+          router.push("/settings");
+          return;
+        }
+      }
+      
       // Call server-side validation endpoint
       const response = await fetch('/api/config/validate', {
         method: 'POST',
@@ -468,86 +494,89 @@ export function SidebarUserNav() {
 
       <SidebarMenu>
         <SidebarMenuItem>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <SidebarMenuButton className="data-[state=open]:bg-sidebar-accent bg-background data-[state=open]:text-sidebar-accent-foreground h-10">
-                <Image
-                  src={avatar}
-                  alt={user_info?.data?.email ?? 'User Avatar'}
-                  style={{
-                    borderRadius: '100%',
-                    height: '26px',
-                    width: '26px'
-                  }}
-                />
-
-                <span className="truncate">{user_info?.data?.email || 'Not configured'}</span>
-                <ChevronUp className="ml-auto" />
-              </SidebarMenuButton>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              side="top"
-              className="w-[--radix-popper-anchor-width]"
-            >
-              {(
-                <>
-                  <DropdownMenuItem asChild>
-                    <button
-                      type="button"
-                      className="w-full cursor-pointer"
-                      onClick={() => {
-                        setIsOpen(true)
-                      }}
-                    >
-                      Profile Information
-                    </button>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                </>
-              )}
-
-              {configSource !== 'environment' && (
+          {/* Don't render anything for public agent with auth flow */}
+          {(isPublicAgent && publicAgentSession && isAuthFlowEnabled) ? 
+          <SidebarMenuButton
+            onClick={handleLogout}
+            className="h-10 flex items-center gap-2 text-red-500 font-semibold"
+          >
+            <LogOut className="h-5 w-5" />
+            Log out
+          </SidebarMenuButton>
+          : (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton className="data-[state=open]:bg-sidebar-accent bg-background data-[state=open]:text-sidebar-accent-foreground h-10">
+                  <Image
+                    src={avatar}
+                    alt={user_info?.data?.email ?? 'User Avatar'}
+                    style={{
+                      borderRadius: '100%',
+                      height: '26px',
+                      width: '26px'
+                    }}
+                  />
+                  <span className="truncate">{user_info?.data?.email || 'Not configured'}</span>
+                  <ChevronUp className="ml-auto" />
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                side="top"
+                className="w-[--radix-popper-anchor-width]"
+              >
+                {/* Profile Information */}
                 <DropdownMenuItem asChild>
                   <button
                     type="button"
                     className="w-full cursor-pointer"
-                    onClick={() => {
-                      setIsManageConfigOpen(true)
-                    }}
+                    onClick={() => setIsOpen(true)}
                   >
-                    Manage Configuration
+                    Profile Information
                   </button>
                 </DropdownMenuItem>
-              )}
-              
-              {configSource === 'environment' && (
-                <>
-                  <DropdownMenuItem disabled className="opacity-60 cursor-not-allowed">
-                    <span className="text-xs text-muted-foreground">
-                      Configuration managed via environment variables
-                    </span>
+                <DropdownMenuSeparator />
+
+                {/* Manage Configuration - only for non-environment config */}
+                {configSource !== 'environment' && (
+                  <DropdownMenuItem asChild>
+                    <button
+                      type="button"
+                      className="w-full cursor-pointer"
+                      onClick={() => setIsManageConfigOpen(true)}
+                    >
+                      Manage Configuration
+                    </button>
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                </>
+                )}
                 
-              )}
-              {isAuthFlowEnabled ?
-               <DropdownMenuItem asChild>
-               <button
-                 type="button"
-                 className="w-full cursor-pointer text-red-500 flex items-center gap-2 font-semibold"
-                 onClick={handleLogout}
-               >
-                 <LogOut className='h-5 w-5 text-[#71717B]'/>
-                 Log out
-               </button>
-             </DropdownMenuItem>
-             :
-             ''
-              }
-                  
-            </DropdownMenuContent>
-          </DropdownMenu>
+                {/* Environment notice */}
+                {configSource === 'environment' && (
+                  <>
+                    <DropdownMenuItem disabled className="opacity-60 cursor-not-allowed">
+                      <span className="text-xs text-muted-foreground">
+                        Configuration managed via environment variables
+                      </span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </>
+                )}
+                {
+                  isAuthFlowEnabled && 
+                  <DropdownMenuItem asChild>
+                    <button
+                      type="button"
+                      className="w-full cursor-pointer text-red-500 flex items-center gap-2 font-semibold"
+                      onClick={handleLogout}
+                    >
+                      <LogOut className='h-5 w-5 text-[#71717B]'/>
+                      Log out
+                    </button>
+                  </DropdownMenuItem>
+                }
+                
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </SidebarMenuItem>
       </SidebarMenu>
     </>

@@ -7,18 +7,21 @@ import { useRouter } from "next/navigation";
 import { setUserToStorage,removeAccessToken,removeEjentoAccessToken } from '@/cookie';
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useConfig } from "@/app/context/ConfigContext";
 
 const UserData = () => {
   const router = useRouter();
   const apiService = useApiService();
   const isAuthEnabled = process.env.NEXT_PUBLIC_AUTH_FLOW === 'true'
+  const { clearConfig,setConfigSource } = useConfig();
+  const envDriven = process.env.ENV_DRIVEN === 'true'
+
 
   useEffect(() => {
 
     const fetchUser = async (): Promise<void> => {
       try {
         if (!apiService) return;
-        
         //Agent validation will be done at this point, only when authentication flow is enabled,
         //otherwise it is done at time of config validation.
         if(isAuthEnabled){
@@ -34,9 +37,12 @@ const UserData = () => {
 
           if (!validationResult.success) {
             toast.error(validationResult.message || 'Agent validation failed. Please check your configuration.');
-            removeAccessToken()
-            removeEjentoAccessToken()
-            router.push("/auth/login");
+            if (!envDriven) {
+              clearConfig();
+            }
+            removeAccessToken();
+            removeEjentoAccessToken();
+            router.push("/settings");
             return;
           }
           else if(validationResult.success && process.env.ENV_DRIVEN === 'false'){

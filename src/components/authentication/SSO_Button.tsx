@@ -30,6 +30,7 @@ export default function SSOButton({ icon, label, name, className }: SSOButtonPro
 
   const handleClick = async () => {
      const result = await apiService.SSO_PROVIDER(url_name[0])
+     console.log(result,'resultresult')
      if(result){
       window.location.href = result
      }
