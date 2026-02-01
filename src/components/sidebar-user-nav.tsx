@@ -21,7 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useRouter } from 'next/navigation';
-import { clearUserFromStorage, getUserFromStorage, removeAccessToken, removeEjentoAccessToken, setUserToStorage } from '@/cookie';
+import { clearUserFromStorage, getUserFromStorage, removeAccessToken, removeEjentoAccessToken, setUserToStorage, getEjentoAccessToken } from '@/cookie';
 import { toast } from 'sonner';
 import { Eye, EyeOff,LogOut } from 'lucide-react';
 import { isPublicAgentMode } from '@/lib/storage/indexeddb';
@@ -68,6 +68,7 @@ export function SidebarUserNav() {
   const isAuthFlowEnabled = process.env.NEXT_PUBLIC_AUTH_FLOW === 'true';
   const publicAgentSession = usePublicAgentSession(); 
   const isPublicAgent = isPublicAgentMode(); 
+  const ejento_access_token = getEjentoAccessToken()
 
   useEffect(() => {
     if (isAuthFlowEnabled) {
@@ -188,10 +189,7 @@ export function SidebarUserNav() {
 
         if (!validationResult.success) {
           toast.error(validationResult.message || 'Agent validation failed. Please check your configuration.');
-          clearConfig()
-          removeAccessToken()
-          removeEjentoAccessToken()
-          router.push("/settings");
+          setIsSavingConfig(false);
           return;
         }
       }
@@ -279,22 +277,60 @@ export function SidebarUserNav() {
     }
   };
 
-  const handleClearConfig = () => {
-    // Prevent clearing if config is environment-driven
+  // const handleClearConfig = () => {
+  //   // Prevent clearing if config is environment-driven
+  //   if (configSource === 'environment') {
+  //     toast.error('Configuration cannot be cleared. This application uses environment-driven configuration.');
+  //     setIsManageConfigOpen(false);
+  //     return;
+  //   }
+
+  //   clearConfig();
+  //   setIsManageConfigOpen(false);
+  //   toast.success('Configuration cleared successfully!');
+  //   // Force redirect to settings page
+  //   setTimeout(() => {
+  //     router.push('/settings');
+  //   }, 1000);
+  // };
+
+  const handleDestroySession = async () => {
     if (configSource === 'environment') {
-      toast.error('Configuration cannot be cleared. This application uses environment-driven configuration.');
+      toast.error(
+        'Session cannot be destroyed because configuration is managed via environment variables.'
+      );
       setIsManageConfigOpen(false);
       return;
     }
+  
+    try {
+      
+      const tokensCleared = clearTokens();
+      if (!tokensCleared) {
+        toast.error('Failed to clear tokens. Session not destroyed.');
+        return; 
+      }
 
-    clearConfig();
-    setIsManageConfigOpen(false);
-    toast.success('Configuration cleared successfully!');
-    // Force redirect to settings page
-    setTimeout(() => {
-      router.push('/settings');
-    }, 1000);
+      const userCleared = clearUserFromStorage();
+      if (!userCleared) {
+        toast.error('Failed to clear user data. Session not destroyed.');
+        return; 
+      }
+
+      await clearConfig();
+  
+      toast.success('Session destroyed successfully');
+      setIsManageConfigOpen(false);
+  
+      setTimeout(() => {
+        router.push('/');
+      }, 500);
+    } catch (error) {
+      console.error('[DestroySession]', error);
+      toast.error('Failed to fully destroy session. Some data may still exist.');
+    }
   };
+  
   return (
     <>
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -425,32 +461,56 @@ export function SidebarUserNav() {
               </div>
             </div>
             {
-              process.env.NEXT_PUBLIC_AUTH_FLOW === 'true' ? '' 
+              process.env.NEXT_PUBLIC_AUTH_FLOW === 'true' ? 
+              <div className="space-y-2">
+                <Label htmlFor="ejentoAccessToken">Ejento Access Token</Label>
+                <div className="relative">
+                  <Input
+                    id="ejentoAccessToken"
+                    type={showTokens.ejentoAccessToken ? 'text' : 'password'}
+                    value={ejento_access_token || 'your ejento access token'}
+                    onChange={(e) => handleConfigChange('ejentoAccessToken', e.target.value)}
+                    placeholder="your-access-token"
+                    className={`pr-10 ${configSource === 'environment' ? 'bg-gray-50 cursor-not-allowed' : ''}`}
+                    disabled
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3"
+                    onClick={() => toggleTokenVisibility('ejentoAccessToken')}
+                    disabled={configSource === 'environment'}
+                  >
+                    {showTokens.ejentoAccessToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
               : 
               <div className="space-y-2">
-              <Label htmlFor="ejentoAccessToken">Ejento Access Token</Label>
-              <div className="relative">
-                <Input
-                  id="ejentoAccessToken"
-                  type={showTokens.ejentoAccessToken ? 'text' : 'password'}
-                  value={configForm.ejentoAccessToken}
-                  onChange={(e) => handleConfigChange('ejentoAccessToken', e.target.value)}
-                  placeholder="your-access-token"
-                  className={`pr-10 ${configSource === 'environment' ? 'bg-gray-50 cursor-not-allowed' : ''}`}
-                  disabled={configSource === 'environment'}
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-0 top-0 h-full px-3"
-                  onClick={() => toggleTokenVisibility('ejentoAccessToken')}
-                  disabled={configSource === 'environment'}
-                >
-                  {showTokens.ejentoAccessToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </Button>
+                <Label htmlFor="ejentoAccessToken">Ejento Access Token</Label>
+                <div className="relative">
+                  <Input
+                    id="ejentoAccessToken"
+                    type={showTokens.ejentoAccessToken ? 'text' : 'password'}
+                    value={configForm.ejentoAccessToken}
+                    onChange={(e) => handleConfigChange('ejentoAccessToken', e.target.value)}
+                    placeholder="your-access-token"
+                    className={`pr-10 ${configSource === 'environment' ? 'bg-gray-50 cursor-not-allowed' : ''}`}
+                    disabled={configSource === 'environment'}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3"
+                    onClick={() => toggleTokenVisibility('ejentoAccessToken')}
+                    disabled={configSource === 'environment'}
+                  >
+                    {showTokens.ejentoAccessToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
               </div>
-            </div>
             }
             <div className="space-y-2">
               <Label htmlFor="agentId">Agent ID *</Label>
@@ -469,7 +529,7 @@ export function SidebarUserNav() {
             {configSource !== 'environment' && (
               <Button
                 variant="destructive"
-                onClick={handleClearConfig}
+                onClick={handleDestroySession}
                 className="bg-red-600 hover:bg-red-700 text-white"
               >
                 Destroy Session

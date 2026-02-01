@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 
 async function getServerSideCredentials() {
   const envDriven =
-    process.env.ENV_DRIVEN === 'true' || process.env.ENV_DRIVEN === '1';
+    process.env.NEXT_PUBLIC_ENV_DRIVEN === 'true' || process.env.NEXT_PUBLIC_ENV_DRIVEN === '1';
 
   const cookieStore = await cookies();
 

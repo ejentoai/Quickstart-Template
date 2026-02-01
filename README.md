@@ -70,7 +70,7 @@ touch .env
 NODE_ENV=production
 
 # Enable environment-driven configuration
-ENV_DRIVEN=true
+NEXT_PUBLIC_ENV_DRIVEN=true
 
 # Ejento API Configuration
 EJENTO_BASE_URL=https://api.yourdomain.com
@@ -116,7 +116,7 @@ touch .env
 NODE_ENV=production
 
 # Disable environment-driven configuration
-ENV_DRIVEN=false
+NEXT_PUBLIC_ENV_DRIVEN=false
 
 # Ejento API Configuration
 EJENTO_BASE_URL=https://api.yourdomain.com
@@ -157,7 +157,7 @@ npm run dev
 The configuration will be saved to browser localStorage and validated automatically.
 
 **Note**: To use manual configuration, don't forget to
-- Set `ENV_DRIVEN=false` and `NEXT_PUBLIC_AGENT=false` in your `.env`
+- Set `NEXT_PUBLIC_ENV_DRIVEN=false` and `NEXT_PUBLIC_AGENT=false` in your `.env`
 
 
 
@@ -168,7 +168,7 @@ The configuration will be saved to browser localStorage and validated automatica
 
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `ENV_DRIVEN` | Enable environment-driven configuration | `true` |
+| `NEXT_PUBLIC_ENV_DRIVEN` | Enable environment-driven configuration | `true` |
 | `EJENTO_BASE_URL` | Base URL for Ejento AI API server | `https://{your-server-name}` |
 | `EJENTO_API_KEY` | API subscription key | `your-ocp-apim-subscription-key` |
 | `EJENTO_ACCESS_TOKEN` | Authentication access token |Bearer `your-access-token` |
@@ -184,7 +184,7 @@ The configuration will be saved to browser localStorage and validated automatica
 ### Configuration Flow
 
 1. **Initial Load**: The application checks for configuration in this order:
-   - Environment variables (if `ENV_DRIVEN=true`)
+   - Environment variables (if `NEXT_PUBLIC_ENV_DRIVEN=true`)
    - Browser localStorage (manual configuration)
    - Redirects to settings if no configuration found
 
@@ -215,14 +215,14 @@ Deploy as an internal AI assistant for your organization:
 
 ### 2. Public AI Agent
 Create a public-facing AI agent:
-- Enable `NEXT_PUBLIC_AGENT=true` and set `ENV_DRIVEN=true` for public agent mode
+- Enable `NEXT_PUBLIC_AGENT=true` and set `NEXT_PUBLIC_ENV_DRIVEN=true` for public agent mode
 - Same Agent exposed to multiple users. Browser based session management for anonymous access. 
 - **Note**: The Author's credentials will be utilized for authentication and interaction with Ejento AI, however users will only be able to see the chats of their own browser session
 
 ### 3. Development/Testing Environment
 Use for local development and testing:
 - Manual configuration mode for flexibility
-- Easy switching between different Agents when `ENV_DRIVEN=false` and `NEXT_PUBLIC_AGENT=false`
+- Easy switching between different Agents when `NEXT_PUBLIC_ENV_DRIVEN=false` and `NEXT_PUBLIC_AGENT=false`
 - Full access to settings page
 
 ### 4. White-Label Solution
@@ -278,7 +278,7 @@ ejento_template/
 - ✅ Restart the server after updating environment variables
 
 **Problem**: "Configuration Required"
-- ✅ If using env-driven mode: Ensure `ENV_DRIVEN=true` and all `EJENTO_*` vars are set
+- ✅ If using env-driven mode: Ensure `NEXT_PUBLIC_ENV_DRIVEN=true` and all `EJENTO_*` vars are set
 - ✅ If using manual mode: Navigate to `/settings` and configure the application
 - ✅ Check browser console for additional error messages
 

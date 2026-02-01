@@ -68,9 +68,11 @@ export default function Confirmation() {
   }
 
   // Show configuration error if API service is unavailable
-  if (!apiService) {
-    return <ConfigError />;
+  if (!apiService && !configLoading) {
+    //although config is validated before login but for safe side we are checking it here 
+    return <ConfigError/>;
   }
+  
 
   return (
     <div className="flex items-center justify-center min-h-screen">

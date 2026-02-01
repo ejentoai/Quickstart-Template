@@ -182,24 +182,26 @@ export default function SettingsPage() {
 
   // Show loading state while checking config
   if (isLoading || isValidating) {
-    return(
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center">
-          <p className="text-lg">Loading configuration...</p>
-        </div>
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+        <p className="mt-4 text-gray-600">
+          {isValidating ? 'Validating configuration...' : 'Loading...'}
+        </p>
       </div>
-    )
+    );
   }
 
   // If env config is active and valid, show skeleton while redirecting
   if ((isEnvConfigured || configSource === 'environment') && isConfigured && !validationError) {
-    return(
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center">
-          <p className="text-lg">Loading...</p>
-        </div>
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+        <p className="mt-4 text-gray-600">
+          'Loading...'
+        </p>
       </div>
-    )
+    );
   }
 
   // Show pre-configured message if env config is active but invalid
@@ -360,123 +362,128 @@ export default function SettingsPage() {
   // Show normal form for manual configuration
   return (
     <div className="container mx-auto p-6 max-w-2xl relative">
-      {isRedirecting && (
-        <div className="flex items-center justify-center h-full">
-        <div className="text-center">
-          <p className="text-lg">Loading...</p>
+      {isRedirecting ?
+
+        <div className="flex flex-col items-center justify-center min-h-screen">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+          <p className="mt-4 text-gray-600">
+            Loading...
+          </p>
         </div>
-      </div>
-      )}
-      <div className="mb-8 text-center">
-        <h1 className="text-3xl font-bold">Configuration</h1>
-        <p className="text-gray-600 mt-2">Enter your API credentials to get started</p>
-      </div>
+        :
+        <div>
+          <div className="mb-8 text-center">
+            <h1 className="text-3xl font-bold">Configuration</h1>
+            <p className="text-gray-600 mt-2">Enter your API credentials to get started</p>
+          </div>
+          <Card className={isRedirecting ? 'opacity-60 pointer-events-none' : ''}>
+            <CardHeader>
+              <CardTitle>Required Configuration</CardTitle>
+              <CardDescription>Please provide the following information to access the chat application</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div>
+                <Label htmlFor="baseUrl">Base URL *</Label>
+                <Input
+                  id="baseUrl"
+                  value={formData.baseUrl}
+                  onChange={(e) => handleInputChange('baseUrl', e.target.value)}
+                  placeholder="https://api.example.com"
+                  className="mt-1"
+                  disabled={isSavingConfig || isRedirecting}
+                />
+              </div>
 
-      <Card className={isRedirecting ? 'opacity-60 pointer-events-none' : ''}>
-        <CardHeader>
-          <CardTitle>Required Configuration</CardTitle>
-          <CardDescription>Please provide the following information to access the chat application</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div>
-            <Label htmlFor="baseUrl">Base URL *</Label>
-            <Input
-              id="baseUrl"
-              value={formData.baseUrl}
-              onChange={(e) => handleInputChange('baseUrl', e.target.value)}
-              placeholder="https://api.example.com"
-              className="mt-1"
-              disabled={isSavingConfig || isRedirecting}
-            />
-          </div>
+              <div>
+                <Label htmlFor="apiKey">API Key *</Label>
+                <div className="relative mt-1">
+                  <Input
+                    id="apiKey"
+                    type={showTokens.apiKey ? 'text' : 'password'}
+                    value={formData.apiKey}
+                    onChange={(e) => handleInputChange('apiKey', e.target.value)}
+                    placeholder="Your API key"
+                    className="pr-10"
+                    disabled={isSavingConfig || isRedirecting}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3"
+                    onClick={() => toggleTokenVisibility('apiKey')}
+                    disabled={isSavingConfig || isRedirecting}
+                  >
+                    {showTokens.apiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>  
+              </div>
+              {
+                process.env.NEXT_PUBLIC_AUTH_FLOW === 'true' ? '' : 
+                <div>
+                <Label htmlFor="ejentoAccessToken">Ejento Access Token *</Label>
+                <div className="relative mt-1">
+                  <Input
+                    id="ejentoAccessToken"
+                    type={showTokens.ejentoAccessToken ? 'text' : 'password'}
+                    value={formData.ejentoAccessToken}
+                    onChange={(e) => handleInputChange('ejentoAccessToken', e.target.value)}
+                    placeholder="Your Ejento access token"
+                    className="pr-10"
+                    disabled={isSavingConfig || isRedirecting}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3"
+                    onClick={() => toggleTokenVisibility('ejentoAccessToken')}
+                    disabled={isSavingConfig || isRedirecting}
+                  >
+                    {showTokens.ejentoAccessToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+              }
+              
 
-          <div>
-            <Label htmlFor="apiKey">API Key *</Label>
-            <div className="relative mt-1">
-              <Input
-                id="apiKey"
-                type={showTokens.apiKey ? 'text' : 'password'}
-                value={formData.apiKey}
-                onChange={(e) => handleInputChange('apiKey', e.target.value)}
-                placeholder="Your API key"
-                className="pr-10"
-                disabled={isSavingConfig || isRedirecting}
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="absolute right-0 top-0 h-full px-3"
-                onClick={() => toggleTokenVisibility('apiKey')}
-                disabled={isSavingConfig || isRedirecting}
-              >
-                {showTokens.apiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </Button>
-            </div>  
-          </div>
-          {
-            process.env.NEXT_PUBLIC_AUTH_FLOW === 'true' ? '' : 
-            <div>
-            <Label htmlFor="ejentoAccessToken">Ejento Access Token *</Label>
-            <div className="relative mt-1">
-              <Input
-                id="ejentoAccessToken"
-                type={showTokens.ejentoAccessToken ? 'text' : 'password'}
-                value={formData.ejentoAccessToken}
-                onChange={(e) => handleInputChange('ejentoAccessToken', e.target.value)}
-                placeholder="Your Ejento access token"
-                className="pr-10"
-                disabled={isSavingConfig || isRedirecting}
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="absolute right-0 top-0 h-full px-3"
-                onClick={() => toggleTokenVisibility('ejentoAccessToken')}
-                disabled={isSavingConfig || isRedirecting}
-              >
-                {showTokens.ejentoAccessToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </Button>
-            </div>
-          </div>
-          }
-          
+              <div>
+                <Label htmlFor="agentId">Agent ID *</Label>
+                <Input
+                  id="agentId"
+                  value={formData.agentId}
+                  onChange={(e) => handleInputChange('agentId', e.target.value)}
+                  placeholder="agentId"
+                  className="mt-1"
+                  disabled={isSavingConfig || isRedirecting}
+                />
+              </div>
 
-          <div>
-            <Label htmlFor="agentId">Agent ID *</Label>
-            <Input
-              id="agentId"
-              value={formData.agentId}
-              onChange={(e) => handleInputChange('agentId', e.target.value)}
-              placeholder="agentId"
-              className="mt-1"
-              disabled={isSavingConfig || isRedirecting}
-            />
-          </div>
-
-          <div className="pt-4">
-            <Button 
-              onClick={handleSaveAndProceed} 
-              className="w-full"
-              disabled={isSavingConfig || isRedirecting || !canProceed}
-              size="lg"
-            >
-              {isRedirecting ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Redirecting...
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4 mr-2" />
-                  {isSavingConfig ? 'Saving...' : 'Save Configuration and Proceed'}
-                </>
-              )}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+              <div className="pt-4">
+                <Button 
+                  onClick={handleSaveAndProceed} 
+                  className="w-full"
+                  disabled={isSavingConfig || isRedirecting || !canProceed}
+                  size="lg"
+                >
+                  {isRedirecting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Redirecting...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4 mr-2" />
+                      {isSavingConfig ? 'Saving...' : 'Save Configuration and Proceed'}
+                    </>
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      }
+      
     </div>
   );
 }

@@ -120,7 +120,7 @@ export default function Home() {
                 <p className="text-sm text-yellow-800 font-medium mb-1">What to do:</p>
                 <ul className="text-xs text-yellow-700 space-y-1 list-disc list-inside">
                   <li>Add all EJENTO_* environment variables to your .env.local file</li>
-                  <li>Set ENV_DRIVEN=true to enable environment-based configuration</li>
+                  <li>Set NEXT_PUBLIC_ENV_DRIVEN=true to enable environment-based configuration</li>
                   <li>Restart your development server after adding the variables</li>
                   <li>These credentials are used by the author to make API calls on behalf of public users</li>
                 </ul>

@@ -8,7 +8,7 @@ import axios from 'axios';
  * Performs the same validations as manual config (credentials + agent)
  * This ensures env-based config is validated before the app uses it
  * 
- * SECURITY: When ENV_DRIVEN=false, stores validated credentials in secure httpOnly cookies
+ * SECURITY: When =false, stores validated credentials in secure httpOnly cookies
  * so they are not vulnerable to being exposed in the browser network tab
  */
 
@@ -86,8 +86,8 @@ export async function POST(request: Request) {
 
     // Check if this is environment-driven config (credentials are server-side only)
     const envDriven =
-      process.env.ENV_DRIVEN === 'true' ||
-      process.env.ENV_DRIVEN === '1';
+      process.env.NEXT_PUBLIC_ENV_DRIVEN === 'true' ||
+      process.env.NEXT_PUBLIC_ENV_DRIVEN === '1';
 
     let baseUrl: string;
     let apiKey: string;
@@ -146,7 +146,7 @@ export async function POST(request: Request) {
       }
       
       //after successfull validation
-      // If ENV_DRIVEN=false, store credentials securely in httpOnly cookies
+      // If =false, store credentials securely in httpOnly cookies
       // This prevents credentials from being visible in browser network tab
       if (!envDriven) {
         await storeCredentialsCookie({
@@ -229,7 +229,7 @@ export async function POST(request: Request) {
     }
     
     //after successful validation
-    // If ENV_DRIVEN=false, store credentials securely in httpOnly cookies
+    // If =false, store credentials securely in httpOnly cookies
     if (!envDriven) {
       await storeCredentialsCookie({
         baseUrl,

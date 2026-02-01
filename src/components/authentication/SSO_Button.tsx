@@ -22,14 +22,14 @@ export default function SSOButton({ icon, label, name, className }: SSOButtonPro
   const apiService = useApiService();
 
   // Show message if no config after loading
-  if (!apiService) {
-    return (
-      <ConfigError/>
-    );
+  if (!apiService && !configLoading) {
+    //although config is validated before login but for safe side we are checking it here 
+    return <ConfigError/>;
   }
+  
 
   const handleClick = async () => {
-     const result = await apiService.SSO_PROVIDER(url_name[0])
+     const result = await apiService?.SSO_PROVIDER(url_name[0])
      console.log(result,'resultresult')
      if(result){
       window.location.href = result

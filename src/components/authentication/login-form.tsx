@@ -69,7 +69,11 @@ export function LoginForm({
   };
 
   if (configLoading) return <LoginSkeleton />;
-  if (!apiService) return <ConfigError />;
+  if (!apiService && !configLoading) {
+    //although config is validated before login but for safe side we are checking it here 
+    return <ConfigError/>;
+  }
+  
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

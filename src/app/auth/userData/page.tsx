@@ -8,14 +8,14 @@ import { setUserToStorage,removeAccessToken,removeEjentoAccessToken } from '@/co
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useConfig } from "@/app/context/ConfigContext";
+import { ConfigError } from "@/components/configError";
 
 const UserData = () => {
   const router = useRouter();
   const apiService = useApiService();
   const isAuthEnabled = process.env.NEXT_PUBLIC_AUTH_FLOW === 'true'
-  const { clearConfig,setConfigSource } = useConfig();
-  const envDriven = process.env.ENV_DRIVEN === 'true'
-
+  const { clearConfig,isLoading: configLoading } = useConfig();
+  const envDriven = process.env.NEXT_PUBLIC_ENV_DRIVEN === 'true'
 
   useEffect(() => {
 
@@ -37,16 +37,10 @@ const UserData = () => {
 
           if (!validationResult.success) {
             toast.error(validationResult.message || 'Agent validation failed. Please check your configuration.');
-            if (!envDriven) {
-              clearConfig();
-            }
             removeAccessToken();
             removeEjentoAccessToken();
-            router.push("/settings");
+            router.push("/auth/login");
             return;
-          }
-          else if(validationResult.success && process.env.ENV_DRIVEN === 'false'){
-            toast.success('Agent validated successfully')
           }
         }
 
@@ -67,6 +61,12 @@ const UserData = () => {
 
     fetchUser();
   }, [apiService, router]);
+
+  if (!apiService && !configLoading) {
+    //although config is validated before login but for safe side we are checking it here 
+    return <ConfigError/>;
+  }
+  
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-white">

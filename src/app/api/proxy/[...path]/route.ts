@@ -36,7 +36,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
  * Get server-side credentials (subscription key and base URL)
  */
 async function getServerSideCredentials() {
-  const envDriven = process.env.ENV_DRIVEN === 'true' || process.env.ENV_DRIVEN === '1';
+  const envDriven = process.env.NEXT_PUBLIC_ENV_DRIVEN === 'true' || process.env.NEXT_PUBLIC_ENV_DRIVEN === '1';
   const authFlowEnabled = process.env.NEXT_PUBLIC_AUTH_FLOW === 'true';
   const cookieStore = await cookies();
 
