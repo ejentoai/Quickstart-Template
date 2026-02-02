@@ -198,7 +198,7 @@ export default function SettingsPage() {
       <div className="flex flex-col items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
         <p className="mt-4 text-gray-600">
-          'Loading...'
+          Loading...
         </p>
       </div>
     );
