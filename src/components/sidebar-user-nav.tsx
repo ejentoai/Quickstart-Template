@@ -30,28 +30,12 @@ import { usePublicAgentSession } from '@/hooks/usePublicAgentSession';
 export function SidebarUserNav() {
   const { config, clearConfig, updateConfig, saveConfig, configSource } = useConfig();
   const router = useRouter();
-  const [user_info, setUserInfo] = useState<{
-    success: boolean,
-    message: string,
-    data: {
-      id: number, 
-      email: string, 
-      first_name: string, 
-      last_name: string, 
-      is_staff: boolean, 
-      is_superuser: boolean, 
-      is_active: boolean,
-      date_joined: string,
-      organization?: {
-        id: number,
-        org_name: string,
-        domain: string,
-        description: string,
-        org_logo_url?: string,
-        org_icon_url?: string
-      }
-    }
-  } | null>(null);
+  const [user_info, setUserInfo] = useState(() => {
+    const storedUser = getUserFromStorage();
+    if (!storedUser) return null;
+  
+    return storedUser
+  });
   const [isOpen, setIsOpen] = useState(false);
   const [isManageConfigOpen, setIsManageConfigOpen] = useState(false);
   const [configForm, setConfigForm] = useState({
@@ -69,20 +53,6 @@ export function SidebarUserNav() {
   const publicAgentSession = usePublicAgentSession(); 
   const isPublicAgent = isPublicAgentMode(); 
   const ejento_access_token = getEjentoAccessToken()
-
-  useEffect(() => {
-    if (isAuthFlowEnabled) {
-      const user_info = getUserFromStorage()
-      const temp_user = {
-        success : true,
-        message : 'successfull',
-        data : user_info
-      }
-      setUserInfo(temp_user)
-    } else {
-      setUserInfo(getUserFromStorage());
-    }
-  }, []);
 
   useEffect(() => {
     if (isManageConfigOpen && config) {

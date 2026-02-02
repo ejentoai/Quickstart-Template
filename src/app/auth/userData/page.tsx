@@ -48,8 +48,21 @@ const UserData = () => {
         const response = await apiService.getCurrentUser();
         const user = response.data; 
 
-        if (user) {
-          setUserToStorage(user) //to use in sidebar
+        const userToStore = {
+          email: user.email,
+          first_name: user.first_name,
+          last_name: user.last_name,
+          name: user.name,
+          is_staff: user.is_staff,
+          is_superuser: user.is_superuser,
+        };
+
+        if (userToStore) {
+          setUserToStorage({
+            success : true,
+            message : 'user data loaded',
+            data : userToStore
+          }) //to use in sidebar
         }
         router.push("/chat");
       } catch (error : unknown) {

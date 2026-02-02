@@ -86,8 +86,7 @@ export async function POST(request: Request) {
 
     // Check if this is environment-driven config (credentials are server-side only)
     const envDriven =
-      process.env.NEXT_PUBLIC_ENV_DRIVEN === 'true' ||
-      process.env.NEXT_PUBLIC_ENV_DRIVEN === '1';
+      process.env.NEXT_PUBLIC_ENV_DRIVEN === 'true';
 
     let baseUrl: string;
     let apiKey: string;

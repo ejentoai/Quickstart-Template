@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     }
 
     // Get credentials (baseUrl, apiKey, agentId) from environment or cookie
-    const envDriven = process.env.NEXT_PUBLIC_ENV_DRIVEN === 'true' || process.env.NEXT_PUBLIC_ENV_DRIVEN === '1';
+    const envDriven = process.env.NEXT_PUBLIC_ENV_DRIVEN === 'true';
     
     let baseUrl: string;
     let apiKey: string;
