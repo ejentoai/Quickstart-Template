@@ -13,6 +13,7 @@ import { useAuth } from '@/app/context/AuthContext';
 import { useApiService } from '@/hooks/useApiService';
 import { ConfigError } from '../configError';
 import LoginSkeleton from './LoginSkeleton';
+import DOMPurify from 'dompurify';
 
 interface LoginFormProps {
   isOtpActive: boolean;
@@ -42,17 +43,30 @@ export function LoginForm({
     resolver: zodResolver(loginSchema),
   });
 
+  const sanitizeInput = (
+    input: string | undefined
+  ): string | undefined => {
+    if (!input) return input;
+    return DOMPurify.sanitize(input, { ALLOWED_TAGS: [] })?.trim();
+  }
   const onSubmit = async ({ email }: LoginFormValues) => {
     try {
-      const response = await apiService?.passwordlessAuth(email);
-      setEmail(email);
-
+      const sanitizedEmail = sanitizeInput(email);
+  
+      if (!sanitizedEmail) {
+        toast.error('Invalid email');
+        return;
+      }
+  
+      const response = await apiService?.passwordlessAuth(sanitizedEmail);
+      setEmail(sanitizedEmail);
+  
       if (response?.success) {
         toast.success(response?.message || 'Email sent successfully!');
         const otpId = response?.data?.data?.otp_session_id;
-
+  
         reset();
-
+  
         if (isOtpActive && otpId) {
           setShowVerifyOtp(true);
           setOtpSessionId(otpId);
@@ -62,11 +76,12 @@ export function LoginForm({
         reset();
         setShowVerifyOtp(false);
       }
-    } catch (error) {
+    } catch {
       toast.error('Unexpected error occurred');
       setShowVerifyOtp(false);
     }
   };
+  
 
   if (configLoading) return <LoginSkeleton />;
   if (!apiService && !configLoading) {

@@ -41,11 +41,14 @@ export function ConfigError({ validationError }: ConfigErrorProps) {
             </div>
 
             <div className="pt-4 flex gap-3">
-              <Link href="/settings" className="flex-1">
-                <Button variant="outline" className="w-full">
-                  View Settings
-                </Button>
-              </Link>
+              {
+                process.env.NEXT_PUBLIC_AGENT !== 'true' && 
+                <Link href="/settings" className="flex-1">
+                  <Button variant="outline" className="w-full">
+                    View Settings
+                  </Button>
+                </Link>
+              }
               <Button
                 variant="default"
                 className="flex-1"

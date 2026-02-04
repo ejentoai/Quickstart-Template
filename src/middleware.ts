@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import path from 'path';
 
 export default function middleware(req: NextRequest) {
   const url = req.nextUrl;
@@ -33,10 +34,15 @@ export default function middleware(req: NextRequest) {
   }
 
   /* ---------------- ENV-DRIVEN RESTRICTION ---------------- */
-
+  
+  //when env driven is false and public agent is true , we donot allow access to app because this combinat
   if (NEXT_PUBLIC_AGENT === 'true' && NEXT_PUBLIC_ENV_DRIVEN === 'false' && pathname !== '/') {
     return NextResponse.redirect(new URL('/', req.url));
   }
+
+  if(NEXT_PUBLIC_AGENT === 'true' && pathname === '/settings'){
+    return NextResponse.redirect(new URL('/', req.url));
+  }  
 
   /* ---------------- MAGIC LINK FLOW ---------------- */
 
