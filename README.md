@@ -308,7 +308,7 @@ ejento_template/
 - ✅ Check server logs for detailed error messages
 - ✅ Restart the server after updating environment variables
 
-**Problem**: "Configuration Validation Failed"
+**Problem**: "Login Failed"
 - ✅ Ensure you have entered the correct email address
 - ✅ Ensure the correct OTP is entered if the OTP flow is enabled
 - ✅ Verify that the access token is successfully stored in cookies
