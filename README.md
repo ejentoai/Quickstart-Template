@@ -1,6 +1,6 @@
 # Quick-start Ejento AI Template
 
-A flexible Next.js template for building AI-powered chat applications with the Ejento AI platform. This template provides a complete chat interface with streaming responses, message history, and flexible configuration options. Users are encouraged to build up on this template to utilize Ejento AI's capabilities by taking advantage of [Ejento AI APIs](https://api.ejento.ai/).
+A flexible Next.js template for building AI-powered chat applications with the Ejento AI platform. This template provides a complete chat interface with streaming responses, message history,flexible configuration options and secure authentication flow. Users are encouraged to build up on this template to utilize Ejento AI's capabilities by taking advantage of [Ejento AI APIs](https://api.ejento.ai/).
 The [Quick-start Template for Building an App Guide](https://api.ejento.ai/guide/quick-start-template-for-building-an-app) will walk you through the steps required to get started.
 
 ## 🚀 Features
@@ -17,6 +17,7 @@ The [Quick-start Template for Building an App Guide](https://api.ejento.ai/guide
 - **Modern Stack**: Next.js 15, React 19, Tailwind CSS
 - **Component Library**: Built with Radix UI and shadcn/ui components
 - **Flexible Configuration**: Environment-driven and manual configuration modes
+- **Secure Authentication Flow**: Supports configurable authentication flow.#
 
 ## 📋 Requirements
 
@@ -28,13 +29,20 @@ The [Quick-start Template for Building an App Guide](https://api.ejento.ai/guide
 ### API Requirements
 
 - Refer the [Documentation](https://docshub.ejento.ai/tutorials/apikeys) to retreive your Base URL, API Key, Access Token and Agent Id from Ejento AI
+- **Ejento API Access**: Valid Ejento API credentials are required. The credentials required depend on whether authentication is enabled:
+  ## 1. Authentication Enabled
+  - The Access Token will be issued automatically after successful user authentication.
+  - During configuration, the user only needs:
+   - Base URL for your Ejento API instance
+   - API Key (Ocp-Apim-Subscription-Key)
+   - Agent ID
+  ## 2. Authentication Disabled
+  - The user must provide all credentials during configuration:
+   - Base URL for your Ejento API instance
+   - API Key (Ocp-Apim-Subscription-Key)
+   - Ejento Access Token
+   - Agent ID
 - For retreiving Ejento Access Token before its expiration (7 days), refer the Guide [here](https://api.ejento.ai/getting-started-with-authentication).
-
-- **Ejento API Access**: Valid Ejento API credentials
-  - Base URL for your Ejento API instance
-  - API Key (Ocp-Apim-Subscription-Key)
-  - Ejento Access Token
-  - Agent ID
 
 ## 🛠️ Installation
 
