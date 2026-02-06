@@ -178,6 +178,15 @@ The configuration will be saved to browser localStorage and validated automatica
 **Note**: To use manual configuration, don't forget to
 - Set `NEXT_PUBLIC_ENV_DRIVEN=false` and `NEXT_PUBLIC_AGENT=false` in your `.env`
 
+### 4. Enable Authentication Flow
+
+The application provides the option to enable the authentication flow.
+
+## Steps to Enable Authentication Flow
+
+- Set `NEXT_PUBLIC_AUTH_FLOW` to `true`
+- Set `NEXT_PUBLIC_APP_URL` (e.g., `http://localhost:3000` for development, `https://yourapp.com` for production)
+- The access token will be provided automatically after successful login
 
 ## ⚙️ Environment Variables Reference
 
