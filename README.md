@@ -1,6 +1,6 @@
 # Quick-start Ejento AI Template
 
-A flexible Next.js template for building AI-powered chat applications with the Ejento AI platform. This template provides a complete chat interface with streaming responses, message history, flexible configuration options and secure authentication flow. Users are encouraged to build up on this template to utilize Ejento AI's capabilities by taking advantage of [Ejento AI APIs](https://api.ejento.ai/).
+A flexible Next.js template for building AI-powered chat applications with the Ejento AI platform. This template provides a complete chat interface with streaming responses, message history, flexible configuration options and optional authentication flow. Users are encouraged to build up on this template to utilize Ejento AI's capabilities by taking advantage of [Ejento AI APIs](https://api.ejento.ai/).
 The [Quick-start Template for Building an App Guide](https://api.ejento.ai/guide/quick-start-template-for-building-an-app) will walk you through the steps required to get started.
 
 ## 🚀 Features
@@ -17,7 +17,7 @@ The [Quick-start Template for Building an App Guide](https://api.ejento.ai/guide
 - **Modern Stack**: Next.js 15, React 19, Tailwind CSS
 - **Component Library**: Built with Radix UI and shadcn/ui components
 - **Flexible Configuration**: Environment-driven and manual configuration modes
-- **Secure Authentication Flow**: Supports configurable authentication flow
+- **Secure Authentication Flow**: Supports optional authentication flow
 
 ## 📋 Requirements
 
@@ -29,7 +29,7 @@ The [Quick-start Template for Building an App Guide](https://api.ejento.ai/guide
 ### API Requirements
 
 - Refer the [Documentation](https://docshub.ejento.ai/tutorials/apikeys) to retreive your Base URL, API Key, Access Token and Agent Id from Ejento AI
-- **Ejento API Access**: Valid Ejento API credentials are required. The credentials required depend on whether authentication is enabled:
+- **Ejento API Access**: Valid Ejento API credentials are required. The credentials required depend on whether authentication is enabled or disabled:
   ## 1. Authentication Enabled
   - The Access Token will be issued automatically after successful user authentication.
   - During configuration, the user only needs:
@@ -169,7 +169,7 @@ npm run dev
 
 4. Enter your API configuration:
    - **Base URL**: Your Ejento API base URL
-   - **Ejento Access Token**: Bearer your-authentication-token
+   - **Ejento Access Token**: Bearer your-authentication-token (if authentication is disabled; otherwise, it is provided automatically after login)
    - **API Key**: Ocp-Apim-Subscription-Key
    - **Agent ID**: Your agent identifier
 
@@ -191,7 +191,7 @@ The configuration will be saved to browser localStorage and validated automatica
 | `EJENTO_API_KEY` | API subscription key | `your-ocp-apim-subscription-key` |
 | `EJENTO_ACCESS_TOKEN` | Authentication access token |Bearer `your-access-token` |
 | `EJENTO_AGENT_ID` | Agent ID | `123` |
-| `NEXT_PUBLIC_APP_URL` | Your App Base URL | `https://yourapp.com` |
+| `NEXT_PUBLIC_APP_URL` | Your app Base URL | `https://yourapp.com` |
 | `NEXT_PUBLIC_AGENT` | Enable public agent mode | `false` |
 | `NEXT_PUBLIC_AGENT_IMAGE` | Custom agent logo/image URL | Uses default Ejento AI logo |
 | `NEXT_PUBLIC_AGENT_HEADER_TEXT` | Custom header text for agent | Default header |
@@ -259,7 +259,7 @@ ejento_template/
 ├── src/
 │   ├── app/              # Next.js app router pages
 │   │   ├── api/          # API routes (proxy, config, sso)
-│   │   ├── auth/         # authentication-related pages ((login-flow), confirmation, userData)
+│   │   ├── auth/         # authentication-related pages
 │   │   ├── chat/         # Chat page
 │   │   ├── settings/     # Settings page
 │   │   └── context/      # React contexts
