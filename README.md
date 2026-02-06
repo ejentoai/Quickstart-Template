@@ -43,7 +43,7 @@ The [Quick-start Template for Building an App Guide](https://api.ejento.ai/guide
     - Ejento Access Token
     - Agent ID
 
-  - For retreiving Ejento Access Token before its expiration (7 days), refer the Guide [here](https://api.ejento.ai/getting-started-with-authentication).
+   - For retreiving Ejento Access Token before its expiration (7 days), refer the Guide [here](https://api.ejento.ai/getting-started-with-authentication).
 
 ## 🛠️ Installation
 
@@ -303,11 +303,12 @@ ejento_template/
 **Problem**: "Configuration Validation Failed"
 - ✅ Check that all environment variables are set correctly
 - ✅ Verify your API credentials are valid
-- ✅ If authentication is disabled, ensure Ejento Access Token is set and not expired (expires every 7 days). Refer to this [Guide](https://api.ejento.ai/getting-started-with-authentication) to generate a new one.
+- ✅ If authentication is disabled, ensure Ejento Access Token is set and not expired (expires every 7 days). Refer to this [Guide](https://api.ejento.ai/getting-started-with-authentication) to generate a new one
+- ✅ If authentication is enabled, ensure the login flow works correctly and the user is able to obtain the access token automatically
 - ✅ Ensure the API endpoint is accessible from your server
 - ✅ Check server logs for detailed error messages
 - ✅ Restart the server after updating environment variables
-- ✅ If authentication is enabled, ensure the login flow works correctly and the user is able to obtain the access token automatically
+
 
 **Problem**: "Configuration Required"
 - ✅ If using env-driven mode: Ensure `NEXT_PUBLIC_ENV_DRIVEN=true` and all `EJENTO_*` vars are set
