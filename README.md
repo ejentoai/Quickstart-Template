@@ -17,7 +17,7 @@ The [Quick-start Template for Building an App Guide](https://api.ejento.ai/guide
 - **Modern Stack**: Next.js 15, React 19, Tailwind CSS
 - **Component Library**: Built with Radix UI and shadcn/ui components
 - **Flexible Configuration**: Environment-driven and manual configuration modes
-- **Secure Authentication Flow**: Supports optional authentication flow
+- **Secure Authentication Flow**: Supports authentication flow
 
 ## 📋 Requirements
 
@@ -28,7 +28,7 @@ The [Quick-start Template for Building an App Guide](https://api.ejento.ai/guide
 
 ### API Requirements
 
-- Refer the [Documentation](https://docshub.ejento.ai/tutorials/apikeys) to retreive your Base URL, API Key, Access Token and Agent Id from Ejento AI
+- Refer to the [documentation](https://docshub.ejento.ai/tutorials/apikeys) to retrieve your Base URL, API Key, Agent ID, and Access Token (only if authentication is disabled) from Ejento AI.
 - **Ejento API Access**: Valid Ejento API credentials are required. The credentials required depend on whether authentication is enabled or disabled:
   ## 1. Authentication Enabled
   - The Access Token will be issued automatically after successful user authentication.
@@ -43,7 +43,7 @@ The [Quick-start Template for Building an App Guide](https://api.ejento.ai/guide
     - Ejento Access Token
     - Agent ID
 
-- For retreiving Ejento Access Token before its expiration (7 days), refer the Guide [here](https://api.ejento.ai/getting-started-with-authentication).
+  - For retreiving Ejento Access Token before its expiration (7 days), refer the Guide [here](https://api.ejento.ai/getting-started-with-authentication).
 
 ## 🛠️ Installation
 
@@ -182,11 +182,11 @@ The configuration will be saved to browser localStorage and validated automatica
 
 The application provides the option to enable the authentication flow.
 
-## Steps to Enable Authentication Flow
+   ## Steps to Enable Authentication Flow
 
-- Set `NEXT_PUBLIC_AUTH_FLOW` to `true`
-- Set `NEXT_PUBLIC_APP_URL` (e.g., `http://localhost:3000` for development, `https://yourapp.com` for production)
-- The access token will be provided automatically after successful login
+   - Set `NEXT_PUBLIC_AUTH_FLOW` to `true`
+   - Set `NEXT_PUBLIC_APP_URL` (e.g., `http://localhost:3000` for development, `https://yourapp.com` for production)
+   - The access token will be provided automatically after successful login
 
 ## ⚙️ Environment Variables Reference
 
