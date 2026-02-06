@@ -304,11 +304,15 @@ ejento_template/
 - ✅ Check that all environment variables are set correctly
 - ✅ Verify your API credentials are valid
 - ✅ If authentication is disabled, ensure Ejento Access Token is set and not expired (expires every 7 days). Refer to this [Guide](https://api.ejento.ai/getting-started-with-authentication) to generate a new one
-- ✅ If authentication is enabled, ensure the login flow works correctly and the user is able to obtain the access token automatically
 - ✅ Ensure the API endpoint is accessible from your server
 - ✅ Check server logs for detailed error messages
 - ✅ Restart the server after updating environment variables
 
+**Problem**: "Configuration Validation Failed"
+- ✅ Ensure you have entered the correct email address
+- ✅ Ensure the correct OTP is entered if the OTP flow is enabled
+- ✅ Verify that the access token is successfully stored in cookies
+- ✅ Confirm that you are authorized to use the provided Agent ID
 
 **Problem**: "Configuration Required"
 - ✅ If using env-driven mode: Ensure `NEXT_PUBLIC_ENV_DRIVEN=true` and all `EJENTO_*` vars are set
