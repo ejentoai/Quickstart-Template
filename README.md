@@ -1,6 +1,6 @@
 # Quick-start Ejento AI Template
 
-A flexible Next.js template for building AI-powered chat applications with the Ejento AI platform. This template provides a complete chat interface with streaming responses, message history,flexible configuration options and secure authentication flow. Users are encouraged to build up on this template to utilize Ejento AI's capabilities by taking advantage of [Ejento AI APIs](https://api.ejento.ai/).
+A flexible Next.js template for building AI-powered chat applications with the Ejento AI platform. This template provides a complete chat interface with streaming responses, message history, flexible configuration options and secure authentication flow. Users are encouraged to build up on this template to utilize Ejento AI's capabilities by taking advantage of [Ejento AI APIs](https://api.ejento.ai/).
 The [Quick-start Template for Building an App Guide](https://api.ejento.ai/guide/quick-start-template-for-building-an-app) will walk you through the steps required to get started.
 
 ## 🚀 Features
@@ -17,7 +17,7 @@ The [Quick-start Template for Building an App Guide](https://api.ejento.ai/guide
 - **Modern Stack**: Next.js 15, React 19, Tailwind CSS
 - **Component Library**: Built with Radix UI and shadcn/ui components
 - **Flexible Configuration**: Environment-driven and manual configuration modes
-- **Secure Authentication Flow**: Supports configurable authentication flow.#
+- **Secure Authentication Flow**: Supports configurable authentication flow
 
 ## 📋 Requirements
 
@@ -33,15 +33,16 @@ The [Quick-start Template for Building an App Guide](https://api.ejento.ai/guide
   ## 1. Authentication Enabled
   - The Access Token will be issued automatically after successful user authentication.
   - During configuration, the user only needs:
-   - Base URL for your Ejento API instance
-   - API Key (Ocp-Apim-Subscription-Key)
-   - Agent ID
+    - Base URL for your Ejento API instance
+    - API Key (Ocp-Apim-Subscription-Key)
+    - Agent ID
   ## 2. Authentication Disabled
   - The user must provide all credentials during configuration:
-   - Base URL for your Ejento API instance
-   - API Key (Ocp-Apim-Subscription-Key)
-   - Ejento Access Token
-   - Agent ID
+    - Base URL for your Ejento API instance
+    - API Key (Ocp-Apim-Subscription-Key)
+    - Ejento Access Token
+    - Agent ID
+
 - For retreiving Ejento Access Token before its expiration (7 days), refer the Guide [here](https://api.ejento.ai/getting-started-with-authentication).
 
 ## 🛠️ Installation
@@ -80,11 +81,17 @@ NODE_ENV=production
 # Enable environment-driven configuration
 NEXT_PUBLIC_ENV_DRIVEN=true
 
+# Feature flag to enable authentication
+NEXT_PUBLIC_AUTH_FLOW=true
+
 # Ejento API Configuration
 EJENTO_BASE_URL=https://api.yourdomain.com
 EJENTO_API_KEY=your-ocp-apim-subscription-key
+# Required only if authentication is disabled; otherwise, it is provided automatically after login
 EJENTO_ACCESS_TOKEN=Bearer your-access-token
 EJENTO_AGENT_ID=your-agent-id
+
+NEXT_PUBLIC_APP_URL=<YOUR_APP_BASE_URL>   # Replace with your app's URL (e.g., http://localhost:3000 for dev, https://yourapp.com for production)
 
 # Public Agent Mode (for public-facing AI agents)
 NEXT_PUBLIC_AGENT=false
@@ -105,7 +112,7 @@ NEXT_PUBLIC_SECRET_KEY=secret-key-for-encryption
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser. You will be redirected to /chat once the validations are successful.
+Open [http://localhost:3000](http://localhost:3000) in your browser. If authentication is enabled, you will be redirected to the /auth/login page after successful validation; otherwise, you will be redirected to the /chat page.
 
 #### Option B: Manual Configuration 
 
@@ -126,11 +133,17 @@ NODE_ENV=production
 # Disable environment-driven configuration
 NEXT_PUBLIC_ENV_DRIVEN=false
 
+# Feature flag to enable authentication
+NEXT_PUBLIC_AUTH_FLOW=true
+
 # Ejento API Configuration
 EJENTO_BASE_URL=https://api.yourdomain.com
 EJENTO_API_KEY=your-ocp-apim-subscription-key
+# Required only if authentication is disabled; otherwise, it is provided automatically after login
 EJENTO_ACCESS_TOKEN=Bearer your-access-token
 EJENTO_AGENT_ID=your-agent-id
+
+NEXT_PUBLIC_APP_URL=<YOUR_APP_BASE_URL>   # Replace with your app's URL (e.g., http://localhost:3000 for dev, https://yourapp.com for production)
 
 # Public Agent Mode (for public-facing AI agents)
 NEXT_PUBLIC_AGENT=false
@@ -152,8 +165,6 @@ NEXT_PUBLIC_SECRET_KEY=secret-key-for-encryption
 npm run dev
 ```
 
-
-
 3. Navigate to the Settings page at `http://localhost:3000/settings`
 
 4. Enter your API configuration:
@@ -168,8 +179,6 @@ The configuration will be saved to browser localStorage and validated automatica
 - Set `NEXT_PUBLIC_ENV_DRIVEN=false` and `NEXT_PUBLIC_AGENT=false` in your `.env`
 
 
-
-
 ## ⚙️ Environment Variables Reference
 
 ### Environment Variables
@@ -177,10 +186,12 @@ The configuration will be saved to browser localStorage and validated automatica
 | Variable | Description | Example |
 |----------|-------------|---------|
 | `NEXT_PUBLIC_ENV_DRIVEN` | Enable environment-driven configuration | `true` |
+| `NEXT_PUBLIC_AUTH_FLOW` | Enable authentication flow | `true` |
 | `EJENTO_BASE_URL` | Base URL for Ejento AI API server | `https://{your-server-name}` |
 | `EJENTO_API_KEY` | API subscription key | `your-ocp-apim-subscription-key` |
 | `EJENTO_ACCESS_TOKEN` | Authentication access token |Bearer `your-access-token` |
 | `EJENTO_AGENT_ID` | Agent ID | `123` |
+| `NEXT_PUBLIC_APP_URL` | Your App Base URL | `https://yourapp.com` |
 | `NEXT_PUBLIC_AGENT` | Enable public agent mode | `false` |
 | `NEXT_PUBLIC_AGENT_IMAGE` | Custom agent logo/image URL | Uses default Ejento AI logo |
 | `NEXT_PUBLIC_AGENT_HEADER_TEXT` | Custom header text for agent | Default header |
@@ -197,12 +208,12 @@ The configuration will be saved to browser localStorage and validated automatica
    - Redirects to settings if no configuration found
 
 2. **Validation**: All configurations are automatically validated:
-   - Credential validation (API key and access token)
+   - Credential validation (requires API key and access token if auth is disabled, otherwise only API key.)
    - Agent validation (confirms agent exists and is accessible)
    - User data fetching (automatically retrieves user information)
 
 3. **Routing**:
-   - **Valid Configuration**: Automatically routes to `/chat`
+   - **Valid Configuration**: Automatically routes to `/auth/login` if authentication is enabled; otherwise, redirects to `/chat`
    - **Invalid/Missing Configuration**: Routes to `/settings` or shows error message
    - **Environment-Driven Mode**: Settings page is disabled
 
@@ -219,6 +230,7 @@ The configuration will be saved to browser localStorage and validated automatica
 ### 1. AI Assistant
 Deploy as an internal AI assistant for your organization:
 - Use environment-driven configuration for security
+- Enable authentication 
 - Customize UI to match your brand
 
 ### 2. Public AI Agent
@@ -246,16 +258,18 @@ Customize for clients:
 ejento_template/
 ├── src/
 │   ├── app/              # Next.js app router pages
-│   │   ├── api/          # API routes (proxy, config)
+│   │   ├── api/          # API routes (proxy, config, sso)
+│   │   ├── auth/         # authentication-related pages ((login-flow), confirmation, userData)
 │   │   ├── chat/         # Chat page
 │   │   ├── settings/     # Settings page
 │   │   └── context/      # React contexts
 │   ├── components/       # React components
-│   │   ├── chat/         # Chat-related components
+│   │   ├─ authentication # authentication-related components
+│   │   ├─ chat/         # Chat-related components
 │   │   └── ui/           # UI component library
 │   ├── hooks/             # Custom React hooks
 │   ├── lib/              # Utility libraries
-│   └── middleware.ts     # Next.js middleware
+│   ├── middleware/       # Next.js middleware
 ├── public/               # Static assets
 ├── Dockerfile           # Docker configuration
 └── package.json         # Dependencies and scripts
@@ -280,10 +294,11 @@ ejento_template/
 **Problem**: "Configuration Validation Failed"
 - ✅ Check that all environment variables are set correctly
 - ✅ Verify your API credentials are valid
-- ✅ Ensure Ejento Access Token is not expired (It expires every 7 Days). Refer this [Guide](https://api.ejento.ai/getting-started-with-authentication) to generate a new one.
+- ✅ If authentication is disabled, ensure Ejento Access Token is set and not expired (expires every 7 days). Refer to this [Guide](https://api.ejento.ai/getting-started-with-authentication) to generate a new one.
 - ✅ Ensure the API endpoint is accessible from your server
 - ✅ Check server logs for detailed error messages
 - ✅ Restart the server after updating environment variables
+- ✅ If authentication is enabled, ensure the login flow works correctly and the user is able to obtain the access token automatically
 
 **Problem**: "Configuration Required"
 - ✅ If using env-driven mode: Ensure `NEXT_PUBLIC_ENV_DRIVEN=true` and all `EJENTO_*` vars are set
