@@ -270,30 +270,34 @@ export const encryptData = (text: any) => {
   return data;
 };
 
-
 export const decryptData = (text: any) => {
-  if (!text) {
+  if (!text || typeof text !== "string") {
     return null;
   }
 
   try {
-    // Decrypt the text and handle the key internally
     const bytes = CryptoJS.AES.decrypt(text.replace(/_/g, '/'), secretKey!);
     const decryptedText = bytes.toString(CryptoJS.enc.Utf8);
 
-    // Check if the decrypted text is empty or undefined
-    if (!decryptedText) {
-      throw new Error('Decryption resulted in an empty string.');
+    // If decryption fails, CryptoJS returns empty string
+    if (!decryptedText || decryptedText.trim() === "") {
+      return null; 
     }
 
-    // Attempt to parse the decrypted text as JSON
-    const data = JSON.parse(decryptedText);
-    return data;
-  } catch (error:any) {
-    console.error('Error decrypting or parsing data:', error.message);
-    return null; // Return null to avoid breaking the app
+    // Try parsing JSON safely
+    try {
+      return JSON.parse(decryptedText);
+    } catch {
+      // If it's not JSON, return raw string
+      return decryptedText;
+    }
+
+  } catch {
+    // Silent failure — this is expected for invalid input
+    return null;
   }
 };
+
 
 export const refreshIfEmpty = (value: any) => {
   if (value === null || value === undefined || value === '') {

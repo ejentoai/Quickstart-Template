@@ -1,16 +1,16 @@
 'use client';
-
+ 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { setUserToStorage } from '@/cookie';
-
+import { setUserToCookie } from '@/cookie';
+ 
 export interface UserConfig {
-  
+ 
   // API Configuration
   baseUrl: string;
   ejentoAccessToken: string;
   apiKey: string;
   agentId: string;
-  
+ 
   // User Information (optional, can be fetched)
   userInfo?: {
     id?: string;
@@ -21,14 +21,14 @@ export interface UserConfig {
     is_staff: boolean;
     is_superuser: boolean;
   };
-  
+ 
   // App Settings
   theme?: 'light' | 'dark';
   defaultModel?: string;
 }
-
+ 
 type ConfigSource = 'environment' | 'localStorage' | null;
-
+ 
 interface ConfigContextType {
   config: UserConfig | null;
   configSource: ConfigSource;
@@ -42,12 +42,12 @@ interface ConfigContextType {
   isValidating: boolean;
   validationError: string | null;
   setConfigSource: (source: any) => void;
-  
+ 
 }
-
+ 
 const ConfigContext = createContext<ConfigContextType | undefined>(undefined);
-
-
+ 
+ 
 export function useConfig() {
   const context = useContext(ConfigContext);
   if (!context) {
@@ -55,7 +55,7 @@ export function useConfig() {
   }
   return context;
 }
-
+ 
 export function ConfigProvider({ children }: { children: ReactNode }) {
   const [config, setConfig] = useState<UserConfig | null>(null);
   const [configSource, setConfigSource] = useState<ConfigSource>(null);
@@ -63,8 +63,8 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
   const [isValidating, setIsValidating] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const isAuthEnabled = process.env.NEXT_PUBLIC_AUTH_FLOW === 'true';
-
-
+ 
+ 
   const updateConfig = (newConfig: Partial<UserConfig>) => {
     setConfig(prev => prev ? { ...prev, ...newConfig } : newConfig as UserConfig);
     // When config is manually updated, it's from localStorage (settings page)
@@ -73,20 +73,20 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
       setConfigSource('localStorage');
     }
   };
-
+ 
   const clearConfig = async () => {
-
+ 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000);
-
+ 
     setConfig(null);
     setConfigSource(null);
-    
+   
     // Clear localStorage config
     if (typeof window !== 'undefined') {
       localStorage.removeItem('app-config');
     }
-    
+   
     // SECURITY: Clear server-side credentials cookie (for ENV_DRIVEN=false scenario)
     // This ensures credentials are removed from secure storage
     try {
@@ -99,30 +99,30 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
       // Continue even if this fails - localStorage is already cleared
     }
     finally {
-      clearTimeout(timeout); 
+      clearTimeout(timeout);
     }
   };
-
+ 
   const saveConfig = () => {
     // Only save to localStorage if config source is 'localStorage'
     // Never save env-based config to localStorage
     if (config && typeof window !== 'undefined' && configSource === 'localStorage') {
-      localStorage.setItem('app-config', JSON.stringify(config));
+      localStorage.setItem('app-config', JSON.stringify(''));
     }
   };
-
+ 
   /**
    * Validates environment-based configuration by checking credentials and agent
    * This ensures env config is valid before the app uses it
    */
   const validateEnvConfig = async (configToValidate: UserConfig): Promise<boolean> => {
-
+ 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000);
-
+ 
     setIsValidating(true);
     setValidationError(null);
-
+ 
     try {
       const response = await fetch('/api/config/validate', {
         method: 'POST',
@@ -132,9 +132,9 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ config: configToValidate }),
         signal : controller.signal
       });
-
+ 
       const result = await response.json();
-      
+     
       //if auth flow is enabled then we donot handle userData at this point
       //because userData will be available after successful login
       if(isAuthEnabled){
@@ -152,9 +152,9 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
       }
       else{
         if (result.success && result.userData) {
-
+ 
           const user = result.userData.data ? result.userData.data : result.userData;
-    
+   
           const filteredUser = {
             first_name: user.first_name || '',
             last_name: user.last_name || '',
@@ -163,17 +163,17 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
             is_staff: user.is_staff || false,
             is_superuser: user.is_superuser || false,
           };
-  
+ 
           // Validation successful - store filtered user info
           // The sidebar expects the user data in a specific format with a 'data' property
           // Always use filteredUser to ensure only required fields are stored
-          const userInfoToStore = { 
-            success: true, 
-            message: 'User data loaded', 
+          const userInfoToStore = {
+            success: true,
+            message: 'User data loaded',
             data: filteredUser
           };
-          setUserToStorage(userInfoToStore);
-          
+          setUserToCookie(userInfoToStore);
+         
           // Update config with user info
           // Ensure config is updated synchronously so isConfigured calculation works
           //if auth flow is enabled then user info will not store in config
@@ -188,7 +188,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
                 userInfo: filteredUser
               };
           });
-          
+         
           // Clear any validation errors
           setValidationError(null);
           return true;
@@ -213,20 +213,20 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
         return false;
     } finally {
       setIsValidating(false);
-        clearTimeout(timeout); 
+        clearTimeout(timeout);
     }
   };
-
+ 
   const loadConfig = async () => {
-
+ 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000);
-
+ 
     if (typeof window === 'undefined') {
       setIsLoading(false);
       return;
     }
-
+ 
     try {
       // Step 1: Check for environment-based configuration first
       // The API endpoint will respect ENV_DRIVEN flag and return appropriate response
@@ -234,7 +234,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
         const envConfigResponse = await fetch('/api/config',{signal : controller.signal});
         if (envConfigResponse.ok) {
           const envConfigData = await envConfigResponse.json();
-          
+         
           // If ENV_DRIVEN is explicitly false, API returns envDrivenEnabled: false
           // In this case, skip env config and go straight to localStorage
           if (envConfigData.envDrivenEnabled === false) {
@@ -245,10 +245,10 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
             const envConfig = envConfigData.config;
             setConfig(envConfig);
             setConfigSource('environment');
-            
+           
             // Validate the env config (same validations as manual config)
             const isValid = await validateEnvConfig(envConfig);
-            
+           
             if (!isValid) {
               // Validation failed - clear config so app doesn't use invalid credentials
               // BUT keep configSource as 'environment' so we can show env-specific error messages
@@ -257,7 +257,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
               // This allows the UI to show that it was an env config validation failure
               // console.error('Environment configuration validation failed. App will not start with invalid credentials.');
             }
-            
+           
             setIsLoading(false);
             return;
           } else if (envConfigData.envDrivenEnabled === true && !envConfigData.config && envConfigData.error) {
@@ -275,7 +275,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
         // If API call fails, fall back to localStorage
         console.warn('Failed to load env config, falling back to localStorage:', error);
       }
-
+ 
       // Step 2: Fall back to localStorage if no env config or ENV_DRIVEN is false
       try {
         const saved = localStorage.getItem('app-config');
@@ -291,21 +291,21 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
       console.error('Failed to load config:', error);
     } finally {
       setIsLoading(false);
-      clearTimeout(timeout); 
+      clearTimeout(timeout);
     }
   };
-
+ 
   useEffect(() => {
     loadConfig();
   }, []);
-
+ 
   // Auto-save when config changes (only for localStorage-based config)
   useEffect(() => {
     if (config && configSource === 'localStorage') {
       saveConfig();
     }
   }, [config, configSource]);
-
+ 
   // Only mark as configured if:
   // 1. Config exists with all required fields
   // 2. If env config, validation must have passed (no validation error)
@@ -314,17 +314,17 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
   const isConfigured = Boolean(
     config?.agentId &&
     (
-      configSource === 'environment' 
+      configSource === 'environment'
         ? !validationError // env config just needs validation
-        : isAuthEnabled 
+        : isAuthEnabled
           ? (config?.baseUrl && config?.apiKey) // localStorage config with auth flow true only requires baseUrl and agentId
           : (config?.baseUrl && config?.apiKey && config?.ejentoAccessToken) // normal localStorage config
     )
   );
-  
-
+ 
+ 
   const isEnvConfigured = configSource === 'environment';
-
+ 
   return (
     <ConfigContext.Provider value={{
       config,
@@ -344,3 +344,5 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     </ConfigContext.Provider>
   );
 }
+ 
+ 

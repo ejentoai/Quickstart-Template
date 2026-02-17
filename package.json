@@ -13,6 +13,8 @@
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
     "@microsoft/fetch-event-source": "^2.0.1",
+    "@prisma/adapter-pg": "^7.4.0",
+    "@prisma/client": "^7.4.0",
     "@radix-ui/react-alert-dialog": "^1.1.2",
     "@radix-ui/react-avatar": "^1.1.1",
     "@radix-ui/react-checkbox": "^1.1.2",
@@ -47,6 +49,7 @@
     "next": "15.0.7",
     "next-auth": "^4.24.11",
     "next-themes": "^0.4.3",
+    "pg": "^8.18.0",
     "prosemirror-example-setup": "^1.2.3",
     "prosemirror-inputrules": "^1.4.0",
     "prosemirror-markdown": "^1.13.1",
@@ -71,6 +74,7 @@
     "tailwindcss-animate": "^1.0.7",
     "universal-cookie": "^7.2.2",
     "usehooks-ts": "^3.1.0",
+    "uuid": "^13.0.0",
     "vaul": "^1.1.1",
     "zod": "^3.25.76"
   },
@@ -79,12 +83,14 @@
     "@types/he": "^1.2.3",
     "@types/js-cookie": "^3.0.6",
     "@types/node": "^20",
+    "@types/pg": "^8.16.0",
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
     "@types/react-speech-recognition": "^3.9.5",
     "eslint": "^8",
     "eslint-config-next": "15.0.4",
     "postcss": "^8",
+    "prisma": "^7.4.0",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
   }

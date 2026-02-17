@@ -21,6 +21,8 @@ interface UserInfo {
 interface AuthContextType {
   email: string | null;       
   setEmail: (email: string) => void; 
+  userId: number | null;
+  setUserId: (id: number | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -29,12 +31,15 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { readonly children: ReactNode }) {
   
   const [email, setEmail] = useState<string | null>(null); 
+  const [userId, setUserId] = useState<number | null>(null);
   
   return (
     <AuthContext.Provider
       value={{
         email,
         setEmail,
+        userId,
+        setUserId
       }}
     >
       {children}

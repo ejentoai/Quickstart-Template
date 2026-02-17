@@ -38,7 +38,6 @@ export default function RootLayout({
       >
         <ConfigProvider>
           <PublicAgentSessionProvider>
-            <TokenRefreshProvider>
               <ThemeProvider
                 attribute="class"
                 defaultTheme="light"
@@ -50,7 +49,7 @@ export default function RootLayout({
                   {children}
                 </AuthProvider>
               </ThemeProvider>
-            </TokenRefreshProvider>
+           
           </PublicAgentSessionProvider>
         </ConfigProvider>
       </body>

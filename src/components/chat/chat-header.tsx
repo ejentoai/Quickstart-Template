@@ -17,7 +17,7 @@ import {
   VisibilityType,
   VisibilitySelector,
 } from "@/components/visibility-selector";
-import { getAccessToken, getUserFromStorage } from '@/cookie';
+import { getAccessToken, getUserFromCookie } from '@/cookie';
 import { toast } from "sonner";
 import { encryptData, handleSetQueryParams } from "@/lib/utils";
 
@@ -46,7 +46,7 @@ function PureChatHeader({
   const [user, setUser] = useState<{ id: string, email: string, full_name: string, is_super_user: boolean } | null>(null)
 
   useEffect(() => {
-    setUser(getUserFromStorage())
+    setUser(getUserFromCookie())
   }, [])
 
   const { width: windowWidth } = useWindowSize();

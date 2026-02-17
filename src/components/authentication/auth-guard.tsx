@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getAccessToken, getEjentoAccessToken } from '@/cookie';
+import { getAccessToken, getEjentoAccessToken, getUserFromCookie } from '@/cookie';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -15,7 +15,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
   useEffect(() => {
     const token = getAccessToken();
     const ejentoToken = getEjentoAccessToken();
-    const user_info = localStorage.getItem('user_info')
+    const user_info = getUserFromCookie()
 
     const isAuthFlowEnabled = process.env.NEXT_PUBLIC_AUTH_FLOW === 'true';
 

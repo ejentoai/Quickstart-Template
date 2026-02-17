@@ -28,6 +28,7 @@ import type {
 } from '@/lib/storage/types';
 import { useApiService } from '@/hooks/useApiService';
 import { useConfig } from '@/app/context/ConfigContext';
+import { toast } from 'sonner';
 
 interface PublicAgentSessionContextType {
   // Session state
@@ -49,7 +50,7 @@ interface PublicAgentSessionContextType {
   // Message operations
   getThreadMessages: (threadId: string) => Promise<StoredMessage[]>;
   saveMessage: (
-    threadId: string,
+    threadId: number,
     role: 'user' | 'assistant',
     content: string,
     metadata?: StoredMessage['metadata']
@@ -101,11 +102,18 @@ export function PublicAgentSessionProvider({ children }: PublicAgentSessionProvi
 
     const initializeSession = async () => {
       try {
+        const res = await fetch('/api/session', {
+          method: 'POST'
+        });
+        
+        if (!res.ok) {
+          console.error('Error in creating session');
+        }
+        
         // Load or create session metadata
         let sessionMeta = await getSessionMetadata();
         
         if (!sessionMeta) {
-          // Create new session
           sessionMeta = await createOrUpdateSessionMetadata({
             createdAt: Date.now(),
             lastSyncedAt: null,
@@ -113,20 +121,35 @@ export function PublicAgentSessionProvider({ children }: PublicAgentSessionProvi
             lastTokenRefresh: null,
           });
         }
-
+    
         setSessionId(sessionMeta.sessionId);
         setMetadata(sessionMeta);
-
-        // Load all threads
-        const allThreads = await getAllThreads();
-        setThreads(allThreads);
-
+    
+        // Load all threads with better error handling
+        try {
+          const allThreadsRes = await fetch('/api/thread');
+          
+          if (allThreadsRes.ok) {
+            const text = await allThreadsRes.text();
+            // Only parse if there's content
+            const allThreads = text ? JSON.parse(text) : [];
+            setThreads(Array.isArray(allThreads) ? allThreads : []);
+          } else {
+            console.error('Failed to fetch threads:', allThreadsRes.status);
+            setThreads([]);
+          }
+        } catch (threadError) {
+          console.error('Error fetching threads:', threadError);
+          setThreads([]);
+        }
+    
         // Set active thread to most recent if available
-        if (allThreads.length > 0 && !activeThreadId) {
-          setActiveThreadIdState(allThreads[0].threadId);
+        if (threads.length > 0 && !activeThreadId) {
+          setActiveThreadIdState(threads[0].id);
         }
       } catch (error) {
         console.error('Error initializing public agent session:', error);
+        setThreads([]); // Ensure threads is at least an empty array
       } finally {
         setIsLoading(false);
         setIsInitialized(true);
@@ -155,25 +178,33 @@ export function PublicAgentSessionProvider({ children }: PublicAgentSessionProvi
     if (!isPublicAgent) {
       throw new Error('Public agent mode is not enabled');
     }
+    try{
+      const res = await fetch('/api/thread',{
+        method : 'POST',
+        headers : { 'content-type' : 'application/json'},
+        body : JSON.stringify( {title} )
+      })
 
-    // Use negative numeric ID for local threads (matches URL format)
-    // The thread will be created on the server when the first response is sent
-    // The response API will return thread_id and chat_thread_name, which we'll use to update this thread
-    const threadId = (-Date.now()).toString();
+      if(!res.ok){
+        throw new Error('Filed to create thread')
+      }
+
+      const thread = await res.json()
+
+      setThreads((prev) => [thread, ...prev]);
+      setActiveThreadIdState(thread.id);
+      
+      // Refresh metadata to update thread count
+      await refreshMetadata();
+
+      return thread
     
-    // Store thread in IndexedDB with local ID only (server ID will be added when first response arrives)
-    const thread = await createThread(threadId, title, {
-      localThreadId: parseInt(threadId),
-      serverThreadId: null, // Will be set when first response returns thread_id
-    });
-    
-    setThreads((prev) => [thread, ...prev]);
-    setActiveThreadIdState(threadId);
-    
-    // Refresh metadata to update thread count
-    await refreshMetadata();
-    
-    return thread;
+    }
+    catch(error){
+      console.error('Error creating thread')
+      throw error
+    }
+
   }, [isPublicAgent, refreshMetadata]);
 
   // Update thread title
@@ -182,148 +213,43 @@ export function PublicAgentSessionProvider({ children }: PublicAgentSessionProvi
   // 2. User manually edits title: we call updateChatThreadTitle API to update on server
   const updateThreadTitle = useCallback(async (threadId: string, title: string, serverThreadId?: number) => {
     if (!isPublicAgent) return;
-
-    // Try to find thread by the provided threadId
-    let thread = await getThread(threadId);
-    
-    // If not found, try to find by searching all threads (handles legacy format or metadata matching)
-    if (!thread) {
-      const allThreads = await getAllThreads();
-      thread = allThreads.find(t => {
-        // Check if threadId matches stored threadId, or matches metadata IDs
-        return t.threadId === threadId ||
-          t.threadId.includes(threadId) ||
-          (t.metadata?.serverThreadId?.toString() === threadId) ||
-          (t.metadata?.localThreadId?.toString() === threadId) ||
-          (serverThreadId && t.metadata?.serverThreadId === serverThreadId) ||
-          (serverThreadId && parseInt(t.threadId) === serverThreadId);
-      }) || null;
-    }
-    
-    // If thread still not found, create it (this handles the case where server returns a new thread ID)
-    if (!thread) {
-      const numericId = /^-?\d+$/.test(threadId) ? parseInt(threadId) : null;
-      thread = await createThread(threadId, title, {
-        serverThreadId: serverThreadId || (numericId && numericId > 0 ? numericId : null),
-        localThreadId: numericId && numericId < 0 ? numericId : null,
-      });
-      // Update threads state
-      setThreads((prev) => [thread!, ...prev]);
-      return; // Thread created with the title, no need to update
-    }
-
-    // Use the actual thread's threadId from IndexedDB
-    const actualThreadId = thread.threadId;
-    const isNegativeThreadId = parseInt(actualThreadId) < 0;
-    
-    // If we have a server threadId and the current thread has a negative ID, migrate the thread
-    if (serverThreadId && serverThreadId > 0 && isNegativeThreadId) {
-      // Migrate thread from negative ID to positive server ID
-      const serverThreadIdString = serverThreadId.toString();
-      
-      // Perform the migration (this will create new thread in IndexedDB and delete old one)
-      const migratedThread = await migrateThread(actualThreadId, serverThreadIdString, title);
-      
-      // Atomically update state: remove old thread and add new one in a single update
-      // This prevents duplicate keys during the migration
-      setThreads((prev) => {
-        // Remove the old thread (negative ID) and check if new thread already exists
-        const filtered = prev.filter((t) => t.threadId !== actualThreadId);
-        const exists = filtered.some((t) => t.threadId === serverThreadIdString);
-        
-        if (exists) {
-          // If it exists, replace it instead of adding (shouldn't happen, but safety check)
-          return filtered.map((t) => 
-            t.threadId === serverThreadIdString ? migratedThread : t
-          );
+    try{
+      const res = await fetch(
+        `/api/thread/${threadId}`,{
+          method : 'PATCH',
+          headers : { 'content-type' : 'application/json'},
+          body : JSON.stringify({title})
         }
-        // Add the migrated thread at the beginning (most recent)
-        return [migratedThread, ...filtered];
-      });
-      
-      // If this was the active thread, update the active thread ID
-      if (activeThreadId === actualThreadId) {
-        setActiveThreadIdState(serverThreadIdString);
-      }
-      
-      return; // Migration complete
-    }
-    
-    // Determine the server thread ID to use for API call
-    const apiThreadId = serverThreadId || thread.metadata?.serverThreadId || 
-      (parseInt(actualThreadId) > 0 ? parseInt(actualThreadId) : null);
-    
-    // PUBLIC_AGENT mode: Call API to update thread title on server (showcases the API)
-    // Note: This is called when user manually edits title. For first response, the thread was already
-    // created by the response API, so this call updates it if the title changed.
-    if (apiService && apiThreadId && apiThreadId > 0) {
-      try {
-        await apiService.updateChatThreadTitle(apiThreadId, title, userEmail);
-      } catch (error) {
-        console.error('Error updating thread title via API:', error);
-        // Continue with local update even if API call fails
-      }
-    }
-    
-    // Update thread title and also update metadata if serverThreadId is provided
-    const updates: Partial<Pick<StoredThread, 'title' | 'messageIds' | 'metadata'>> = {
-      title,
-    };
-    
-    // If we're updating with a server thread ID, store it in metadata
-    if (serverThreadId) {
-      updates.metadata = {
-        ...thread.metadata,
-        serverThreadId: serverThreadId,
-      };
-    } else if (apiThreadId && apiThreadId > 0) {
-      updates.metadata = {
-        ...thread.metadata,
-        serverThreadId: apiThreadId,
-      };
-    }
-    
-    await updateThread(actualThreadId, updates);
-    
-    setThreads((prev) =>
-      prev.map((t) =>
-        t.threadId === actualThreadId ? { ...t, title, updatedAt: Date.now(), metadata: updates.metadata || t.metadata } : t
       )
-    );
-  }, [isPublicAgent, apiService, userEmail, activeThreadId]);
+      if(!res.ok){
+        throw new Error('Failed to update thread')
+      }
+      const updatedThread = await res.json()
+      setThreads(prev => prev.map(t => t.id === threadId ? updatedThread : t));
+    } catch (error) {
+      console.error('Error updating thread title:', error);
+      throw new Error('Failed to update thread')
+    }
+  }, [isPublicAgent]);
 
   // Delete thread
   const deleteThreadById = useCallback(async (threadId: string) => {
     if (!isPublicAgent) return;
-
-    // Get thread to find server thread ID before deleting
-    const thread = await getThread(threadId);
-    const serverThreadId = thread?.metadata?.serverThreadId || 
-      (parseInt(threadId) > 0 ? parseInt(threadId) : null);
-    
-    // PUBLIC_AGENT mode: Call API to delete thread on server (showcases the API)
-    if (apiService && serverThreadId && serverThreadId > 0) {
-      try {
-        await apiService.deleteChatThread(serverThreadId);
-      } catch (error) {
-        console.error('Error deleting thread via API:', error);
-        // Continue with local delete even if API call fails
+  
+    try {
+      const res = await fetch(`/api/thread/${threadId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete thread');
+  
+      setThreads(prev => prev.filter(t => t.id !== threadId));
+      if (activeThreadId === threadId) {
+        setActiveThreadIdState(threads.length > 1 ? threads[0].id : null);
       }
+    } catch (error) {
+      console.error('Error deleting thread:', error);
+      throw new Error('Failed to delete thread');
     }
-
-    await deleteThread(threadId);
-    
-    setThreads((prev) => prev.filter((thread) => thread.threadId !== threadId));
-    
-    // Clear active thread if it was deleted
-    if (activeThreadId === threadId) {
-      const remainingThreads = threads.filter((t) => t.threadId !== threadId);
-      setActiveThreadIdState(remainingThreads.length > 0 ? remainingThreads[0].threadId : null);
-    }
-    
-    // Refresh metadata
-    await refreshMetadata();
-  }, [isPublicAgent, activeThreadId, threads, refreshMetadata, apiService]);
+  }, [isPublicAgent, activeThreadId, threads]);
+  
 
   // Set active thread
   const setActiveThread = useCallback((threadId: string | null) => {
@@ -331,95 +257,97 @@ export function PublicAgentSessionProvider({ children }: PublicAgentSessionProvi
   }, []);
 
   // Get thread messages
-  const getThreadMessages = useCallback(async (threadId: string): Promise<StoredMessage[]> => {
-    if (!isPublicAgent) {
-      return [];
-    }
-
-    try {
-      // Try to get messages by the provided threadId
-      let messages = await getMessagesByThreadId(threadId);
-      
-      // If no messages found, try to find thread by searching (handles legacy format or metadata matching)
-      if (messages.length === 0) {
-        const allThreads = await getAllThreads();
-        // Find thread where threadId matches
-        const matchingThread = allThreads.find(t => {
-          return t.threadId === threadId ||
-            t.threadId.includes(threadId) ||
-            (t.metadata?.serverThreadId?.toString() === threadId) ||
-            (t.metadata?.localThreadId?.toString() === threadId);
-        });
-        
-        if (matchingThread) {
-          // Get messages using the actual IndexedDB threadId
-          messages = await getMessagesByThreadId(matchingThread.threadId);
-        }
+  const getThreadMessages = useCallback(
+    async (threadId: number): Promise<any[]> => {
+      if (!isPublicAgent) {
+        return [];
       }
-      
-      return messages;
-    } catch (error) {
-      console.error('Error getting thread messages:', error);
-      return [];
-    }
-  }, [isPublicAgent]);
+  
+      try {
+        const res = await fetch(`/api/thread/${threadId}/message`);
+  
+        if (!res.ok) {
+          throw new Error('Failed to fetch thread messages');
+        }
+  
+        const messages = await res.json();
+  
+        return messages;
+      } catch (error) {
+        console.error('Error getting thread messages:', error);
+        return [];
+      }
+    },
+    [isPublicAgent]
+  );
+  
 
   // Save message
-  const saveMessage = useCallback(async (
-    threadId: string,
-    role: 'user' | 'assistant',
-    content: string,
-    metadata?: StoredMessage['metadata']
-  ): Promise<StoredMessage> => {
-    if (!isPublicAgent) {
-      throw new Error('Public agent mode is not enabled');
-    }
-
-    // Ensure thread exists in IndexedDB before saving message
-    let thread = await getThread(threadId);
-    
-    // If not found, try to find by searching all threads (handles legacy "thread_..." format)
-    // or by matching metadata IDs (for server thread ID updates)
-    if (!thread) {
-      const allThreads = await getAllThreads();
-      thread = allThreads.find(t => {
-        // Check if threadId matches stored threadId, or matches metadata IDs
-        return t.threadId === threadId ||
-          t.threadId.includes(threadId) ||
-          (t.metadata?.serverThreadId?.toString() === threadId) ||
-          (t.metadata?.localThreadId?.toString() === threadId);
-      }) || null;
-    }
-    
-    if (!thread) {
-      // Thread doesn't exist, create it with the provided threadId
-      // Extract title from metadata if available, otherwise use default
-      const title = metadata?.query 
-        ? (metadata.query.length > 50 ? metadata.query.substring(0, 50) + '...' : metadata.query)
-        : 'New Chat';
-      
-      // Create thread with the provided threadId
-      // Store numeric ID in metadata for reference
-      const numericId = /^-?\d+$/.test(threadId) ? parseInt(threadId) : null;
-      thread = await createThread(threadId, title, {
-        serverThreadId: numericId && numericId > 0 ? numericId : null,
-        localThreadId: numericId && numericId < 0 ? numericId : null,
+  const saveMessage = useCallback(
+    async (
+      threadId: number | null,
+      role: 'user' | 'assistant',
+      content: string,
+      metadata?: StoredMessage['metadata']
+    ): Promise<any> => {
+      if (!isPublicAgent) {
+        throw new Error('Public agent mode is not enabled');
+      }
+  
+      let currentThreadId = threadId;
+  
+      // 1️⃣ Create thread if it doesn't exist
+      if (!currentThreadId) {
+        const title =
+          metadata?.query
+            ? metadata.query.length > 50
+              ? metadata.query.substring(0, 50) + '...'
+              : metadata.query
+            : 'New Chat';
+  
+        const threadRes = await fetch('/api/thread', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title,
+            ownerType: 'session', // or 'user'
+            metaData: metadata ?? {},
+          }),
+        });
+  
+        if (!threadRes.ok) {
+          throw new Error('Failed to create thread');
+        }
+  
+        const thread = await threadRes.json();
+        currentThreadId = thread.id;
+  
+        setThreads((prev) => [thread, ...prev]);
+      }
+  
+      // 2️⃣ Create message (threadId passed in body)
+      const messageRes = await fetch('/api/message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          threadId: currentThreadId,
+          role,
+          content,
+          metadata,
+        }),
       });
-      // Update threads state
-      setThreads((prev) => [thread!, ...prev]);
-    }
-
-    // Use the actual thread's threadId from IndexedDB
-    const actualThreadId = thread.threadId;
-    
-    const messageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const message = await createMessage(messageId, actualThreadId, role, content, metadata);
-    
-    // Update thread's updatedAt timestamp
-    await updateThread(actualThreadId, {});
-    
-    return message;
-  }, [isPublicAgent]);
+  
+      if (!messageRes.ok) {
+        throw new Error('Failed to create message');
+      }
+  
+      const message = await messageRes.json();
+  
+      return message;
+    },
+    [isPublicAgent]
+  );
+  
 
   const value: PublicAgentSessionContextType = {
     sessionId,

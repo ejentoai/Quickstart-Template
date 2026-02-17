@@ -36,7 +36,7 @@ import {
 import { useApiService } from '@/hooks/useApiService';
 import { ChatThreadResponse } from '@/model';
 import { decryptData, handleSetQueryParams } from '@/lib/utils';
-import { getAccessToken, getUserFromStorage } from '@/cookie';
+import { getAccessToken, getUserFromCookie } from '@/cookie';
 import { isPublicAgentMode } from '@/lib/storage/indexeddb';
 import { usePublicAgentSession } from '@/hooks/usePublicAgentSession';
 
@@ -238,7 +238,7 @@ export function SidebarHistory({ fetchThreads, threads, groupedChats, setThreads
 
 
   useEffect(() => {
-      const user_info = getUserFromStorage()
+      const user_info = getUserFromCookie()
       if (user_info) {
         fetchThreads();
       }

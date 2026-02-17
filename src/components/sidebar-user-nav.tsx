@@ -21,7 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useRouter } from 'next/navigation';
-import { clearUserFromStorage, getUserFromStorage, removeAccessToken, removeEjentoAccessToken, setUserToStorage, getEjentoAccessToken } from '@/cookie';
+import { clearUserFromStorage, getUserFromCookie, removeAccessToken, removeEjentoAccessToken, setUserToCookie, getEjentoAccessToken, clearUserFromCookie } from '@/cookie';
 import { toast } from 'sonner';
 import { Eye, EyeOff,LogOut } from 'lucide-react';
 import { isPublicAgentMode } from '@/lib/storage/indexeddb';
@@ -30,12 +30,6 @@ import { usePublicAgentSession } from '@/hooks/usePublicAgentSession';
 export function SidebarUserNav() {
   const { config, clearConfig, updateConfig, saveConfig, configSource } = useConfig();
   const router = useRouter();
-  const [user_info, setUserInfo] = useState(() => {
-    const storedUser = getUserFromStorage();
-    if (!storedUser) return null;
-  
-    return storedUser
-  });
   const [isOpen, setIsOpen] = useState(false);
   const [isManageConfigOpen, setIsManageConfigOpen] = useState(false);
   const [configForm, setConfigForm] = useState({
@@ -44,6 +38,12 @@ export function SidebarUserNav() {
     apiKey: '',
     agentId: ''
   });
+  const [user_info, setUserInfo] = useState(() => {
+    const storedUser = getUserFromCookie();
+    if (!storedUser) return null;
+    return storedUser
+  });
+  const userId = user_info?.data?.id
   const [showTokens, setShowTokens] = useState({
     apiKey: false,
     ejentoAccessToken: false,
@@ -76,17 +76,35 @@ export function SidebarUserNav() {
     }
   }
 
-  const handleLogout = () => {
-    const result = clearTokens()
-    const removed = clearUserFromStorage()
-    if(result && removed){
-      toast.success('Logout Successfully')
-      router.push('/');
-    }
-    else{
-      toast.error('Something went wrong while logging out. Please try again.');
+  const handleLogout = async (userId: number) => {
+    try {
+      console.log(userId,'userrrr')
+      console.log(user_info,'..')
+      // Call your DELETE API to remove user from DB
+      const response = await fetch(`/api/user/${userId}`, {
+        method: 'DELETE',
+      });
+  
+      if (!response.ok) {
+        toast.error('Something went wrong while logging out. Please try again.');
+        return;
+      }
+  
+      // Clear local tokens and storage
+      const result = clearTokens();
+      const removed = clearUserFromCookie();
+  
+      if (result && removed) {
+        toast.success('Logout Successfully');
+        router.push('/');
+      } else {
+        toast.error('Something went wrong while logging out. Please try again.');
+      }
+    } catch (error: any) {
+      toast.error('Error during logout');
     }
   };
+  
 
   const handleConfigChange = (field: string, value: string) => {
     setConfigForm(prev => ({
@@ -200,7 +218,7 @@ export function SidebarUserNav() {
       // For non-auth flow mode, update user data if available
       if (process.env.NEXT_PUBLIC_AUTH_FLOW !== 'true' && validationResult.userData) {
         const userData = validationResult.userData;
-        setUserToStorage(userData);
+        setUserToCookie(userData);
         
         // Update the config with the fetched user info
         const updatedConfig = {
@@ -214,7 +232,7 @@ export function SidebarUserNav() {
         
         updateConfig(updatedConfig as any);
         saveConfig();
-        setUserInfo(getUserFromStorage()); // Refresh user info display
+        setUserInfo(getUserFromCookie()); // Refresh user info display
         setIsManageConfigOpen(false);
         toast.success('Configuration updated successfully!');
         
@@ -527,12 +545,18 @@ export function SidebarUserNav() {
           {/* Don't render anything for public agent with auth flow */}
           {(isPublicAgent && publicAgentSession && isAuthFlowEnabled) ? 
           <SidebarMenuButton
-            onClick={handleLogout}
+            onClick={() => {
+              if (userId !== null) {
+                handleLogout(userId);
+              } else {
+                toast.error("User ID not found. Cannot logout properly.");
+              }
+            }}
             className="h-10 flex items-center gap-2 text-red-500 font-semibold"
           >
-            <LogOut className="h-5 w-5" />
-            Log out
+            Logout
           </SidebarMenuButton>
+        
           : (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -596,7 +620,13 @@ export function SidebarUserNav() {
                     <button
                       type="button"
                       className="w-full cursor-pointer text-red-500 flex items-center gap-2 font-semibold"
-                      onClick={handleLogout}
+                      onClick={() => {
+                        if (userId !== null) {
+                          handleLogout(userId);
+                        } else {
+                          toast.error("User ID not found. Cannot logout properly.");
+                        }
+                      }}
                     >
                       <LogOut className='h-5 w-5 text-[#71717B]'/>
                       Log out

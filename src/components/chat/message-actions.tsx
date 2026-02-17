@@ -11,7 +11,7 @@ import {
 } from '../ui/tooltip';
 import { useApiService } from '@/hooks/useApiService';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { getAccessToken, getUserFromStorage, getEjentoAccessToken } from '@/cookie';
+import { getAccessToken, getUserFromCookie, getEjentoAccessToken } from '@/cookie';
 import { isPublicAgentMode, updateMessage } from '@/lib/storage/indexeddb';
 import { usePublicAgentSession } from '@/hooks/usePublicAgentSession';
 import {
@@ -89,6 +89,24 @@ export function MessageActions({
     return normalizedMsg;
   }, [messages, index, message]);
 
+  async function updateMessageAPI(messageId: string | number, data: { content?: string, metadata?: any }) {
+    try {
+      const res = await fetch(`/api/message/${messageId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+  
+      if (!res.ok) throw new Error('Failed to update message');
+  
+      return await res.json();
+    } catch (error) {
+      console.error(error);
+      return null;
+    }
+  }
+  
+
   useEffect(() => {
     if (textareaRef.current && showAdditionalComment) {
       // Set height to auto to accommodate content
@@ -98,7 +116,7 @@ export function MessageActions({
   }, [showAdditionalComment, additionalComment]);
 
   useEffect(() => {
-    const user_info = getUserFromStorage()
+    const user_info = getUserFromCookie()
     if (user_info) {
       setUser(user_info)
     }
@@ -138,79 +156,64 @@ export function MessageActions({
   }
 
   const handleUpvoteclick = async () => {
-    if (currentMessage.is_upvote || !apiService) return
-    if (user) {
-      try {
-        const responsePromise = apiService.handleUpvote({ vote_type: 'upvote' }, parseInt(currentMessage?.id))
+    if (currentMessage.is_upvote || !user) return;
+  
+    try {
+      const messageId = parseInt(currentMessage?.id);
+  
+      // PUBLIC AGENT MODE → use Next.js API
+      if (isPublicAgent) {
+        
+        const toastId = toast.loading('Upvoting Response...');
+        const res = await fetch(`/api/message/${messageId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            metadata: {
+              ...currentMessage.metadata,
+              is_upvote: true,
+              is_downvote: false,
+            },
+          }),
+        });
+  
+        if (!res.ok) throw new Error('Failed to upvote');
+        toast.success('Upvoted Response!', { id: toastId });
+  
+        
+      }
+  
+      // REAL BACKEND MODE → use apiService
+      else {
+        const responsePromise = apiService.handleUpvote(
+          { vote_type: 'upvote' },
+          messageId
+        );
+  
         toast.promise(responsePromise, {
           loading: 'Upvoting Response...',
           success: 'Upvoted Response!',
           error: 'Failed to upvote response',
         });
-        const response = await responsePromise;
-        if (response?.data?.id) {
-          // Update state first to trigger immediate UI update
-          setMessages((prevMessages: any[]) => {
-            const updated = prevMessages.map(msg =>
-              msg?.id === response?.data?.id
-                ? { ...msg, is_upvote: true, is_downvote: false } // Update is_upvote to true
-                : msg // Keep the other messages unchanged
-            );
-            return updated;
-          });
-          
-          // PUBLIC_AGENT mode: Update message metadata in IndexedDB
-          if (isPublicAgent && publicAgentSession && chatId && currentMessage?.id) {
-            try {
-              // Find the message in IndexedDB by searching through all messages
-              // Messages are stored with random messageId, but the actual agent_response_id is in metadata.id
-              const threadMessages = await publicAgentSession.getThreadMessages(chatId);
-              
-              // Normalize IDs for comparison (handle both number and string types)
-              const currentMessageId = currentMessage.id?.toString();
-              
-              // Try multiple search strategies
-              const storedMessage = threadMessages.find((m: any) => {
-                // Primary: Match by metadata.id (agent_response_id)
-                const metadataId = m.metadata?.id?.toString();
-                if (metadataId && metadataId === currentMessageId) {
-                  return true;
-                }
-                
-                // Secondary: Match by role and content (for messages without metadata.id)
-                if (m.role === 'assistant' && m.content && currentMessage.content) {
-                  // Compare content, trimming whitespace
-                  const storedContent = m.content.trim();
-                  const currentContent = currentMessage.content.trim();
-                  if (storedContent === currentContent) {
-                    return true;
-                  }
-                }
-                
-                return false;
-              });
-              
-              if (storedMessage) {
-                const updatedMetadata = {
-                  ...storedMessage.metadata,
-                  is_upvote: true,
-                  is_downvote: false,
-                };
-                await updateMessage(storedMessage.messageId, {
-                  metadata: updatedMetadata
-                });
-              }
-            } catch (error) {
-              console.error('Error updating message in IndexedDB:', error);
-            }
-          }
-        }
-
-      } catch (e) {
-        console.error(e)
+  
+        await responsePromise;
       }
+  
+      // ✅ Update UI state (shared for both modes)
+      setMessages((prevMessages: any[]) =>
+        prevMessages.map((msg) =>
+          msg?.id === messageId
+            ? { ...msg, is_upvote: true, is_downvote: false }
+            : msg
+        )
+      );
+  
+    } catch (error) {
+      console.error('Upvote failed:', error);
+      toast.error('Failed to upvote response');
     }
-  }
+  };
+  
 
   const openDialog = () => {
     localStorage.setItem('message_id', currentMessage.id)
@@ -218,83 +221,65 @@ export function MessageActions({
 
   }
   const handleDownvoteclick = async () => {
-    if (currentMessage.is_downvote || !apiService) return
-    if (user) {
-      try {
+    if (currentMessage.is_downvote || !user) return;
+  
+    try {
+      const messageId = parseInt(currentMessage?.id);
+
+      if (isPublicAgent) {
+        const toastId = toast.loading('Downvoting Response...');
+  
+        const res = await fetch(`/api/message/${messageId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            metadata: {
+              ...currentMessage.metadata,
+              is_upvote: false,
+              is_downvote: true,
+            },
+          }),
+        });
+  
+        if (!res.ok) throw new Error('Failed to downvote');
+  
+        toast.success('Downvoted Response!', { id: toastId });
+      }
+      else {
         const responsePromise = apiService.handleDownvote(
           { vote_type: 'downvote' },
-          parseInt(currentMessage?.id)
+          messageId
         );
+  
         toast.promise(responsePromise, {
           loading: 'Downvoting Response...',
           success: 'Downvoted Response!',
           error: 'Failed to downvote response',
         });
-
-        const response = await responsePromise;
-        if (response?.data?.id) {
-          openDialog()
-          // Update the state for downvoting the current message
-          setMessages((prevMessages: any[]) => {
-            const updated = prevMessages.map(msg =>
-              msg?.id === response?.data?.id
-                ? { ...msg, is_downvote: true, is_upvote: false } // Update is_downvote to true
-                : msg // Keep the other messages unchanged
-            );
-            return updated;
-          });
-          
-          // PUBLIC_AGENT mode: Update message metadata in IndexedDB
-          if (isPublicAgent && publicAgentSession && chatId && currentMessage?.id) {
-            try {
-              // Find the message in IndexedDB by searching through all messages
-              // Messages are stored with random messageId, but the actual agent_response_id is in metadata.id
-              const threadMessages = await publicAgentSession.getThreadMessages(chatId);
-              
-              // Normalize IDs for comparison (handle both number and string types)
-              const currentMessageId = currentMessage.id?.toString();
-              
-              // Try multiple search strategies
-              const storedMessage = threadMessages.find((m: any) => {
-                // Primary: Match by metadata.id (agent_response_id)
-                const metadataId = m.metadata?.id?.toString();
-                if (metadataId && metadataId === currentMessageId) {
-                  return true;
-                }
-                
-                // Secondary: Match by role and content (for messages without metadata.id)
-                if (m.role === 'assistant' && m.content && currentMessage.content) {
-                  // Compare content, trimming whitespace
-                  const storedContent = m.content.trim();
-                  const currentContent = currentMessage.content.trim();
-                  if (storedContent === currentContent) {
-                    return true;
-                  }
-                }
-                
-                return false;
-              });
-              
-              if (storedMessage) {
-                const updatedMetadata = {
-                  ...storedMessage.metadata,
-                  is_upvote: false,
-                  is_downvote: true,
-                };
-                await updateMessage(storedMessage.messageId, {
-                  metadata: updatedMetadata
-                });
-              }
-            } catch (error) {
-              console.error('Error updating message in IndexedDB:', error);
-            }
-          }
-        }
-      } catch (e) {
-        console.error(e);
+  
+        await responsePromise;
       }
+  
+      // ===============================
+      // Update UI (shared for both modes)
+      // ===============================
+      setMessages((prevMessages: any[]) =>
+        prevMessages.map((msg) =>
+          msg?.id === messageId
+            ? { ...msg, is_downvote: true, is_upvote: false }
+            : msg
+        )
+      );
+  
+      // Open feedback dialog after success
+      openDialog();
+  
+    } catch (error) {
+      console.error('Downvote failed:', error);
+      toast.error('Failed to downvote response');
     }
   };
+  
 
   const handleCommentClick = (comment: string) => {
     setActive(comment)
@@ -306,53 +291,63 @@ export function MessageActions({
   };
 
   const handleCommentSubmit = async (review: string) => {
-    const id = localStorage.getItem('message_id') ? parseInt(localStorage.getItem('message_id') as string) : -1
-    if (id === -1 || !apiService) return
+    const id = localStorage.getItem('message_id')
+      ? parseInt(localStorage.getItem('message_id') as string)
+      : -1;
+  
+    if (id === -1 || !user) return;
+  
     try {
-      const body = {
-        chat_id: id,
-        comment: review,
-        created_by: user?.email
-      }
-
-      const responsePromise = apiService.handleComment(body)
-      toast.promise(responsePromise, {
-        loading: 'Submitting Feedback...',
-        success: 'Feedback Submitted!',
-        error: 'Failed to submit feedback',
-      });
-      setShowDeleteDialog(false)
-      const response = await responsePromise;
       
-      // PUBLIC_AGENT mode: Update message metadata in IndexedDB with comment
-      if (isPublicAgent && publicAgentSession && chatId && currentMessage?.id) {
-        try {
-          const threadMessages = await publicAgentSession.getThreadMessages(chatId);
-          const storedMessage = threadMessages.find((m: any) => 
-            m.metadata?.id?.toString() === currentMessage.id.toString() || 
-            (m.role === 'assistant' && m.content === currentMessage.content)
-          );
-          
-          if (storedMessage) {
-            await updateMessage(storedMessage.messageId, {
-              metadata: {
-                ...storedMessage.metadata,
-                comment: review,
-              }
-            });
-          }
-        } catch (error) {
-          console.error('Error updating message in IndexedDB:', error);
-        }
+      if (isPublicAgent) {
+        const toastId = toast.loading('Submitting Feedback...');
+  
+        const res = await fetch(`/api/message/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            metadata: {
+              ...currentMessage.metadata,
+              comment: review,
+              created_by: user?.email,
+            },
+          }),
+        });
+  
+        if (!res.ok) throw new Error('Failed to submit feedback');
+  
+        toast.success('Feedback Submitted!',{ id : toastId});
       }
-    } catch (e) {
-      console.error(e)
+  
+      else {
+        const body = {
+          chat_id: id,
+          comment: review,
+          created_by: user?.email,
+        };
+  
+        const responsePromise = apiService.handleComment(body);
+  
+        toast.promise(responsePromise, {
+          loading: 'Submitting Feedback...',
+          success: 'Feedback Submitted!',
+          error: 'Failed to submit feedback',
+        });
+  
+        await responsePromise;
+      }
+  
+      setShowDeleteDialog(false);
+  
+    } catch (error) {
+      console.error('Comment submission failed:', error);
+      toast.error('Failed to submit feedback');
     } finally {
-      setActive('')
-      setAdditionalComment('')
+      setActive('');
+      setAdditionalComment('');
     }
-  }
-
+  };
+  
   const handleCopy = async (index: number) => {
     const chatLogs = document.getElementsByClassName('answer-chat');
     const chatLogText = chatLogs[index];

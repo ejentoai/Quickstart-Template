@@ -10,6 +10,7 @@ export function useApiService() {
     if (isLoading || !config) {
       return null;
     }
+    console.log(config,'config')
     return new ApiService(config);
   }, [config, isLoading]);
 }
