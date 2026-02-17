@@ -21,7 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useRouter } from 'next/navigation';
-import { clearUserFromStorage, getUserFromStorage, removeAccessToken, removeEjentoAccessToken, setUserToStorage, getEjentoAccessToken } from '@/cookie';
+import { clearUserFromStorage, getUserFromStorage, removeAccessToken, removeEjentoAccessToken, setUserToStorage, getEjentoAccessToken, setUserToCookie } from '@/cookie';
 import { toast } from 'sonner';
 import { Eye, EyeOff,LogOut } from 'lucide-react';
 import { isPublicAgentMode } from '@/lib/storage/indexeddb';
@@ -200,7 +200,7 @@ export function SidebarUserNav() {
       // For non-auth flow mode, update user data if available
       if (process.env.NEXT_PUBLIC_AUTH_FLOW !== 'true' && validationResult.userData) {
         const userData = validationResult.userData;
-        setUserToStorage(userData);
+        setUserToCookie(userData);
         
         // Update the config with the fetched user info
         const updatedConfig = {

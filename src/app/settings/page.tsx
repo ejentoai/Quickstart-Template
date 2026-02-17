@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { Eye, EyeOff, Save, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
-import { setUserToStorage, getAccessToken, getEjentoAccessToken } from '@/cookie';
+import { setUserToStorage, getAccessToken, getEjentoAccessToken, setUserToCookie } from '@/cookie';
 
 export default function SettingsPage() {
   const { config, updateConfig, isEnvConfigured, configSource, isLoading, isValidating, validationError, isConfigured } = useConfig();
@@ -139,7 +139,7 @@ export default function SettingsPage() {
           message: 'User data loaded', 
           data: filteredUser 
         };
-        setUserToStorage(userInfoToStore);
+        setUserToCookie(userInfoToStore);
       }
 
       // Save configuration to localStorage (for UI state, credentials are in cookie)
