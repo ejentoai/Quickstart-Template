@@ -9,46 +9,45 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useConfig } from "@/app/context/ConfigContext";
 import { ConfigError } from "@/components/configError";
-import { useAuth } from "@/app/context/AuthContext";
 
 const UserData = () => {
   const router = useRouter();
   const apiService = useApiService();
   const isAuthEnabled = process.env.NEXT_PUBLIC_AUTH_FLOW === 'true'
   const { clearConfig,isLoading: configLoading } = useConfig();
-  const { setUserId } = useAuth()
+  const envDriven = process.env.NEXT_PUBLIC_ENV_DRIVEN === 'true'
 
   useEffect(() => {
 
     const fetchUser = async (): Promise<void> => {
       try {
         if (!apiService) return;
-    
-        // Agent validation (only when authentication flow is enabled)
-        if (isAuthEnabled) {
+        //Agent validation will be done at this point, only when authentication flow is enabled,
+        //otherwise it is done at time of config validation.
+        if(isAuthEnabled){
+          //First, validate agent using token from cookie
           const validationResponse = await fetch('/api/config/validate-agent', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+            },
           });
-    
+
           const validationResult = await validationResponse.json();
-    
+
           if (!validationResult.success) {
             toast.error(validationResult.message || 'Agent validation failed. Please check your configuration.');
             removeAccessToken();
             removeEjentoAccessToken();
-            router.push('/auth/login');
+            router.push("/auth/login");
             return;
           }
         }
-    
-        // Agent validation successful, fetch user data
+
+        // Agent validation successful, now fetch user data
         const response = await apiService.getCurrentUser();
-        const user = response.data;
-        const userId = user.id;
-    
+        const user = response.data; 
         const userToStore = {
-          id : user.id,
           email: user.email,
           first_name: user.first_name,
           last_name: user.last_name,
@@ -56,51 +55,21 @@ const UserData = () => {
           is_staff: user.is_staff,
           is_superuser: user.is_superuser,
         };
-    
-        if (!userToStore) return;
-    
-        try {
-          // Create user in database
-          const createResponse = await fetch('/api/user', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId }),
-          });
-    
-          const data = await createResponse.json();
-    
-          if (!createResponse.ok) {
-            console.error('Failed to create user:', data.error);
-            toast.error(data.error || 'Failed to create user');
-            return;
-          }
-          setUserId(userId)
-          // Store user locally for sidebar usage
+
+        if (userToStore) {
           setUserToStorage({
-            success: true,
-            message: 'User data loaded',
-            data: userToStore,
-          });
-    
-          // Success → redirect to chat
-          router.push('/chat');
-        } catch (error: any) {
-          console.error('Error creating user:', error);
-          toast.error('Something went wrong. Please try again.');
-          removeAccessToken()
-          removeEjentoAccessToken()
-          router.push('/auth/login');
-          return;
+            success : true,
+            message : 'user data loaded',
+            data : userToStore
+          }) //to use in sidebar
         }
-      } catch (error: unknown) {
-        console.error('Failed to fetch user:', error);
+        router.push("/chat");
+      } catch (error : unknown) {
+        console.error("Failed to fetch user", error);
         toast.error('Failed to fetch user data. Please try again.');
-        removeAccessToken()
-        removeEjentoAccessToken()
-        router.push('/auth/login');
+        router.push("/auth/login");
       }
     };
-    
 
     fetchUser();
   }, [apiService, router]);
