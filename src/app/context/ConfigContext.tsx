@@ -1,7 +1,7 @@
 'use client';
  
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { setUserToCookie } from '@/cookie';
+import { setUserToStorage } from '@/cookie';
  
 export interface UserConfig {
  
@@ -107,7 +107,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     // Only save to localStorage if config source is 'localStorage'
     // Never save env-based config to localStorage
     if (config && typeof window !== 'undefined' && configSource === 'localStorage') {
-      localStorage.setItem('app-config', JSON.stringify(''));
+      localStorage.setItem('app-config', JSON.stringify(config));
     }
   };
  
@@ -172,7 +172,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
             message: 'User data loaded',
             data: filteredUser
           };
-          setUserToCookie(userInfoToStore);
+          setUserToStorage(userInfoToStore);
          
           // Update config with user info
           // Ensure config is updated synchronously so isConfigured calculation works

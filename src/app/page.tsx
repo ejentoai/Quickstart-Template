@@ -6,13 +6,12 @@ import { useConfig } from './context/ConfigContext';
 import { isPublicAgentMode } from '@/lib/storage/indexeddb';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { usePathname } from 'next/navigation';
+import Link from 'next/link';
 import { XCircle } from 'lucide-react';
 import { ConfigError } from '@/components/configError';
 
 export default function Home() {
   const router = useRouter();
-  const pathname = usePathname();
   const { isConfigured, isLoading, isValidating, validationError, configSource, config } = useConfig();
   const isPublicAgent = isPublicAgentMode();
   const isAuthFlowEnabled = process.env.NEXT_PUBLIC_AUTH_FLOW === 'true'
@@ -69,12 +68,9 @@ export default function Home() {
 
     // For localStorage config or no config source
     if (isConfigured && config) {
-      console.log('comet')
       path = isAuthFlowEnabled ? '/auth/login' : '/chat';
-      console.log(path,'path')
       router.replace(path);
     } else {
-      console.log('come')
       // Only route to settings if we're fully done loading and no config
       router.replace('/settings');
     }
@@ -86,7 +82,7 @@ export default function Home() {
       <div className="flex flex-col items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
         <p className="mt-4 text-gray-600">
-          {isValidating ? 'Validating configuration...' : 'Loading2..'}
+          {isValidating ? 'Validating configuration...' : 'Loading...'}
         </p>
       </div>
     );
@@ -157,7 +153,7 @@ export default function Home() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen">
       <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
-      <p className="mt-4 text-gray-600">Loadingg....</p>
+      <p className="mt-4 text-gray-600">Loading....</p>
     </div>
   );
 }
