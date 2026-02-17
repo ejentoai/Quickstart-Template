@@ -1,17 +1,12 @@
 'use client';
- 
+
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { setUserToStorage } from '@/cookie';
- 
+
 export interface UserConfig {
- 
-  // API Configuration
   baseUrl: string;
   ejentoAccessToken: string;
   apiKey: string;
   agentId: string;
- 
-  // User Information (optional, can be fetched)
   userInfo?: {
     id?: string;
     first_name: string;
@@ -21,18 +16,16 @@ export interface UserConfig {
     is_staff: boolean;
     is_superuser: boolean;
   };
- 
-  // App Settings
   theme?: 'light' | 'dark';
   defaultModel?: string;
 }
- 
-type ConfigSource = 'environment' | 'localStorage' | null;
- 
+
+type ConfigSource = 'environment' | 'database' | null;
+
 interface ConfigContextType {
   config: UserConfig | null;
   configSource: ConfigSource;
-  updateConfig: (newConfig: Partial<UserConfig>) => void;
+  updateConfig: (newConfig: Partial<UserConfig>, source: ConfigSource) => void;
   clearConfig: () => Promise<void>;
   isConfigured: boolean;
   isEnvConfigured: boolean;
@@ -41,13 +34,11 @@ interface ConfigContextType {
   isLoading: boolean;
   isValidating: boolean;
   validationError: string | null;
-  setConfigSource: (source: any) => void;
- 
+  setConfigSource: (source: ConfigSource) => void;
 }
- 
+
 const ConfigContext = createContext<ConfigContextType | undefined>(undefined);
- 
- 
+
 export function useConfig() {
   const context = useContext(ConfigContext);
   if (!context) {
@@ -55,7 +46,7 @@ export function useConfig() {
   }
   return context;
 }
- 
+
 export function ConfigProvider({ children }: { children: ReactNode }) {
   const [config, setConfig] = useState<UserConfig | null>(null);
   const [configSource, setConfigSource] = useState<ConfigSource>(null);
@@ -63,160 +54,77 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
   const [isValidating, setIsValidating] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const isAuthEnabled = process.env.NEXT_PUBLIC_AUTH_FLOW === 'true';
- 
- 
-  const updateConfig = (newConfig: Partial<UserConfig>) => {
-    setConfig(prev => prev ? { ...prev, ...newConfig } : newConfig as UserConfig);
-    // When config is manually updated, it's from localStorage (settings page)
-    // Only set source if not already set (to preserve env source)
-    if (configSource === null || configSource === 'localStorage') {
-      setConfigSource('localStorage');
-    }
+
+  const updateConfig = (newConfig: Partial<UserConfig>, source: ConfigSource) => {
+    setConfig(prev => (prev ? { ...prev, ...newConfig } : (newConfig as UserConfig)));
+    setConfigSource(source);
   };
- 
+
   const clearConfig = async () => {
- 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000);
- 
+
     setConfig(null);
     setConfigSource(null);
-   
-    // Clear localStorage config
+
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('app-config');
+      localStorage.removeItem('config_validated');
     }
-   
-    // SECURITY: Clear server-side credentials cookie (for ENV_DRIVEN=false scenario)
-    // This ensures credentials are removed from secure storage
+
     try {
-      await fetch('/api/config', {
-        method: 'DELETE',
-        signal : controller.signal
-      });
+      await fetch('/api/config', { method: 'DELETE', signal: controller.signal });
     } catch (error) {
       console.error('Failed to clear server-side credentials:', error);
-      // Continue even if this fails - localStorage is already cleared
-    }
-    finally {
+    } finally {
       clearTimeout(timeout);
     }
   };
- 
+
+  // Only used if we ever explicitly set source = 'localStorage' (e.g. for theme)
   const saveConfig = () => {
-    // Only save to localStorage if config source is 'localStorage'
-    // Never save env-based config to localStorage
     if (config && typeof window !== 'undefined' && configSource === 'localStorage') {
       localStorage.setItem('app-config', JSON.stringify(config));
     }
   };
- 
-  /**
-   * Validates environment-based configuration by checking credentials and agent
-   * This ensures env config is valid before the app uses it
-   */
+
   const validateEnvConfig = async (configToValidate: UserConfig): Promise<boolean> => {
- 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
- 
     setIsValidating(true);
     setValidationError(null);
- 
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+
     try {
       const response = await fetch('/api/config/validate', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ config: configToValidate }),
-        signal : controller.signal
+        signal: controller.signal,
       });
- 
+
       const result = await response.json();
-     
-      //if auth flow is enabled then we donot handle userData at this point
-      //because userData will be available after successful login
-      if(isAuthEnabled){
-        if(result.success){
-          // Clear any validation errors
-          setValidationError(null);
-          return true;
-        }
-        else {
-          // Validation failed
-          const errorMessage = result.message || 'Configuration validation failed';
-          setValidationError(errorMessage);
-          return false;
-        }
-      }
-      else{
-        if (result.success && result.userData) {
- 
-          const user = result.userData.data ? result.userData.data : result.userData;
-   
-          const filteredUser = {
-            first_name: user.first_name || '',
-            last_name: user.last_name || '',
-            name: user.full_name || '' + ' ' + user.last_name || '',
-            email: user.email || '',
-            is_staff: user.is_staff || false,
-            is_superuser: user.is_superuser || false,
-          };
- 
-          // Validation successful - store filtered user info
-          // The sidebar expects the user data in a specific format with a 'data' property
-          // Always use filteredUser to ensure only required fields are stored
-          const userInfoToStore = {
-            success: true,
-            message: 'User data loaded',
-            data: filteredUser
-          };
-          setUserToStorage(userInfoToStore);
-         
-          // Update config with user info
-          // Ensure config is updated synchronously so isConfigured calculation works
-          //if auth flow is enabled then user info will not store in config
-            //because user data will be available after login
-          setConfig(prev => {
-            if (!prev) {
-              // This shouldn't happen if validation was called with a config, but handle it
-              return prev;
-            }
-              return {
-                ...prev,
-                userInfo: filteredUser
-              };
-          });
-         
-          // Clear any validation errors
-          setValidationError(null);
-          return true;
-        } else {
-          // Validation failed
-          const errorMessage = result.message || 'Configuration validation failed';
-          setValidationError(errorMessage);
-          return false;
-        }
+
+      if (result.success) {
+        setValidationError(null);
+        return true;
+      } else {
+        setValidationError(result.message || 'Validation failed');
+        return false;
       }
     } catch (error: any) {
-        let errorMessage;
-        if(error.name === 'AbortError'){
-          errorMessage = 'Validation timed out. Please check your environment variables or server.'
-          setValidationError(errorMessage);
-        }
-        else{
-          errorMessage = error.message || 'Failed to validate configuration';
-          setValidationError(errorMessage);
-          console.error('Error validating env config:', error);
-        }
-        return false;
+      let errorMessage = 'Failed to validate configuration';
+      if (error.name === 'AbortError') {
+        errorMessage = 'Validation timed out';
+      } else {
+        errorMessage = error.message;
+      }
+      setValidationError(errorMessage);
+      return false;
     } finally {
       setIsValidating(false);
-        clearTimeout(timeout);
+      clearTimeout(timeout);
     }
   };
- 
+
   const loadConfig = async () => {
  
     const controller = new AbortController();
@@ -276,16 +184,53 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
         console.warn('Failed to load env config, falling back to localStorage:', error);
       }
  
-      // Step 2: Fall back to localStorage if no env config or ENV_DRIVEN is false
       try {
-        const saved = localStorage.getItem('app-config');
-        if (saved) {
-          const parsedConfig = JSON.parse(saved);
-          setConfig(parsedConfig);
-          setConfigSource('localStorage');
+        const isAuthFlow = process.env.NEXT_PUBLIC_AUTH_FLOW === "true";
+        // ✅ In auth flow, DO NOT call protected API before login
+        if (isAuthFlow) {
+          console.log("Auth flow detected");
+          const configValidator = localStorage.getItem("config_validated");
+       
+          // If we have a stored config and validator is true, do nothing
+          if (configValidator === "true") {
+            console.log("Config validator is true, skipping fetch");
+            setIsLoading(false);
+            return;
+          }
+       
+          try {
+            console.log("Fetching config from backend...");
+            const res = await fetch("/api/ejento-config");
+            if (!res.ok) throw new Error("Failed to fetch config");
+       
+            const config = await res.json();
+       
+            if (config) {
+              setConfig(config);
+            }
+       
+          } catch (error) {
+            console.error("Error fetching config:", error);
+          } finally {
+            setIsLoading(false);
+          }
+       
+          return;
         }
+       
+   
+        // ✅ If auth flow is disabled → safe to fetch DB config
+        const dbConfigResponse = await fetch("/api/ejento-config");
+   
+        if (dbConfigResponse.ok) {
+          const data = await dbConfigResponse.json();
+          if (data.success) {
+            setConfig(data.data);
+          }
+        }
+   
       } catch (error) {
-        console.error('Failed to load config from localStorage:', error);
+        console.error("Error loading config:", error);
       }
     } catch (error) {
       console.error('Failed to load config:', error);
@@ -293,56 +238,50 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
       clearTimeout(timeout);
     }
-  };
+  }; 
  
+  
+
   useEffect(() => {
     loadConfig();
   }, []);
- 
-  // Auto-save when config changes (only for localStorage-based config)
+
+  // Auto‑save only for localStorage source (currently unused for credentials)
   useEffect(() => {
     if (config && configSource === 'localStorage') {
       saveConfig();
     }
   }, [config, configSource]);
- 
-  // Only mark as configured if:
-  // 1. Config exists with all required fields
-  // 2. If env config, validation must have passed (no validation error)
-  // For environment-driven config, sensitive credentials (baseUrl, apiKey, ejentoAccessToken) are server-side only
-  // agentId is not sensitive and is required for both modes
+
   const isConfigured = Boolean(
     config?.agentId &&
-    (
-      configSource === 'environment'
-        ? !validationError // env config just needs validation
-        : isAuthEnabled
-          ? (config?.baseUrl && config?.apiKey) // localStorage config with auth flow true only requires baseUrl and agentId
-          : (config?.baseUrl && config?.apiKey && config?.ejentoAccessToken) // normal localStorage config
-    )
+      (configSource === 'environment'
+        ? !validationError
+        : configSource === 'database'
+          ? true
+          : false)
   );
- 
- 
+
   const isEnvConfigured = configSource === 'environment';
- 
+
   return (
-    <ConfigContext.Provider value={{
-      config,
-      configSource,
-      updateConfig,
-      clearConfig,
-      isConfigured,
-      isEnvConfigured,
-      saveConfig,
-      loadConfig,
-      isLoading,
-      isValidating,
-      validationError,
-      setConfigSource
-    }}>
+    <ConfigContext.Provider
+      value={{
+        config,
+        configSource,
+        updateConfig,
+        clearConfig,
+        isConfigured,
+        isEnvConfigured,
+        saveConfig,
+        loadConfig,
+        isLoading,
+        isValidating,
+        validationError,
+        setConfigSource,
+      }}
+    >
       {children}
     </ConfigContext.Provider>
   );
 }
- 
- 
