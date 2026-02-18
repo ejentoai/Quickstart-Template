@@ -8,7 +8,8 @@ import { getUserId } from "@/lib/getUserId";
 export async function GET(req: Request) {
   try {
     const userId = await getUserId();
-
+    console.log(userId,'userId')
+   
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -55,14 +56,14 @@ export async function POST(req: Request) {
         baseUrl,
         apiKey,
         accessToken: accessToken || null,
-        agentId,
+        agentId: Number(agentId),
       },
       create: {
         userId,
         baseUrl,
         apiKey,
         accessToken: accessToken || null,
-        agentId,
+        agentId: Number(agentId),
       },
     });
 

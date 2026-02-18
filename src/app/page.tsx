@@ -71,6 +71,7 @@ export default function Home() {
       path = isAuthFlowEnabled ? '/auth/login' : '/chat';
       router.replace(path);
     } else {
+      console.log('here ho')
       // Only route to settings if we're fully done loading and no config
       router.replace('/settings');
     }

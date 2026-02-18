@@ -55,8 +55,8 @@ export default function SettingsPage() {
   const handleSaveAndProceed = async () => {
     const isAuthEnabled = process.env.NEXT_PUBLIC_AUTH_FLOW === 'true';
     const isValid = isAuthEnabled
-      ? formData.baseUrl.trim() && formData.apiKey.trim() && formData.agentId.trim()
-      : formData.baseUrl.trim() && formData.apiKey.trim() && formData.ejentoAccessToken.trim() && formData.agentId.trim();
+      ? formData.baseUrl.trim() && formData.apiKey.trim() && String(formData.agentId).trim()
+      : formData.baseUrl.trim() && formData.apiKey.trim() && formData.ejentoAccessToken.trim() && String(formData.agentId).trim();
 
     if (!isValid) {
       toast.error('Please fill in all required fields');
@@ -69,7 +69,7 @@ export default function SettingsPage() {
       const newConfig = {
         baseUrl: formData.baseUrl.trim(),
         apiKey: formData.apiKey.trim(),
-        agentId: formData.agentId.trim(),
+        agentId: String(formData.agentId).trim(),
         ejentoAccessToken: isAuthEnabled ? '' : formData.ejentoAccessToken.trim(),
       };
 
@@ -129,8 +129,8 @@ export default function SettingsPage() {
 
   const isAuthEnabled = process.env.NEXT_PUBLIC_AUTH_FLOW === 'true';
   const canProceed = isAuthEnabled
-    ? formData.baseUrl.trim() && formData.apiKey.trim() && formData.agentId.trim()
-    : formData.baseUrl.trim() && formData.apiKey.trim() && formData.ejentoAccessToken.trim() && formData.agentId.trim();
+    ? formData.baseUrl.trim() && formData.apiKey.trim() && String(formData.agentId).trim()
+    : formData.baseUrl.trim() && formData.apiKey.trim() && formData.ejentoAccessToken.trim() && String(formData.agentId).trim();
 
   // Redirect env‑driven users away
   useEffect(() => {

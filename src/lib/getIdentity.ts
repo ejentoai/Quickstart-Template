@@ -9,18 +9,23 @@ export async function getIdentity() {
   if (isAuthFlow) {
     const userInfoCookie = cookieStore.get('user_info')?.value
     if (!userInfoCookie) {
+      console.log('User not authenticated')
       throw new Error('User not authenticated')
+      
     }
 
     let userIdFromCookie: string | number | null = null
     try {
       const userInfo = JSON.parse(userInfoCookie)
       userIdFromCookie = userInfo?.data?.id ?? null
+      console.log(userIdFromCookie,'userIdFromCookie')
     } catch (err) {
+      console.log(userIdFromCookie,'userIdFromCookije')
       throw new Error('Invalid user_info cookie')
     }
 
     if (!userIdFromCookie) {
+      console.log(userIdFromCookie,'userIdFrhhomCookie')
       throw new Error('User ID not found in cookie')
     }
 

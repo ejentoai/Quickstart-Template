@@ -58,7 +58,7 @@ export function SidebarUserNav() {
     if (isManageConfigOpen && config) {
       setConfigForm({
         baseUrl: config.baseUrl || '',
-        ejentoAccessToken: config.ejentoAccessToken || '',
+        ejentoAccessToken: config?.ejentoAccessToken || getEjentoAccessToken() || '',
         apiKey: config.apiKey || '',
         agentId: config.agentId || ''
       });
@@ -78,23 +78,11 @@ export function SidebarUserNav() {
 
   const handleLogout = async (userId: number) => {
     try {
-      console.log(userId,'userrrr')
-      console.log(user_info,'..')
-      // Call your DELETE API to remove user from DB
-      const response = await fetch(`/api/user/${userId}`, {
-        method: 'DELETE',
-      });
-  
-      if (!response.ok) {
-        toast.error('Something went wrong while logging out. Please try again.');
-        return;
-      }
-  
       // Clear local tokens and storage
       const result = clearTokens();
-      const removed = clearUserFromCookie();
+      // const removed = clearUserFromCookie();
   
-      if (result && removed) {
+      if (result) {
         toast.success('Logout Successfully');
         router.push('/');
       } else {
@@ -146,14 +134,14 @@ export function SidebarUserNav() {
         newConfig = {
           baseUrl: configForm.baseUrl.trim(),
           apiKey: configForm.apiKey.trim(),
-          agentId: configForm.agentId.trim(),
+          agentId: String(configForm.agentId).trim(),
         };
       } else {
         newConfig = {
           baseUrl: configForm.baseUrl.trim(),
           ejentoAccessToken: configForm.ejentoAccessToken.trim(),
           apiKey: configForm.apiKey.trim(),
-          agentId: configForm.agentId.trim(),
+          agentId: String(configForm.agentId).trim(),
           // Keep existing user info if available
           userInfo: config?.userInfo || {
             id: 'user-1',
@@ -230,7 +218,9 @@ export function SidebarUserNav() {
           }
         };
         
-        updateConfig(updatedConfig as any);
+        console.log(updatedConfig,'updatedConfigupdatedConfig')
+        console.log(configSource,'configSource')
+        updateConfig(updatedConfig as any,configSource);
         saveConfig();
         setUserInfo(getUserFromCookie()); // Refresh user info display
         setIsManageConfigOpen(false);
@@ -246,7 +236,7 @@ export function SidebarUserNav() {
       }
       
       // For auth flow mode or when user data is not available
-      updateConfig(newConfig as any);
+      updateConfig(newConfig as any,configSource);
       saveConfig();
       setIsManageConfigOpen(false);
       toast.success('Configuration updated successfully!');
@@ -299,7 +289,7 @@ export function SidebarUserNav() {
         return; 
       }
 
-      const userCleared = clearUserFromStorage();
+      const userCleared = clearUserFromCookie();
       if (!userCleared) {
         toast.error('Failed to clear user data. Session not destroyed.');
         return; 
