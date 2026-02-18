@@ -154,7 +154,7 @@ export default function Chat({
     if (selectedCorpus) {
       setSelectedCorpus(JSON.parse(selectedCorpus));
     }
-  }, [apiService]);
+  }, []);
 
   const [block, setBlock] = useState<UIBlock>({
     documentId: "init",
