@@ -13,11 +13,11 @@ export async function POST(req:NextRequest){
         )
     }
 
-    const user = await prisma.user.create({
-        data : {
-            userId
-        }
-    })
+    const user = await prisma.user.upsert({
+      where: { userId },        
+      update: {},               
+      create: { userId },       
+    });
     return NextResponse.json(
         user,
         { status : 201}

@@ -154,29 +154,48 @@ export function AppSidebar() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ title: "New Chat" }),
         });
-
+    
+        if (!res.ok) {
+          const errorText = await res.text();
+          console.error('API Error Response:', errorText);
+          toast.error('Failed to create new thread');
+          return;
+        }
+    
         const newThread = await res.json();
-
+        
+        // Validate the response has the expected structure
+        if (!newThread || !newThread.id) {
+          console.error('Invalid thread data received:', newThread);
+          toast.error('Invalid response from server');
+          return;
+        }
+    
         setThreads(prev => {
           const updated = [newThread, ...prev];
           groupChatsByDate(updated);
           return updated;
         });
-
+    
+        // Safe toString conversion
+        const threadId = String(newThread.id);
+        
         handleSetQueryParams(
-          newThread.id.toString(),
-          newThread.title
+          threadId,
+          newThread.title || 'New Chat'
         );
-
+    
         localStorage.setItem(
           'active_thread_id',
-          newThread.id.toString()
+          threadId
         );
-
+    
         console.log('New thread created with ID:', newThread.id);
-
+        toast.success('New chat created');
+    
       } catch (error) {
         console.error("Error creating public thread:", error);
+        toast.error('Failed to create new chat');
       }
       return;
     }

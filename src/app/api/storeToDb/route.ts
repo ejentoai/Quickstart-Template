@@ -20,8 +20,6 @@ const UserData = () => {
   const envDriven = process.env.NEXT_PUBLIC_ENV_DRIVEN === 'true'
   const publicMode = process.env.NEXT_PUBLIC_AGENT === 'true'
 
-
-
   useEffect(() => {
     const fetchUser = async (): Promise<void> => {
       try {
@@ -97,38 +95,30 @@ const UserData = () => {
           });
 
           if(publicMode){
-            try {
-              const res = await fetch("/api/user", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ userId }),
-              });
-        
-              const data = await res.json();
-        
-              if (!res.ok) {
-                throw new Error(data.error);
-              }
-              router.push('/chat');
-              console.log("User created:", data);
-              
-            } catch (error: any) {
-              console.error(error.message);
-              toast.error('Error creating user');
-              removeAccessToken();
-              removeEjentoAccessToken();
-              router.push('/auth/login');
-            }
-          };
-          
-          if (!envDriven && !publicMode) {
+            
+          }
+          // --- Save config to database (including access token) ---
+          // --- Save config to database (ONLY in public mode) ---
+          if (isAuthEnabled && publicMode) {
             console.log('Public mode detected. Preparing config for DB save...');
 
+            // Determine config source
+            const configToSave = envDriven
+              ? {
+                  baseUrl: process.env.EJENTO_BASE_URL,
+                  apiKey: process.env.EJENTO_API_KEY,
+                  agentId: process.env.EJENTO_AGENT_ID
+                    ? Number(process.env.EJENTO_AGENT_ID)
+                    : undefined,
+                }
+              : {
+                  baseUrl: config?.baseUrl,
+                  apiKey: config?.apiKey,
+                  agentId: config?.agentId,
+                };
 
             // Validate config before saving
-            if (!config?.baseUrl || !config?.apiKey || !config?.agentId) {
+            if (!configToSave.baseUrl || !configToSave.apiKey || !configToSave.agentId) {
               console.error('Missing configuration in public mode');
               toast.error('Configuration missing. Please reconfigure.');
               removeAccessToken();
@@ -145,9 +135,9 @@ const UserData = () => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                  baseUrl: config?.baseUrl,
-                  apiKey: config?.apiKey,
-                  agentId: config?.agentId,
+                  baseUrl: configToSave.baseUrl,
+                  apiKey: configToSave.apiKey,
+                  agentId: configToSave.agentId,
                   accessToken: accessToken,
                 }),
               });

@@ -110,21 +110,6 @@ export function PublicAgentSessionProvider({ children }: PublicAgentSessionProvi
           console.error('Error in creating session');
         }
         
-        // Load or create session metadata
-        let sessionMeta = await getSessionMetadata();
-        
-        if (!sessionMeta) {
-          sessionMeta = await createOrUpdateSessionMetadata({
-            createdAt: Date.now(),
-            lastSyncedAt: null,
-            threadCount: 0,
-            lastTokenRefresh: null,
-          });
-        }
-    
-        setSessionId(sessionMeta.sessionId);
-        setMetadata(sessionMeta);
-    
         // Load all threads with better error handling
         try {
           const allThreadsRes = await fetch('/api/thread');

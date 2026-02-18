@@ -48,7 +48,7 @@ export async function getIdentity() {
   // ==============================
   // SESSION FLOW
   // ==============================
-  let sessionId = cookieStore.get('sessionId')?.value
+  let sessionId = cookieStore.get('session_id')?.value
 
   let session = null
 
@@ -70,7 +70,7 @@ export async function getIdentity() {
     })
 
     // Set cookie
-    cookieStore.set('sessionId', sessionId, {
+    cookieStore.set('session_id', sessionId, {
       httpOnly: true,
       sameSite: 'lax',
       path: '/',
