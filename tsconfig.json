@@ -37,7 +37,7 @@
     "next-env.d.ts",
     "src/components/authentication/login-form.tsx",
     "../../NextBuilds/Quickstart-Template/.next/types/**/*.ts"
-  ],
+, "src/app/api/env-from-cookies"  ],
   "exclude": [
     "node_modules"
   ]

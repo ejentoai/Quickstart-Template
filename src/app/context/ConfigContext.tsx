@@ -125,17 +125,19 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     }
   };
 
+
   const loadConfig = async () => {
- 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000);
- 
+  
     if (typeof window === 'undefined') {
       setIsLoading(false);
       return;
     }
- 
+  
     try {
+      // Step 1: Check for environment-based configuration first
+      // ... (keep your existing env config code)
       // Step 1: Check for environment-based configuration first
       // The API endpoint will respect ENV_DRIVEN flag and return appropriate response
       try {
@@ -183,32 +185,63 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
         // If API call fails, fall back to localStorage
         console.warn('Failed to load env config, falling back to localStorage:', error);
       }
- 
+  
       try {
         const isAuthFlow = process.env.NEXT_PUBLIC_AUTH_FLOW === "true";
-        // ✅ In auth flow, DO NOT call protected API before login
+        
         if (isAuthFlow) {
           console.log("Auth flow detected");
           const configValidator = localStorage.getItem("config_validated");
        
-          // If we have a stored config and validator is true, do nothing
+          // If we have a stored config and validator is true, try to get config from cookies
           if (configValidator === "true") {
-            console.log("Config validator is true, skipping fetch");
-            setIsLoading(false);
-            return;
+            console.log("Config validator is true, fetching from cookies");
+            
+            try {
+              // Fetch config from the new cookie-based endpoint
+              const res = await fetch("/api/env-from-cookies");
+              
+              if (res.ok) {
+                const result = await res.json();
+                if (result.success && result.data) {
+                  // Convert the cookie data to match UserConfig format
+                  const cookieConfig: UserConfig = {
+                    baseUrl: result.data.baseUrl,
+                    apiKey: result.data.apiKey,
+                    agentId: result.data.agentId,
+                    ejentoAccessToken: '', // Access token not needed when auth is enabled
+                  };
+                  
+                  setConfig(cookieConfig);
+                  setConfigSource('database'); // or 'cookie' if you want a new source type
+                  setIsLoading(false);
+                  return;
+                }
+              }
+              
+              // If cookie fetch fails, just set validator and continue
+              console.log("No valid config in cookies, waiting for login");
+              setIsLoading(false);
+              return;
+              
+            } catch (error) {
+              console.error("Error fetching config from cookies:", error);
+              setIsLoading(false);
+              return;
+            }
           }
        
+          // If no validator, try to fetch from backend (might be authenticated)
           try {
             console.log("Fetching config from backend...");
             const res = await fetch("/api/ejento-config");
-            if (!res.ok) throw new Error("Failed to fetch config");
-       
-            const config = await res.json();
-       
-            if (config) {
-              setConfig(config);
+            
+            if (res.ok) {
+              const config = await res.json();
+              if (config) {
+                setConfig(config);
+              }
             }
-       
           } catch (error) {
             console.error("Error fetching config:", error);
           } finally {
@@ -217,18 +250,10 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
        
           return;
         }
-       
-   
+     
         // ✅ If auth flow is disabled → safe to fetch DB config
-        const dbConfigResponse = await fetch("/api/ejento-config");
-   
-        if (dbConfigResponse.ok) {
-          const data = await dbConfigResponse.json();
-          if (data.success) {
-            setConfig(data.data);
-          }
-        }
-   
+        // ... (keep your existing non-auth flow code)
+        
       } catch (error) {
         console.error("Error loading config:", error);
       }
@@ -238,10 +263,9 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
       clearTimeout(timeout);
     }
-  }; 
- 
-  
+  };
 
+  
   useEffect(() => {
     loadConfig();
   }, []);
