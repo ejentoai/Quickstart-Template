@@ -178,6 +178,7 @@ export default function Chat({
   const encryptedTitle = searchParams.get("title");
   const id = decryptData(encryptedId);
   const title = decryptData(encryptedTitle);
+  
 
   
   const fetchChat = async () => {
