@@ -9,12 +9,10 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { XCircle } from 'lucide-react';
 import { ConfigError } from '@/components/configError';
-import { usePathname } from 'next/navigation';
-
 
 export default function Home() {
   const router = useRouter();
-  const pathname = usePathname();
+  
   const { isConfigured, isLoading, isValidating, validationError, configSource, config } = useConfig();
   const isPublicAgent = isPublicAgentMode();
   const isAuthFlowEnabled = process.env.NEXT_PUBLIC_AUTH_FLOW === 'true'
@@ -74,6 +72,10 @@ export default function Home() {
 
     if (pathname !== targetPath) {
       router.replace(targetPath);
+    } else {
+      console.log('here')
+      // Only route to settings if we're fully done loading and no config
+      router.replace('/settings');
     }
   }, [router,isConfigured, isLoading, isValidating, validationError, configSource, config, isPublicAgent]);
 
