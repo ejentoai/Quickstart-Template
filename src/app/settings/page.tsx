@@ -90,10 +90,9 @@ export default function SettingsPage() {
       if (isAuthEnabled) {
         // Auth enabled: store only a flag, then go to login
         localStorage.setItem('config_validated', 'true');
-        updateConfig({ ...newConfig }, 'database');
+        updateConfig({ ...newConfig }, 'cookie');
         toast.success('Configuration validated. Please log in to continue.');
         setIsRedirecting(true);
-        console.log('going')
         router.push('/auth/login');
       } else {
         // Auth disabled: we already have user data – store user cookie and go to chat

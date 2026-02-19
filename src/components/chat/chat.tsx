@@ -115,41 +115,9 @@ export default function Chat({
   const apiService = useApiService();
   const [corpus, setCorpus] = useState<any>([]);
  
-  // Show loading while config is loading
-  if (configLoading) {
-    console.log('here on chat')
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center">
-          <p className="text-lg">Loading configuration...</p>
-        </div>
-      </div>
-    );
-  }
- 
-  // Show message if no config after loading
-  if (!apiService) {
-    console.log('here on chat2')
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center">
-          <p className="text-lg mb-4">Please configure your API settings</p>
-          <a href="/settings" className="text-blue-500 hover:underline">Go to Settings</a>
-        </div>
-      </div>
-    );
-  }
   // PUBLIC_AGENT mode: Get session context (must be defined before useChat)
   const isPublicAgent = isPublicAgentMode();
-  // let publicAgentSession: ReturnType<typeof usePublicAgentSession> | null = null;
-  // try {
-  //   if (isPublicAgent) {
-  //     publicAgentSession = usePublicAgentSession();
-  //   }
-  // } catch (error) {
-  //   // Context not available, continue without it
-  // }
- 
+  
   const [selectedCorpus, setSelectedCorpus] = useState<any>({ name: 'all products', version: null, corpusId: null });
   const {
     streamContentRef,
@@ -233,17 +201,15 @@ export default function Chat({
  
  
   useEffect(() => {
-    console.log('here for chat 4')
     const fetchData = async () => {
       try {
-        const response: any = await apiService.getCorpus();
+        const response: any = await apiService?.getCorpus();
         if (response.data?.items?.agent_corpus?.length > 0) {
           const result = extractCorpusDataWithVersions(response.data.items.agent_corpus);
           const sortedResult = [...result].sort((a, b) =>
             a.name.toLowerCase().localeCompare(b.name.toLowerCase())
           );
           setCorpus(sortedResult);
-          // console.log(sortedResult);
         }
         else {
           setCorpus([])
@@ -335,7 +301,6 @@ export default function Chat({
     let userQuery: { role: string; content: string | null; }[] = []
     try {
       if (id) {
-        // PUBLIC_AGENT mode: Load messages from IndexedDB
         if (isPublicAgent) {
           const threadId = id.toString();
           const res = await fetch(`/api/thread/${id}`);
@@ -391,7 +356,7 @@ export default function Chat({
           }
         } else {
           // For server threads, fetch chat history as usual
-          const response = await apiService.getChatlogs(parseInt(id));
+          const response = await apiService?.getChatlogs(parseInt(id));
           if (response && response?.data?.agent_responses?.length > 0) {
             // Transform API response into message format
             const transformedMessages = response.data.agent_responses.flatMap((item: any) => [
@@ -438,6 +403,31 @@ export default function Chat({
       setIsLoadingChat(false);
     }
   };
+
+  // Show loading while config is loading
+  if (configLoading) {
+    console.log('here on chat')
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <p className="text-lg">Loading configuration...</p>
+        </div>
+      </div>
+    );
+  }
+ 
+  // Show message if no config after loading
+  if (!apiService) {
+    console.log('here on chat2')
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <p className="text-lg mb-4">Please configure your API settings</p>
+          <a href="/settings" className="text-blue-500 hover:underline">Go to Settings</a>
+        </div>
+      </div>
+    );
+  }
  
   return isLoadingChat ? (
     <div className="flex justify-center items-center w-full h-screen">
@@ -547,7 +537,7 @@ export default function Chat({
                 setMessages={setMessages}
                 reload={reload}
                 votes={[]}
-                isReadonly={isReadonly}
+                // isReadonly={isReadonly}
               />
             )}
           </AnimatePresence>

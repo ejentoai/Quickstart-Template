@@ -15,7 +15,7 @@ interface BlockMessagesProps {
   reload: (
     chatRequestOptions?: any,
   ) => Promise<string | null | undefined>;
-  isReadonly: boolean;
+  // isReadonly: boolean;
 }
 
 function PureBlockMessages({
@@ -27,7 +27,7 @@ function PureBlockMessages({
   messages,
   setMessages,
   reload,
-  isReadonly,
+  
 }: BlockMessagesProps) {
   const [messagesContainerRef, messagesEndRef] =
     useScrollToBottom<HTMLDivElement>();

@@ -3,14 +3,15 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { threadId: string } }
+  context: { params: Promise<{ threadId: string }> }
 ) {
   try {
-    const threadId = parseInt(params.threadId);
+    const { threadId } = await context.params;
+    const numericThreadId = parseInt(threadId);
 
     const messages = await prisma.message.findMany({
-      where: { threadId },
-      orderBy: { createdAt: 'asc' },
+      where: { threadId: numericThreadId },
+      orderBy: { id: 'asc' },
     });
 
     return NextResponse.json(messages);

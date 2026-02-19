@@ -65,7 +65,7 @@ export default function Home() {
     }
 
     // For localStorage config or no config source
-    if (isConfigured && config) {
+    if (config && isConfigured) {
       router.replace(path);
     } else {
       // Only route to settings if we're fully done loading and no config

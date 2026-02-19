@@ -2,9 +2,6 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserId } from "@/lib/getUserId";
 
-// ===============================
-// GET CONFIG
-// ===============================
 export async function GET(req: Request) {
   try {
     const userId = await getUserId();
@@ -29,9 +26,6 @@ export async function GET(req: Request) {
   }
 }
 
-// ===============================
-// UPSERT CONFIG (CREATE OR UPDATE)
-// ===============================
 export async function POST(req: Request) {
   try {
     const userId = await getUserId();
@@ -78,9 +72,6 @@ export async function POST(req: Request) {
   }
 }
 
-// ===============================
-// DELETE CONFIG
-// ===============================
 export async function DELETE(req: Request) {
   try {
     const userId = await getUserId();

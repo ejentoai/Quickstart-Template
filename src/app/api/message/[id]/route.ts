@@ -3,13 +3,14 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = parseInt(params.id);
+    const { id } = await context.params;
+    const numericId = parseInt(id);
 
     const message = await prisma.message.findUnique({
-      where: { id },
+      where: { id: numericId },
     });
 
     if (!message) {
@@ -27,15 +28,17 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = parseInt(params.id);
+    const { id } = await context.params;
+    const numericId = parseInt(id);
+
     const body = await req.json();
     const { content, metadata } = body;
 
     const updated = await prisma.message.update({
-      where: { id },
+      where: { id: numericId },
       data: {
         content,
         metadata,
@@ -53,13 +56,14 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = parseInt(params.id);
+    const { id } = await context.params;
+    const numericId = parseInt(id);
 
     await prisma.message.delete({
-      where: { id },
+      where: { id: numericId },
     });
 
     return NextResponse.json({ success: true });

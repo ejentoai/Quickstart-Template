@@ -4,7 +4,6 @@ import { v4 as uuidv4 } from "uuid";
 
 export async function POST(request: NextRequest) {
   try {
-    // ✅ Use request.cookies (not js-cookie)
     const existingSession = request.cookies.get('session_id')?.value;
     
     if (existingSession) {
@@ -24,8 +23,7 @@ export async function POST(request: NextRequest) {
         expiresAt: dbExpiry
       }
     });
-    
-    // ✅ Set cookie in response (not js-cookie)
+   
     const response = NextResponse.json(
       { message: 'session created' },
       { status: 200 }
@@ -36,7 +34,7 @@ export async function POST(request: NextRequest) {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+      maxAge: 60 * 60 * 24 * 7, 
     });
 
     return response;

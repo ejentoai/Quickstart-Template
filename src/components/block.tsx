@@ -61,13 +61,13 @@ function PureBlock({
   setMessages,
   reload,
   votes,
-  isReadonly,
 }: {
   chatId: string;
   input: string;
   setInput: (input: string) => void;
   isLoading: boolean;
-  stop: () => void;
+  // stop: () => void;
+  stop : any
   attachments: Array<any>;
   setAttachments: Dispatch<SetStateAction<Array<any>>>;
   block: UIBlock;
@@ -75,21 +75,9 @@ function PureBlock({
   messages: Array<any>;
   setMessages: Dispatch<SetStateAction<Array<any>>>;
   votes: Array<any> | undefined;
-  append: (
-    message: any,
-    chatRequestOptions?: any,
-  ) => Promise<string | null | undefined>;
-  
-  handleSubmit: (
-    event?: {
-      preventDefault?: () => void;
-    },
-    chatRequestOptions?: any,
-  ) => void;
-  reload: (
-    chatRequestOptions?: any,
-  ) => Promise<string | null | undefined>;
-  isReadonly: boolean;
+  append: any
+  handleSubmit: any
+  reload : any
 }) {
   const {
     data: documents,
@@ -297,7 +285,7 @@ function PureBlock({
               messages={messages}
               setMessages={setMessages}
               reload={reload}
-              isReadonly={isReadonly}
+            
             />
 
             <form className="flex flex-row gap-2 relative items-end w-full px-4 pb-4">

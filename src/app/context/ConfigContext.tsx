@@ -1,6 +1,6 @@
 'use client';
 
-import { getEjentoAccessToken, setUserToCookie } from '@/cookie';
+import { setUserToCookie } from '@/cookie';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo } from 'react';
 
 export interface UserConfig {
@@ -59,10 +59,12 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
   const [validationError, setValidationError] = useState<string | null>(null);
   const isAuthEnabled = process.env.NEXT_PUBLIC_AUTH_FLOW === 'true';
   let accessToken : any;
+  let stored : any;
 
   const updateConfig = (newConfig: Partial<UserConfig>, source: ConfigSource) => {
     setConfig(prev => (prev ? { ...prev, ...newConfig } : (newConfig as UserConfig)));
     setConfigSource(source);
+    
   };
 
   const clearConfig = async () => {
@@ -90,7 +92,6 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     if (!config || typeof window === 'undefined' || configSource !== 'database') {
       return;
     }
-    console.log(config,)
   
     try {
       // if(isAuthEnabled){
@@ -126,7 +127,6 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
   };
 
   const validateEnvConfig = async (configToValidate: UserConfig): Promise<boolean> => {
-    console.log('config1')
     setIsValidating(true);
     setValidationError(null);
     const controller = new AbortController();
@@ -141,16 +141,19 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
       });
 
       const result = await response.json();
-      const userData = result.userData;
-      const userInfo = userData?.data || userData;
+      if(!isAuthEnabled){
+        const userData = result.userData;
+        const userInfo = userData?.data || userData;
 
-      if (result.success) {
-        setValidationError(null);
-        setUserToCookie({
+        stored = setUserToCookie({
           success: true,
           message: 'User data loaded',
           data: userInfo,
         });
+        
+      }
+      if (result.success && stored) {
+        setValidationError(null);
         return true;
       } else {
         setValidationError(result.message || 'Validation failed');
@@ -173,7 +176,6 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
 
 
   const loadConfig = async () => {
-    console.log('config2')
     if (typeof window === 'undefined') {
       setIsLoading(false);
       return;
@@ -237,7 +239,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
             baseUrl: result.data.baseUrl,
             apiKey: result.data.apiKey,
             agentId: result.data.agentId,
-            ejentoAccessToken: '', // not needed in auth mode
+            ejentoAccessToken: '',
           };
         }
       } catch (err) {
@@ -272,7 +274,6 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
       const isAuthFlow = process.env.NEXT_PUBLIC_AUTH_FLOW === "true";
   
       if (isAuthFlow) {
-        console.log("Auth flow detected");
   
         const configValidator = localStorage.getItem("config_validated");
         if (configValidator === "true") {
@@ -283,7 +284,6 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
             cleanup();
             return;
           }
-          console.log("No valid config in cookies, waiting for login");
           cleanup();
           return;
         }
@@ -321,7 +321,6 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
 
   // Auto‑save only for localStorage source (currently unused for credentials)
   useEffect(() => {
-    console.log('config3')
     if (config && configSource === 'database') {
       saveConfig();
     }
@@ -333,7 +332,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     config?.agentId &&
     // For localStorage config, require baseUrl and credentials only if auth is enabled
     (configSource === 'environment' || 
-      (config?.baseUrl && config?.apiKey && (!isAuthFlowEnabled || config?.ejentoAccessToken))) &&
+      (config?.baseUrl && config?.apiKey && (isAuthFlowEnabled || config?.ejentoAccessToken))) &&
     // For env config, ensure validation passed (no error)
     (configSource !== 'environment' || !validationError)
   );
@@ -362,8 +361,6 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     isLoading, 
     isValidating, 
     validationError,
-    // Include stable function references - these don't change often
-    // but we need to include them to satisfy the linter
     updateConfig,
     clearConfig,
     saveConfig,

@@ -76,10 +76,7 @@ export async function POST(request: Request) {
     try {
       body = JSON.parse(rawBody);
     } catch (parseError) {
-      console.error('❌ JSON PARSE ERROR:', parseError.message);
-      console.error('Parse error stack:', parseError.stack);
-      console.error('Raw body that failed:', rawBody);
-      return errorResponse(`Invalid JSON format: ${parseError.message}`, 400);
+      return errorResponse(`Invalid JSON format`, 400);
     }
     
     const config: UserConfig = body.config;
@@ -297,10 +294,8 @@ export async function POST(request: Request) {
       userData: userData || null,
     });
   } catch (error) {
-    console.error('❌ UNEXPECTED ERROR in validation endpoint:', error);
-    console.error('Error stack:', error.stack);
     return errorResponse(
-      `An unexpected error occurred during validation: ${error.message}`,
+      `An unexpected error occurred during validation`,
       500
     );
   } finally {

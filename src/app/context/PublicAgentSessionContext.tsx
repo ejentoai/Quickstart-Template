@@ -9,17 +9,7 @@
 
 import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import {
-  getSessionMetadata,
-  createOrUpdateSessionMetadata,
-  getAllThreads,
-  getThread,
-  createThread,
-  updateThread,
-  deleteThread,
-  getMessagesByThreadId,
-  createMessage,
   isPublicAgentMode,
-  migrateThread,
 } from '@/lib/storage/indexeddb';
 import type {
   SessionMetadata,
@@ -28,7 +18,6 @@ import type {
 } from '@/lib/storage/types';
 import { useApiService } from '@/hooks/useApiService';
 import { useConfig } from '@/app/context/ConfigContext';
-import { toast } from 'sonner';
 
 interface PublicAgentSessionContextType {
   // Session state
@@ -48,7 +37,7 @@ interface PublicAgentSessionContextType {
   setActiveThread: (threadId: string | null) => void;
   
   // Message operations
-  getThreadMessages: (threadId: string) => Promise<StoredMessage[]>;
+  // getThreadMessages: (threadId: string) => Promise<StoredMessage[]>;
   saveMessage: (
     threadId: number,
     role: 'user' | 'assistant',
@@ -56,8 +45,6 @@ interface PublicAgentSessionContextType {
     metadata?: StoredMessage['metadata']
   ) => Promise<StoredMessage>;
   
-  // Metadata operations
-  refreshMetadata: () => Promise<void>;
   
   // Mode check
   isPublicAgentMode: boolean;
@@ -128,10 +115,10 @@ export function PublicAgentSessionProvider({ children }: PublicAgentSessionProvi
           setThreads([]);
         }
     
-        // Set active thread to most recent if available
-        if (threads.length > 0 && !activeThreadId) {
-          setActiveThreadIdState(threads[0].id);
-        }
+        // // Set active thread to most recent if available
+        // if (threads.length > 0 && !activeThreadId) {
+        //   setActiveThreadIdState(threads[0].id);
+        // }
       } catch (error) {
         console.error('Error initializing public agent session:', error);
         setThreads([]); // Ensure threads is at least an empty array
@@ -145,18 +132,18 @@ export function PublicAgentSessionProvider({ children }: PublicAgentSessionProvi
   }, [isPublicAgent, activeThreadId]);
 
   // Refresh metadata
-  const refreshMetadata = useCallback(async () => {
-    if (!isPublicAgent) return;
+  // const refreshMetadata = useCallback(async () => {
+  //   if (!isPublicAgent) return;
     
-    try {
-      const sessionMeta = await getSessionMetadata();
-      if (sessionMeta) {
-        setMetadata(sessionMeta);
-      }
-    } catch (error) {
-      console.error('Error refreshing metadata:', error);
-    }
-  }, [isPublicAgent]);
+  //   try {
+  //     const sessionMeta = await getSessionMetadata();
+  //     if (sessionMeta) {
+  //       setMetadata(sessionMeta);
+  //     }
+  //   } catch (error) {
+  //     console.error('Error refreshing metadata:', error);
+  //   }
+  // }, [isPublicAgent]);
 
   // Create new thread
   const createNewThread = useCallback(async (title: string = 'New Chat'): Promise<StoredThread> => {
@@ -178,9 +165,7 @@ export function PublicAgentSessionProvider({ children }: PublicAgentSessionProvi
 
       setThreads((prev) => [thread, ...prev]);
       setActiveThreadIdState(thread.id);
-      
-      // Refresh metadata to update thread count
-      await refreshMetadata();
+
 
       return thread
     
@@ -190,7 +175,7 @@ export function PublicAgentSessionProvider({ children }: PublicAgentSessionProvi
       throw error
     }
 
-  }, [isPublicAgent, refreshMetadata]);
+  }, [isPublicAgent]);
 
   // Update thread title
   // This is called when:
@@ -210,7 +195,8 @@ export function PublicAgentSessionProvider({ children }: PublicAgentSessionProvi
         throw new Error('Failed to update thread')
       }
       const updatedThread = await res.json()
-      setThreads(prev => prev.map(t => t.id === threadId ? updatedThread : t));
+      const numericId = Number(threadId);
+      setThreads(prev => prev.map(t => t.id === numericId ? updatedThread : t));
     } catch (error) {
       console.error('Error updating thread title:', error);
       throw new Error('Failed to update thread')
@@ -224,11 +210,12 @@ export function PublicAgentSessionProvider({ children }: PublicAgentSessionProvi
     try {
       const res = await fetch(`/api/thread/${threadId}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete thread');
-  
-      setThreads(prev => prev.filter(t => t.id !== threadId));
-      if (activeThreadId === threadId) {
-        setActiveThreadIdState(threads.length > 1 ? threads[0].id : null);
-      }
+      const numericId = Number(threadId);
+      setThreads(prev => prev.filter(t => t.id !== numericId));
+      // if (activeThreadId === threadId) {
+        
+      //   setActiveThreadIdState(threads.length > 1 ? threads[0].id : null);
+      // }
     } catch (error) {
       console.error('Error deleting thread:', error);
       throw new Error('Failed to delete thread');
@@ -242,29 +229,29 @@ export function PublicAgentSessionProvider({ children }: PublicAgentSessionProvi
   }, []);
 
   // Get thread messages
-  const getThreadMessages = useCallback(
-    async (threadId: number): Promise<any[]> => {
-      if (!isPublicAgent) {
-        return [];
-      }
+  // const getThreadMessages = useCallback(
+  //   async (threadId: number): Promise<any[]> => {
+  //     if (!isPublicAgent) {
+  //       return [];
+  //     }
   
-      try {
-        const res = await fetch(`/api/thread/${threadId}/message`);
+  //     try {
+  //       const res = await fetch(`/api/thread/${threadId}/message`);
   
-        if (!res.ok) {
-          throw new Error('Failed to fetch thread messages');
-        }
+  //       if (!res.ok) {
+  //         throw new Error('Failed to fetch thread messages');
+  //       }
   
-        const messages = await res.json();
+  //       const messages = await res.json();
   
-        return messages;
-      } catch (error) {
-        console.error('Error getting thread messages:', error);
-        return [];
-      }
-    },
-    [isPublicAgent]
-  );
+  //       return messages;
+  //     } catch (error) {
+  //       console.error('Error getting thread messages:', error);
+  //       return [];
+  //     }
+  //   },
+  //   [isPublicAgent]
+  // );
   
 
   // Save message
@@ -345,9 +332,7 @@ export function PublicAgentSessionProvider({ children }: PublicAgentSessionProvi
     updateThreadTitle,
     deleteThreadById,
     setActiveThread,
-    getThreadMessages,
     saveMessage,
-    refreshMetadata,
     isPublicAgentMode: isPublicAgent,
   };
 

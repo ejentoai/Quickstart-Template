@@ -12,7 +12,7 @@ import {
 import { useApiService } from '@/hooks/useApiService';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { getAccessToken, getUserFromCookie, getEjentoAccessToken } from '@/cookie';
-import { isPublicAgentMode, updateMessage } from '@/lib/storage/indexeddb';
+import { isPublicAgentMode} from '@/lib/storage/indexeddb';
 import { usePublicAgentSession } from '@/hooks/usePublicAgentSession';
 import {
   AlertDialog,
@@ -58,9 +58,7 @@ export function MessageActions({
   // hasFinished?: boolean
 }) {
   const apiService = useApiService();
-  // const { mutate } = useSWRConfig();
-  
-  const publicAgentSession = usePublicAgentSession();
+
   const isPublicAgent = isPublicAgentMode();
   
   const [user, setUser] = useState<{ id: string, email: string, full_name: string, is_super_user: boolean, user_type: string } | null>(null)
@@ -162,12 +160,10 @@ export function MessageActions({
     try {
       const messageId = parseInt(currentMessage?.id);
       if (isNaN(messageId)) {
-        console.log('[DEBUG] Upvote failed: messageId is not a valid number.');
         return;
       }
   
       if (isPublicAgent) {
-        console.log('[DEBUG] Public Agent Mode: Sending PATCH request for upvote...');
         const toastId = toast.loading('Upvoting Response...');
   
         const res = await fetch(`/api/message/${messageId}`, {
@@ -191,8 +187,11 @@ export function MessageActions({
         toast.success('Upvoted Response!', { id: toastId });
   
       } else {
-        console.log('[DEBUG] Real Backend Mode: using apiService.handleUpvote');
-  
+        if (!apiService) {
+          console.error('API service not available');
+          toast.error('API service not available');
+          return;
+        }
         try {
           await toast.promise(
             apiService.handleUpvote({ vote_type: 'upvote' }, messageId),
@@ -209,7 +208,6 @@ export function MessageActions({
       }
   
       // ✅ Update UI state only if upvote succeeded
-      console.log('[DEBUG] Updating UI state for upvote...');
       setMessages((prevMessages: any[]) =>
         prevMessages.map((msg) =>
           msg?.id === messageId
@@ -217,8 +215,6 @@ export function MessageActions({
             : msg
         )
       );
-  
-      console.log('[DEBUG] Upvote completed successfully.');
   
     } catch (error) {
       console.error('[DEBUG] Unexpected error during upvote:', error);
@@ -237,12 +233,10 @@ export function MessageActions({
     try {
       const messageId = parseInt(currentMessage?.id);
       if (isNaN(messageId)) {
-        console.log('[DEBUG] Downvote failed: messageId is not a valid number.');
         return;
       }
   
       if (isPublicAgent) {
-        console.log('[DEBUG] Public Agent Mode: Sending PATCH request for downvote...');
         const toastId = toast.loading('Downvoting Response...');
   
         const res = await fetch(`/api/message/${messageId}`, {
@@ -266,8 +260,11 @@ export function MessageActions({
         toast.success('Downvoted Response!', { id: toastId });
   
       } else {
-        console.log('[DEBUG] Real Backend Mode: using apiService.handleDownvote');
-  
+        if (!apiService) {
+          console.error('API service not available');
+          toast.error('API service not available');
+          return;
+        }
         try {
           await toast.promise(
             apiService.handleDownvote({ vote_type: 'downvote' }, messageId),
@@ -282,11 +279,7 @@ export function MessageActions({
           return; // exit early if downvote failed
         }
       }
-  
-      // ===============================
-      // Update UI (shared for both modes)
-      // ===============================
-      console.log('[DEBUG] Updating UI state for downvote...');
+
       setMessages((prevMessages: any[]) =>
         prevMessages.map((msg) =>
           msg?.id === messageId
@@ -298,7 +291,6 @@ export function MessageActions({
       // Open feedback dialog after success
       openDialog();
   
-      console.log('[DEBUG] Downvote completed successfully.');
   
     } catch (error) {
       console.error('[DEBUG] Unexpected error during downvote:', error);
@@ -352,7 +344,11 @@ export function MessageActions({
           comment: review,
           created_by: user?.email,
         };
-  
+        if (!apiService) {
+          console.error('API service not available');
+          toast.error('API service not available');
+          return;
+        }
         const responsePromise = apiService.handleComment(body);
   
         toast.promise(responsePromise, {
@@ -401,7 +397,6 @@ export function MessageActions({
             }),
         ]);
 
-        console.log("Formatted HTML copied to clipboard!");
     }
   }
 

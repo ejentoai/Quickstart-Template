@@ -183,7 +183,6 @@ export function AppSidebar() {
           threadId
         );
 
-        console.log('New thread created with ID:', newThread.id);
         toast.success('New chat created');
 
       } catch (error) {
@@ -253,7 +252,6 @@ export function AppSidebar() {
 
   const fetchThreads = async () => {
     if (initializationInProgressRef.current) {
-      console.log('Thread initialization already in progress, skipping...');
       return;
     }
 
@@ -353,22 +351,18 @@ export function AppSidebar() {
     window.addEventListener('beforeunload', handleBeforeUnload);
 
     if (hasInitializedRef.current) {
-      console.log('Already initialized, skipping...');
       return;
     }
 
     const sessionInitialized = sessionStorage.getItem('threads_initialized');
 
     if (sessionInitialized) {
-      console.log('Session already initialized, skipping...');
       hasInitializedRef.current = true;
       return;
     }
 
     hasInitializedRef.current = true;
     sessionStorage.setItem('threads_initialized', 'true');
-
-    console.log('Starting thread initialization...');
     fetchThreads();
 
     return () => {
