@@ -8,76 +8,71 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { XCircle } from 'lucide-react';
-import { ConfigError } from '@/components/configError';
 
 export default function Home() {
   const router = useRouter();
-  
   const { isConfigured, isLoading, isValidating, validationError, configSource, config } = useConfig();
   const isPublicAgent = isPublicAgentMode();
-  const isAuthFlowEnabled = process.env.NEXT_PUBLIC_AUTH_FLOW === 'true'
   let path;
+  const isAuthEnabled = process.env.NEXT_PUBLIC_AUTH_FLOW === 'true';
+  path = isAuthEnabled ? '/auth/login' : '/chat' 
 
   useEffect(() => {
     // Wait for loading and validation to complete before routing
-    if (isLoading || (isValidating)) {
-      return; // Still loading/validating
+    if (isLoading || isValidating) {
+      console.log('⏳ Still loading/validating, waiting...');
+      return;
     }
 
-    // PUBLIC_AGENT mode: Still need credentials, but allow routing to chat if config is available
-    // In PUBLIC_AGENT mode, config should come from ENV_DRIVEN mode (EJENTO_* env vars)
+    console.log('✅ Loading complete, making routing decision...');
+    
+    // Log the decision path
     if (isPublicAgent) {
-      // In PUBLIC_AGENT mode, we still need the author's credentials from env vars
-      // Check if env config is available (via ENV_DRIVEN mode)
+      console.log('📌 PUBLIC_AGENT mode detected');
+      console.log('configSource:', configSource);
+      
       if (configSource === 'environment') {
         if (config && !validationError && isConfigured) {
-          // Env config validated successfully - route to login page if auth flow is enabled otherwise route to chat page
-          path = isAuthFlowEnabled ? '/auth/login' : '/chat';
+          console.log('➡️ Routing to', path, '(env config valid)');
           router.replace(path);
-          return;
         } else if (validationError) {
-          // Show validation error
-          return;
+          console.log('❌ Validation error, staying on home');
         } else if (!config) {
-          // No env config found - show helpful message
-          return;
+          console.log('❌ No env config found, staying on home');
         }
       } else {
-        // PUBLIC_AGENT mode but no env config - need to set up ENV_DRIVEN mode
-        // Show helpful message about required env vars
-        return;
+        console.log('❌ PUBLIC_AGENT but no env config, showing error');
       }
+      return;
     }
 
     // If there's a validation error for env config, don't route - show error instead
     if (validationError && configSource === 'environment') {
-      return; // Stay on home page to show error
+      console.log('❌ Validation error with env config, staying on home');
+      return;
     }
 
     // For env config, ensure we have valid config (not null) and no validation error
     if (configSource === 'environment') {
       if (config && !validationError && isConfigured) {
-        // Env config validated successfully - route to login page if auth flow is enabled otherwise route to chat page
-        path = isAuthFlowEnabled ? '/auth/login' : '/chat';
+        console.log('➡️ Routing to', path, '(valid env config)');
         router.replace(path);
         return;
       } else if (!config || validationError) {
-        // Env config invalid or validation failed - don't route (show error)
+        console.log('❌ Env config invalid, staying on home');
         return;
       }
     }
 
     // For localStorage config or no config source
-    const targetPath = isAuthFlowEnabled ? '/auth/login' : '/chat';
-
-    if (pathname !== targetPath) {
-      router.replace(targetPath);
+    if (isConfigured && config) {
+      console.log('➡️ Routing to', path, '(has localStorage config)');
+      router.replace(path);
     } else {
-      console.log('here')
-      // Only route to settings if we're fully done loading and no config
+      console.log('➡️ Routing to /settings (no config found)');
       router.replace('/settings');
     }
-  }, [router,isConfigured, isLoading, isValidating, validationError, configSource, config, isPublicAgent]);
+  }, [router, isConfigured, isLoading, isValidating, validationError, configSource, config, isPublicAgent]);
 
   // Show loading state while config is being loaded or validated
   if (isLoading || isValidating) {
@@ -123,7 +118,7 @@ export default function Home() {
                 <p className="text-sm text-yellow-800 font-medium mb-1">What to do:</p>
                 <ul className="text-xs text-yellow-700 space-y-1 list-disc list-inside">
                   <li>Add all EJENTO_* environment variables to your .env.local file</li>
-                  <li>Set NEXT_PUBLIC_ENV_DRIVEN=true to enable environment-based configuration</li>
+                  <li>Set ENV_DRIVEN=true to enable environment-based configuration</li>
                   <li>Restart your development server after adding the variables</li>
                   <li>These credentials are used by the author to make API calls on behalf of public users</li>
                 </ul>
@@ -148,7 +143,51 @@ export default function Home() {
   // Show validation error if env config validation failed
   if (validationError && configSource === 'environment') {
     return (
-      <ConfigError validationError={validationError}/>
+      <div className="flex flex-col items-center justify-center min-h-screen p-6">
+        <div className="max-w-md w-full">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-red-600">
+                <XCircle className="h-5 w-5" />
+                Configuration Validation Failed
+              </CardTitle>
+              <CardDescription>
+                The environment-based configuration could not be validated.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <p className="text-sm text-red-800 font-medium mb-2">Error:</p>
+                <p className="text-sm text-red-700">{validationError}</p>
+              </div>
+              
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <p className="text-sm text-yellow-800 font-medium mb-1">What to do:</p>
+                <ul className="text-xs text-yellow-700 space-y-1 list-disc list-inside">
+                  <li>Check your environment variables</li>
+                  <li>Ensure your API credentials are valid</li>
+                  <li>Restart the server after updating environment variables</li>
+                </ul>
+              </div>
+
+              <div className="pt-4 flex gap-3">
+                <Link href="/settings" className="flex-1">
+                  <Button variant="outline" className="w-full">
+                    View Settings
+                  </Button>
+                </Link>
+                <Button 
+                  variant="default" 
+                  className="flex-1"
+                  onClick={() => window.location.reload()}
+                >
+                  Retry
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     );
   }
 
@@ -156,7 +195,7 @@ export default function Home() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen">
       <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
-      <p className="mt-4 text-gray-600">Loading....</p>
+      <p className="mt-4 text-gray-600">Loading...</p>
     </div>
   );
 }
