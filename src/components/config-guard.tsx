@@ -21,7 +21,7 @@ export function ConfigGuard({ children, requireConfig = true }: ConfigGuardProps
         <div className="text-center space-y-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
           <p className="text-gray-600 mt-4">
-            {isValidating ? 'Validating configuration...' : 'Loading..hn.'}
+            {isValidating ? 'Validating configuration...' : 'Loading...'}
           </p>
         </div>
       </div>

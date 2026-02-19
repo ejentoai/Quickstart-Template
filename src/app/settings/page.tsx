@@ -144,7 +144,7 @@ export default function SettingsPage() {
       <div className="flex flex-col items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
         <p className="mt-4 text-gray-600">
-          {isValidating ? 'Validating configuration...' : 'Loadinghh...'}
+          {isValidating ? 'Validating configuration...' : 'Loading...'}
         </p>
       </div>
     );
@@ -155,7 +155,7 @@ export default function SettingsPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
-        <p className="mt-4 text-gray-600">Loading..uu.</p>
+        <p className="mt-4 text-gray-600">Loading...</p>
       </div>
     );
   }
@@ -310,7 +310,7 @@ export default function SettingsPage() {
       {isRedirecting ? (
         <div className="flex flex-col items-center justify-center min-h-screen">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
-          <p className="mt-4 text-gray-600">Loading.1.</p>
+          <p className="mt-4 text-gray-600">Loading...</p>
         </div>
       ) : (
         <div>
