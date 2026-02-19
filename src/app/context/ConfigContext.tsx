@@ -134,6 +134,12 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
       });
  
       const result = await response.json();
+      const user = result.userData?.data ? result.userData.data : result.userData;
+      setUserToStorage(user)
+      setUserToCookie(user)
+
+      
+
      
       //if auth flow is enabled then we donot handle userData at this point
       //because userData will be available after successful login
