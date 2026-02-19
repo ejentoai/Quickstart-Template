@@ -5,7 +5,8 @@ import { getIdentity } from '@/lib/getIdentity'
 
 export async function GET(req: Request, { params }: { params: { id: string } }) {
     try {
-      const threadId = parseInt(params.id);
+      const { id } = await params;   // 👈 await params first
+      const threadId = parseInt(id);
   
       if (isNaN(threadId)) {
         return NextResponse.json({ error: "Invalid thread ID" }, { status: 400 });

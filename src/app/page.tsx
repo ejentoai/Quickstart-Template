@@ -13,63 +13,60 @@ export default function Home() {
   const router = useRouter();
   const { isConfigured, isLoading, isValidating, validationError, configSource, config } = useConfig();
   const isPublicAgent = isPublicAgentMode();
-  let path;
-  const isAuthEnabled = process.env.NEXT_PUBLIC_AUTH_FLOW === 'true';
-  path = isAuthEnabled ? '/auth/login' : '/chat' 
 
   useEffect(() => {
     // Wait for loading and validation to complete before routing
     if (isLoading || isValidating) {
-      console.log('⏳ Still loading/validating, waiting...');
-      return;
+      return; // Still loading/validating
     }
 
-    console.log('✅ Loading complete, making routing decision...');
-    
-    // Log the decision path
+    // PUBLIC_AGENT mode: Still need credentials, but allow routing to chat if config is available
+    // In PUBLIC_AGENT mode, config should come from ENV_DRIVEN mode (EJENTO_* env vars)
     if (isPublicAgent) {
-      console.log('📌 PUBLIC_AGENT mode detected');
-      console.log('configSource:', configSource);
-      
+      // In PUBLIC_AGENT mode, we still need the author's credentials from env vars
+      // Check if env config is available (via ENV_DRIVEN mode)
       if (configSource === 'environment') {
         if (config && !validationError && isConfigured) {
-          console.log('➡️ Routing to', path, '(env config valid)');
-          router.replace(path);
+          console.log('iam gere')
+          // Env config validated successfully - route to chat
+          router.replace('/chat');
+          return;
         } else if (validationError) {
-          console.log('❌ Validation error, staying on home');
+          // Show validation error
+          return;
         } else if (!config) {
-          console.log('❌ No env config found, staying on home');
+          // No env config found - show helpful message
+          return;
         }
       } else {
-        console.log('❌ PUBLIC_AGENT but no env config, showing error');
+        // PUBLIC_AGENT mode but no env config - need to set up ENV_DRIVEN mode
+        // Show helpful message about required env vars
+        return;
       }
-      return;
     }
 
     // If there's a validation error for env config, don't route - show error instead
     if (validationError && configSource === 'environment') {
-      console.log('❌ Validation error with env config, staying on home');
-      return;
+      return; // Stay on home page to show error
     }
 
     // For env config, ensure we have valid config (not null) and no validation error
     if (configSource === 'environment') {
       if (config && !validationError && isConfigured) {
-        console.log('➡️ Routing to', path, '(valid env config)');
-        router.replace(path);
+        // Env config validated successfully - automatically route to chat
+        router.replace('/chat');
         return;
       } else if (!config || validationError) {
-        console.log('❌ Env config invalid, staying on home');
+        // Env config invalid or validation failed - don't route (show error)
         return;
       }
     }
 
     // For localStorage config or no config source
     if (isConfigured && config) {
-      console.log('➡️ Routing to', path, '(has localStorage config)');
-      router.replace(path);
+      router.replace('/chat');
     } else {
-      console.log('➡️ Routing to /settings (no config found)');
+      // Only route to settings if we're fully done loading and no config
       router.replace('/settings');
     }
   }, [router, isConfigured, isLoading, isValidating, validationError, configSource, config, isPublicAgent]);
