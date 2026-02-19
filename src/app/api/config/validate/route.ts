@@ -60,11 +60,6 @@ async function storeCredentialsCookie(payload: Record<string, string>) {
 }
 
 export async function POST(request: Request) {
-  console.log('\n=== CONFIG VALIDATION ENDPOINT STARTED ===');
-  console.log('Timestamp:', new Date().toISOString());
-  console.log('Request URL:', request.url);
-  console.log('Request method:', request.method);
-  console.log('Request headers:', Object.fromEntries(request.headers.entries()));
   
   try {
     // Try to get the raw request body first to debug
@@ -73,7 +68,6 @@ export async function POST(request: Request) {
     console.log('Raw request body preview:', rawBody?.substring(0, 500));
     
     if (!rawBody || rawBody.trim() === '') {
-      console.error('❌ ERROR: Empty request body received');
       return errorResponse('Request body is empty', 400);
     }
     
@@ -81,8 +75,6 @@ export async function POST(request: Request) {
     let body;
     try {
       body = JSON.parse(rawBody);
-      console.log('✅ Successfully parsed JSON body');
-      console.log('Parsed body keys:', Object.keys(body));
     } catch (parseError) {
       console.error('❌ JSON PARSE ERROR:', parseError.message);
       console.error('Parse error stack:', parseError.stack);
