@@ -67,17 +67,13 @@ interface GroupedChats {
  * Main sidebar component that provides navigation and chat history management.
  */
 export function AppSidebar() {
-
   const apiService = useApiService();
   const { config } = useConfig();
-
   const publicAgentSession = usePublicAgentSession();
   const isPublicAgent = isPublicAgentMode();
   const isAuthFlowEnabled = process.env.NEXT_PUBLIC_AUTH_FLOW === 'true'
-
   const hasInitializedRef = React.useRef(false);
   const initializationInProgressRef = React.useRef(false);
-
   const agentImageUrl = process.env.NEXT_PUBLIC_AGENT_IMAGE?.trim();
   const isExternalImage = !!agentImageUrl;
 
@@ -108,6 +104,7 @@ export function AppSidebar() {
 
   const updateChatTitle = async (chatId: number, newTitle: string) => {
     if (!apiService) return;
+
     try {
       if (isPublicAgent) {
         await fetch(`/api/thread/${chatId}`, {
@@ -126,6 +123,7 @@ export function AppSidebar() {
 
   React.useEffect(() => {
     (window as any).addNewThreadFromHeader = addNewThread;
+
     return () => {
       delete (window as any).updateLocalThreadWithServerId;
       delete (window as any).addNewThreadFromHeader;
@@ -134,19 +132,16 @@ export function AppSidebar() {
 
   const isThreadEmpty = (thread: ChatThreadResponse): boolean => {
     const isRecentlyCreated =
-      new Date().getTime() -
-        new Date(thread.created_on).getTime() <
+      new Date().getTime() - new Date(thread.created_on).getTime() <
       5 * 60 * 1000;
 
     return (
-      (thread.title === 'New Chat' ||
-        thread.title === 'New Thread') &&
+      (thread.title === 'New Chat' || thread.title === 'New Thread') &&
       isRecentlyCreated
     );
   };
 
   const addNewThread = async () => {
-
     if (isPublicAgent) {
       try {
         const res = await fetch("/api/thread", {
@@ -154,54 +149,52 @@ export function AppSidebar() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ title: "New Chat" }),
         });
-    
+
         if (!res.ok) {
           const errorText = await res.text();
           console.error('API Error Response:', errorText);
           toast.error('Failed to create new thread');
           return;
         }
-    
+
         const newThread = await res.json();
-        
-        // Validate the response has the expected structure
+
         if (!newThread || !newThread.id) {
           console.error('Invalid thread data received:', newThread);
           toast.error('Invalid response from server');
           return;
         }
-    
+
         setThreads(prev => {
           const updated = [newThread, ...prev];
           groupChatsByDate(updated);
           return updated;
         });
-    
-        // Safe toString conversion
+
         const threadId = String(newThread.id);
-        
+
         handleSetQueryParams(
           threadId,
           newThread.title || 'New Chat'
         );
-    
+
         localStorage.setItem(
           'active_thread_id',
           threadId
         );
-    
+
         console.log('New thread created with ID:', newThread.id);
         toast.success('New chat created');
-    
+
       } catch (error) {
         console.error("Error creating public thread:", error);
         toast.error('Failed to create new chat');
       }
+
       return;
     }
 
     try {
-
       if (threads.length > 0) {
         const latestThread = threads[0];
         if (isThreadEmpty(latestThread)) {
@@ -209,10 +202,12 @@ export function AppSidebar() {
             latestThread.id.toString(),
             latestThread.title
           );
+
           localStorage.setItem(
             'active_thread_id',
             latestThread.id.toString()
           );
+
           toast.success('Switched to existing new chat');
           return;
         }
@@ -257,7 +252,6 @@ export function AppSidebar() {
   };
 
   const fetchThreads = async () => {
-
     if (initializationInProgressRef.current) {
       console.log('Thread initialization already in progress, skipping...');
       return;
@@ -294,6 +288,7 @@ export function AppSidebar() {
         } finally {
           setIsLoading(false);
         }
+
         return;
       }
 
@@ -313,6 +308,7 @@ export function AppSidebar() {
               mostRecentThread?.id.toString(),
               mostRecentThread?.title
             );
+
             localStorage.setItem(
               'active_thread_id',
               mostRecentThread?.id.toString()
@@ -321,6 +317,7 @@ export function AppSidebar() {
 
         } else {
           const threadCreated = sessionStorage.getItem('normal_thread_created');
+
           if (!threadCreated) {
             sessionStorage.setItem('normal_thread_created', 'true');
             await addNewThread();
@@ -329,11 +326,14 @@ export function AppSidebar() {
 
       } catch (error) {
         console.error('Error fetching threads:', error);
+
         const threadCreated = sessionStorage.getItem('normal_thread_created');
+
         if (!threadCreated) {
           sessionStorage.setItem('normal_thread_created', 'true');
           await addNewThread();
         }
+
       } finally {
         setIsLoading(false);
       }
@@ -344,7 +344,6 @@ export function AppSidebar() {
   };
 
   useEffect(() => {
-
     const handleBeforeUnload = () => {
       sessionStorage.removeItem('public_thread_created');
       sessionStorage.removeItem('normal_thread_created');
@@ -359,6 +358,7 @@ export function AppSidebar() {
     }
 
     const sessionInitialized = sessionStorage.getItem('threads_initialized');
+
     if (sessionInitialized) {
       console.log('Session already initialized, skipping...');
       hasInitializedRef.current = true;
@@ -374,7 +374,6 @@ export function AppSidebar() {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-
   }, []);
 
   const groupChatsByDate = (chats: ChatThreadResponse[]) => {
@@ -384,7 +383,6 @@ export function AppSidebar() {
 
     const groups = chats.reduce<GroupedChats>(
       (acc, chat) => {
-
         const chatDate = new Date(
           chat.created_on || (chat as any).created_at
         );
@@ -402,7 +400,6 @@ export function AppSidebar() {
         }
 
         return acc;
-
       },
       {
         today: [],
@@ -425,7 +422,6 @@ export function AppSidebar() {
       <SidebarHeader>
         <SidebarMenu>
           <div className="flex flex-row justify-between items-center">
-
             {isExternalImage ? (
               <img
                 src={agentImageUrl}
@@ -477,7 +473,6 @@ export function AppSidebar() {
                 </TooltipContent>
               </Tooltip>
             )}
-
           </div>
         </SidebarMenu>
       </SidebarHeader>
@@ -495,13 +490,10 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter>
-        {(isPublicAgent &&
-          publicAgentSession &&
-          !isAuthFlowEnabled)
+        {(isPublicAgent && publicAgentSession && !isAuthFlowEnabled)
           ? null
           : <SidebarUserNav />}
       </SidebarFooter>
-
     </Sidebar>
   );
 }

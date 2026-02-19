@@ -21,7 +21,11 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
             ? { ownerUserId: identity.ownerUserId }
             : { ownerSessionId: identity.ownerSessionId }),
         },
-        include: { messages: true },
+        include: {
+          messages: {
+            orderBy: { id: "asc" }, 
+          },
+        },
       });
   
       if (!thread) {

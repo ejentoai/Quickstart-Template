@@ -23,6 +23,7 @@ const UserData = () => {
 
 
   useEffect(() => {
+    console.log('from user datapage')
     const fetchUser = async (): Promise<void> => {
       try {
         if (!apiService) return;

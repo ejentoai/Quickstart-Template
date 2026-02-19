@@ -13,6 +13,9 @@ export default function Home() {
   const router = useRouter();
   const { isConfigured, isLoading, isValidating, validationError, configSource, config } = useConfig();
   const isPublicAgent = isPublicAgentMode();
+  let path;
+  const isAuthEnabled = process.env.NEXT_PUBLIC_AUTH_FLOW === 'true';
+  path = isAuthEnabled ? '/auth/login' : '/chat' 
 
   useEffect(() => {
     // Wait for loading and validation to complete before routing
@@ -27,9 +30,8 @@ export default function Home() {
       // Check if env config is available (via ENV_DRIVEN mode)
       if (configSource === 'environment') {
         if (config && !validationError && isConfigured) {
-          console.log('iam gere')
           // Env config validated successfully - route to chat
-          router.replace('/chat');
+          router.replace(path);
           return;
         } else if (validationError) {
           // Show validation error
@@ -54,7 +56,7 @@ export default function Home() {
     if (configSource === 'environment') {
       if (config && !validationError && isConfigured) {
         // Env config validated successfully - automatically route to chat
-        router.replace('/chat');
+        router.replace(path);
         return;
       } else if (!config || validationError) {
         // Env config invalid or validation failed - don't route (show error)
@@ -64,7 +66,7 @@ export default function Home() {
 
     // For localStorage config or no config source
     if (isConfigured && config) {
-      router.replace('/chat');
+      router.replace(path);
     } else {
       // Only route to settings if we're fully done loading and no config
       router.replace('/settings');

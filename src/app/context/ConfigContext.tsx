@@ -1,7 +1,7 @@
 'use client';
 
-import { getEjentoAccessToken } from '@/cookie';
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { getEjentoAccessToken, setUserToCookie } from '@/cookie';
+import { createContext, useContext, useEffect, useState, ReactNode, useMemo } from 'react';
 
 export interface UserConfig {
   baseUrl: string;
@@ -126,6 +126,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
   };
 
   const validateEnvConfig = async (configToValidate: UserConfig): Promise<boolean> => {
+    console.log('config1')
     setIsValidating(true);
     setValidationError(null);
     const controller = new AbortController();
@@ -140,9 +141,16 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
       });
 
       const result = await response.json();
+      const userData = result.userData;
+      const userInfo = userData?.data || userData;
 
       if (result.success) {
         setValidationError(null);
+        setUserToCookie({
+          success: true,
+          message: 'User data loaded',
+          data: userInfo,
+        });
         return true;
       } else {
         setValidationError(result.message || 'Validation failed');
@@ -165,6 +173,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
 
 
   const loadConfig = async () => {
+    console.log('config2')
     if (typeof window === 'undefined') {
       setIsLoading(false);
       return;
@@ -312,39 +321,60 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
 
   // Auto‑save only for localStorage source (currently unused for credentials)
   useEffect(() => {
+    console.log('config3')
     if (config && configSource === 'database') {
       saveConfig();
     }
   }, [config, configSource]);
 
+  const isAuthFlowEnabled = process.env.NEXT_PUBLIC_AUTH_FLOW === 'true';
+
   const isConfigured = Boolean(
     config?.agentId &&
-      (configSource === 'environment'
-        ? !validationError
-        : configSource === 'database'
-          ? true
-          : false)
+    // For localStorage config, require baseUrl and credentials only if auth is enabled
+    (configSource === 'environment' || 
+      (config?.baseUrl && config?.apiKey && (!isAuthFlowEnabled || config?.ejentoAccessToken))) &&
+    // For env config, ensure validation passed (no error)
+    (configSource !== 'environment' || !validationError)
   );
 
   const isEnvConfigured = configSource === 'environment';
 
+  const value = useMemo(() => ({
+    config,
+    configSource,
+    updateConfig,
+    clearConfig,
+    isConfigured,
+    isEnvConfigured,
+    saveConfig,
+    loadConfig,
+    isLoading,
+    isValidating,
+    validationError,
+    setConfigSource,
+    setConfig,
+  }), [
+    config, 
+    configSource, 
+    isConfigured, 
+    isEnvConfigured, 
+    isLoading, 
+    isValidating, 
+    validationError,
+    // Include stable function references - these don't change often
+    // but we need to include them to satisfy the linter
+    updateConfig,
+    clearConfig,
+    saveConfig,
+    loadConfig,
+    setConfigSource,
+    setConfig
+  ]);
+
   return (
     <ConfigContext.Provider
-      value={{
-        config,
-        configSource,
-        updateConfig,
-        clearConfig,
-        isConfigured,
-        isEnvConfigured,
-        saveConfig,
-        loadConfig,
-        isLoading,
-        isValidating,
-        validationError,
-        setConfigSource,
-        setConfig,
-      }}
+      value={value}
     >
       {children}
     </ConfigContext.Provider>

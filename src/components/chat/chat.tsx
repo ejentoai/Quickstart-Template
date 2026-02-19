@@ -117,6 +117,7 @@ export default function Chat({
  
   // Show loading while config is loading
   if (configLoading) {
+    console.log('here on chat')
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
@@ -128,6 +129,7 @@ export default function Chat({
  
   // Show message if no config after loading
   if (!apiService) {
+    console.log('here on chat2')
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
@@ -139,14 +141,14 @@ export default function Chat({
   }
   // PUBLIC_AGENT mode: Get session context (must be defined before useChat)
   const isPublicAgent = isPublicAgentMode();
-  let publicAgentSession: ReturnType<typeof usePublicAgentSession> | null = null;
-  try {
-    if (isPublicAgent) {
-      publicAgentSession = usePublicAgentSession();
-    }
-  } catch (error) {
-    // Context not available, continue without it
-  }
+  // let publicAgentSession: ReturnType<typeof usePublicAgentSession> | null = null;
+  // try {
+  //   if (isPublicAgent) {
+  //     publicAgentSession = usePublicAgentSession();
+  //   }
+  // } catch (error) {
+  //   // Context not available, continue without it
+  // }
  
   const [selectedCorpus, setSelectedCorpus] = useState<any>({ name: 'all products', version: null, corpusId: null });
   const {
@@ -231,6 +233,7 @@ export default function Chat({
  
  
   useEffect(() => {
+    console.log('here for chat 4')
     const fetchData = async () => {
       try {
         const response: any = await apiService.getCorpus();
@@ -350,7 +353,7 @@ export default function Chat({
                 ...metadata,
                 // Ensure the id field is set from metadata.id (agent_response_id)
                 // This is critical for matching messages when updating votes
-                id: metadata.id || msg.messageId,
+                id: msg.id,
                 // Ensure vote fields are always boolean, never undefined
                 is_upvote: metadata.is_upvote === true,
                 is_downvote: metadata.is_downvote === true,
