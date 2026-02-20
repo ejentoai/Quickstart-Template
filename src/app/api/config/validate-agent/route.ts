@@ -14,19 +14,16 @@ export async function POST(request: Request) {
   try{
      requestBody = await request.json()
      bodyConfig = requestBody?.config;
-     console.log('here1')
   }
   catch(error){
-    console.log('here2')
+    console.error(error)
   }
   try {
-    console.log('here3')
     const cookieStore = await cookies();
     
     // Get token from cookie
     const tokenCookie = cookieStore.get('ejento_access_token');
     if (!tokenCookie?.value) {
-      console.log('here4')
       return NextResponse.json(
         {
           success: false,

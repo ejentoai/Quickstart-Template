@@ -15,16 +15,6 @@ function errorResponse(message: string, status = 400) {
   );
 }
 
-function parseAxiosError(error: any, fallback: string) {
-  return {
-    status: error.response?.status || 500,
-    message:
-      error.response?.data?.message ||
-      error.response?.data?.error ||
-      fallback,
-  };
-}
-
 async function validateAgent(
   baseUrl: string,
   agentId: string,
@@ -62,16 +52,12 @@ async function storeCredentialsCookie(payload: Record<string, string>) {
 export async function POST(request: Request) {
   
   try {
-    // Try to get the raw request body first to debug
+
     const rawBody = await request.text();
-    console.log('Raw request body length:', rawBody?.length || 0);
-    console.log('Raw request body preview:', rawBody?.substring(0, 500));
-    
     if (!rawBody || rawBody.trim() === '') {
       return errorResponse('Request body is empty', 400);
     }
-    
-    // Parse the JSON
+
     let body;
     try {
       body = JSON.parse(rawBody);
@@ -80,24 +66,8 @@ export async function POST(request: Request) {
     }
     
     const config: UserConfig = body.config;
-    console.log('Config object received:', {
-      hasBaseUrl: !!config?.baseUrl,
-      hasApiKey: !!config?.apiKey,
-      hasEjentoAccessToken: !!config?.ejentoAccessToken,
-      hasAgentId: !!config?.agentId,
-      baseUrlPreview: config?.baseUrl?.substring(0, 30),
-      agentId: config?.agentId,
-      configKeys: config ? Object.keys(config) : []
-    });
-
     const isAuthEnabled = process.env.NEXT_PUBLIC_AUTH_FLOW === 'true';
     const envDriven = process.env.NEXT_PUBLIC_ENV_DRIVEN === 'true';
-    
-    console.log('Environment flags:', {
-      isAuthEnabled,
-      envDriven,
-      NODE_ENV: process.env.NODE_ENV
-    });
 
     let baseUrl: string;
     let apiKey: string;
@@ -105,35 +75,15 @@ export async function POST(request: Request) {
     let agentId: string;
 
     if (envDriven) {
-      console.log('Using environment variables for config');
       baseUrl = process.env.EJENTO_BASE_URL?.trim() || '';
       apiKey = process.env.EJENTO_API_KEY?.trim() || '';
       ejentoAccessToken = process.env.EJENTO_ACCESS_TOKEN?.trim() || '';
       agentId = process.env.EJENTO_AGENT_ID?.trim() || '';
-      
-      console.log('Env vars loaded:', {
-        hasBaseUrl: !!baseUrl,
-        hasApiKey: !!apiKey,
-        hasAccessToken: !!ejentoAccessToken,
-        hasAgentId: !!agentId,
-        baseUrlPreview: baseUrl?.substring(0, 30),
-        agentId
-      });
     } else {
-      console.log('Using request config for validation');
       baseUrl = config?.baseUrl?.trim() || '';
       apiKey = config?.apiKey?.trim() || '';
       ejentoAccessToken = config?.ejentoAccessToken?.trim() || '';
       agentId = config?.agentId?.trim() || '';
-      
-      console.log('Request config values:', {
-        hasBaseUrl: !!baseUrl,
-        hasApiKey: !!apiKey,
-        hasAccessToken: !!ejentoAccessToken,
-        hasAgentId: !!agentId,
-        baseUrlPreview: baseUrl?.substring(0, 30),
-        agentId
-      });
     }
 
     const hasMissingConfig =
@@ -143,7 +93,7 @@ export async function POST(request: Request) {
       (!isAuthEnabled && !ejentoAccessToken);
 
     if (hasMissingConfig) {
-      console.error('❌ Missing required config:', {
+      console.error('Missing required config:', {
         missingBaseUrl: !baseUrl,
         missingApiKey: !apiKey,
         missingAgentId: !agentId,
@@ -157,10 +107,6 @@ export async function POST(request: Request) {
         400
       );
     }
-
-    console.log('✅ All required config values present');
-
-    // Validate credentials / agent
     if (isAuthEnabled) {
       console.log('Auth enabled - validating agent only');
       const headers: Record<string, string> = {
@@ -196,7 +142,6 @@ export async function POST(request: Request) {
       });
     }
 
-    // Auth disabled – full validation including user fetch
     console.log('Auth disabled - performing full validation');
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -207,24 +152,18 @@ export async function POST(request: Request) {
     let userData = null;
     try {
       const userUrl = `${baseUrl}/api/v2/users/me`;
-      console.log('Fetching user data from:', userUrl);
       const userResponse = await axios.get(userUrl, { headers, timeout: 10000 });
       userData = userResponse.data;
-      console.log('User data received:', {
-        hasData: !!userData,
-        dataType: typeof userData,
-        keys: userData ? Object.keys(userData) : []
-      });
-
+      
       if (!userData || typeof userData === 'number') {
-        console.error('❌ Invalid user data response');
+        console.error('Invalid user data response');
         return errorResponse(
           'Could not verify credentials. Please check your API key and access token.',
           401
         );
       }
     } catch (error: any) {
-      console.error('❌ User fetch failed:', {
+      console.error('User fetch failed:', {
         message: error.message,
         status: error.response?.status,
         data: error.response?.data
@@ -236,11 +175,9 @@ export async function POST(request: Request) {
     }
 
     try {
-      console.log('Validating agent with URL:', `${baseUrl}/api/v2/agents/${agentId}`);
       await validateAgent(baseUrl, agentId, headers);
-      console.log('✅ Agent validation successful');
     } catch (error: any) {
-      console.error('❌ Agent validation failed:', error);
+      console.error('Agent validation failed:', error);
       return errorResponse(
         `Agent validation failed: ${error.message}`,
         error.status || 500
@@ -261,33 +198,29 @@ export async function POST(request: Request) {
     // Store config in database
     const userId = userData?.data?.id || userData?.id;
     if (userId) {
-      console.log('Storing config in database for user:', userId);
       try {
         await prisma.ejentoConfig.upsert({
           where: { userId },
           update: {
             baseUrl,
             apiKey,
-            accessToken: ejentoAccessToken || null,
+            ejentoAccessToken: ejentoAccessToken || null,
             agentId: parseInt(agentId, 10)
           },
           create: {
             userId,
             baseUrl,
             apiKey,
-            accessToken: ejentoAccessToken || null,
+            ejentoAccessToken: ejentoAccessToken || null,
             agentId: parseInt(agentId, 10)
           },
         });
-        console.log('✅ Database storage successful');
       } catch (dbError) {
-        console.error('❌ Failed to save config to database:', dbError);
       }
     } else {
       console.log('No userId found, skipping database storage');
     }
 
-    console.log('✅ Validation complete - returning success');
     return NextResponse.json({
       success: true,
       message: 'Configuration validated successfully',

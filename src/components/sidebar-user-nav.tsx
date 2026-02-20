@@ -52,18 +52,26 @@ export function SidebarUserNav() {
   const isAuthFlowEnabled = process.env.NEXT_PUBLIC_AUTH_FLOW === 'true';
   const publicAgentSession = usePublicAgentSession(); 
   const isPublicAgent = isPublicAgentMode(); 
-  const ejento_access_token = getEjentoAccessToken()
 
   useEffect(() => {
+    console.log(config,'congigta')
+    console.log(process.env.NEXT_PUBLIC_AUTH_FLOW === 'true','process.env.NEXT_PUBLIC_AUTH_FLOW ===')
+    console.log(config?.apiKey,'1')
+    console.log(config?.agentId,'2')
+    console.log(config?.ejentoAccessToken,'3')
     if (isManageConfigOpen && config) {
       setConfigForm({
         baseUrl: config.baseUrl || '',
-        ejentoAccessToken: config?.ejentoAccessToken || getEjentoAccessToken() || '',
+        ejentoAccessToken:
+          process.env.NEXT_PUBLIC_AUTH_FLOW === 'true'
+            ? getEjentoAccessToken() || ''
+            : config?.ejentoAccessToken || '',
         apiKey: config.apiKey || '',
         agentId: config.agentId || ''
       });
     }
   }, [isManageConfigOpen, config]);
+  
 
   const clearTokens = () => {
     const responseOfAccessToken = removeAccessToken()
@@ -150,6 +158,8 @@ export function SidebarUserNav() {
           }
         };
       }
+      console.log(newConfig,'newConfig')
+    
 
       if(isAuthFlowEnabled){
         //First, validate agent using token from cookie
@@ -220,10 +230,13 @@ export function SidebarUserNav() {
         
         console.log(updatedConfig,'updatedConfigupdatedConfig')
         console.log(configSource,'configSource')
+        console.log(configSource,'sourceeeeeee')
         updateConfig(updatedConfig as any,configSource);
-        saveConfig();
+        console.log('goin to save config')
+        saveConfig(updatedConfig);
         setUserInfo(getUserFromCookie()); // Refresh user info display
         setIsManageConfigOpen(false);
+        localStorage.setItem('configSaved','true')
         toast.success('Configuration updated successfully!');
         
         // If critical config changed, reload the page to refresh all components
@@ -237,8 +250,11 @@ export function SidebarUserNav() {
       
       // For auth flow mode or when user data is not available
       updateConfig(newConfig as any,configSource);
-      saveConfig();
+      console.log(newConfig,'debugi0#')
+      // debugger;
+      saveConfig(newConfig);
       setIsManageConfigOpen(false);
+      localStorage.setItem('configSaved','true')
       toast.success('Configuration updated successfully!');
       
       // If critical config changed, reload the page to refresh all components
@@ -273,6 +289,7 @@ export function SidebarUserNav() {
   // };
 
   const handleDestroySession = async () => {
+    localStorage.removeItem('configSaved')
     if (configSource === 'environment') {
       toast.error(
         'Session cannot be destroyed because configuration is managed via environment variables.'
@@ -446,7 +463,7 @@ export function SidebarUserNav() {
                   <Input
                     id="ejentoAccessToken"
                     type={showTokens.ejentoAccessToken ? 'text' : 'password'}
-                    value={ejento_access_token || 'your ejento access token'}
+                    value={configForm.ejentoAccessToken || 'your ejento access token'}
                     onChange={(e) => handleConfigChange('ejentoAccessToken', e.target.value)}
                     placeholder="your-access-token"
                     className={`pr-10 ${configSource === 'environment' ? 'bg-gray-50 cursor-not-allowed' : ''}`}

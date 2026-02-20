@@ -2,19 +2,18 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserId } from "@/lib/getUserId";
 
+const AUTH_ENABLED = process.env.AUTH_ENABLED === "true";
+
 export async function GET(req: Request) {
   try {
     const userId = await getUserId();
-    console.log(userId,'userId')
-   
-    if (!userId) {
+    if (AUTH_ENABLED && !userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
+    const finalUserId = userId || "NO_AUTH_USER";
     const config = await prisma.ejentoConfig.findUnique({
-      where: { userId },
+      where: { userId: finalUserId },
     });
-
     return NextResponse.json(config || null);
 
   } catch (error: any) {
@@ -29,13 +28,12 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const userId = await getUserId();
-
-    if (!userId) {
+    if (AUTH_ENABLED && !userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await req.json();
-    const { baseUrl, apiKey, accessToken, agentId } = body;
+    const { baseUrl, apiKey, ejentoAccessToken, agentId } = body;
 
     if (!baseUrl || !apiKey || !agentId) {
       return NextResponse.json(
@@ -44,19 +42,20 @@ export async function POST(req: Request) {
       );
     }
 
+    const finalUserId = userId || "NO_AUTH_USER";
     const config = await prisma.ejentoConfig.upsert({
-      where: { userId },
+      where: { userId: finalUserId },
       update: {
         baseUrl,
         apiKey,
-        accessToken: accessToken || null,
+        ejentoAccessToken: ejentoAccessToken || null,
         agentId: Number(agentId),
       },
       create: {
-        userId,
+        userId: finalUserId,
         baseUrl,
         apiKey,
-        accessToken: accessToken || null,
+        ejentoAccessToken : ejentoAccessToken || null,
         agentId: Number(agentId),
       },
     });
@@ -73,15 +72,18 @@ export async function POST(req: Request) {
 }
 
 export async function DELETE(req: Request) {
+ 
   try {
     const userId = await getUserId();
 
-    if (!userId) {
+    if (AUTH_ENABLED && !userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const finalUserId = userId || "NO_AUTH_USER";
+
     await prisma.ejentoConfig.delete({
-      where: { userId },
+      where: { userId: finalUserId },
     });
 
     return NextResponse.json({ message: "Config deleted successfully" });

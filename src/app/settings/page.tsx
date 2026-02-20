@@ -13,7 +13,7 @@ import { Eye, EyeOff, Save, CheckCircle2, XCircle, Loader2 } from 'lucide-react'
 import { setUserToCookie } from '@/cookie';
 
 export default function SettingsPage() {
-  const { config, updateConfig, isEnvConfigured, isLoading, isValidating, validationError, isConfigured, configSource } = useConfig();
+  const { config, updateConfig, isEnvConfigured, isLoading, isValidating, validationError, isConfigured, configSource, saveConfig } = useConfig();
   const router = useRouter();
   const isPublicAgent = isPublicAgentMode();
   const redirectPath = process.env.NEXT_PUBLIC_AUTH_FLOW === 'true' ? '/auth/login' : '/chat';
@@ -89,7 +89,8 @@ export default function SettingsPage() {
 
       if (isAuthEnabled) {
         // Auth enabled: store only a flag, then go to login
-        localStorage.setItem('config_validated', 'true');
+        localStorage.setItem('config_validated', 'true'); //it means cookie has now config , it will be removed when DB become source of truth
+        localStorage.setItem('configSaved','true') //keep track that config is validated and saved , it will remain in local storage and not change with change in source of data
         updateConfig({ ...newConfig }, 'cookie');
         toast.success('Configuration validated. Please log in to continue.');
         setIsRedirecting(true);
@@ -113,8 +114,9 @@ export default function SettingsPage() {
         });
 
         updateConfig({ ...newConfig, userInfo }, 'database');
+        saveConfig(newConfig)
+        localStorage.setItem('configSaved','true') //keep track that config is validated and saved , it will remain in local storage and not change with change in source of data
         toast.success('Configuration saved successfully');
-
         setIsRedirecting(true);
         router.push('/chat');
       }

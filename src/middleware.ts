@@ -33,6 +33,33 @@ export default function middleware(req: NextRequest) {
     );
   }
 
+  /* ---------------- COOKIE HANDLING ---------------- */
+
+  if (NEXT_PUBLIC_ENV_DRIVEN !== 'true' && pathname !== '/settings') {
+    const credentialsCookie = req.cookies.get('ejento_api_credentials');
+
+    if (!credentialsCookie) {
+      return NextResponse.redirect(new URL('/settings', req.url));
+    }
+
+    try {
+      const parsed = JSON.parse(credentialsCookie.value);
+
+      const valid = isAuthFlowEnabled
+        ? parsed.agentId && parsed.apiKey && parsed.baseUrl
+        : parsed.agentId &&
+          parsed.apiKey &&
+          parsed.baseUrl &&
+          parsed.ejentoAccessToken;
+
+      if (!valid) {
+        return NextResponse.redirect(new URL('/settings', req.url));
+      }
+    } catch {
+      return NextResponse.redirect(new URL('/settings', req.url));
+    }
+  }
+
   /* ---------------- ENV-DRIVEN RESTRICTION ---------------- */
   
   //when env driven is false and public agent is true , we donot allow access to app because this combinat

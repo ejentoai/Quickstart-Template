@@ -16,7 +16,7 @@ const UserData = () => {
   const isAuthEnabled = process.env.NEXT_PUBLIC_AUTH_FLOW === 'true'
   const { loadConfig, isLoading: configLoading, config, setConfig } = useConfig();
   const { setUserId } = useAuth()
-  const accessToken = getEjentoAccessToken();
+  const ejentoAccessToken = getEjentoAccessToken();
   const envDriven = process.env.NEXT_PUBLIC_ENV_DRIVEN === 'true'
   const publicMode = process.env.NEXT_PUBLIC_AGENT === 'true'
 
@@ -149,7 +149,7 @@ const UserData = () => {
                   baseUrl: config?.baseUrl,
                   apiKey: config?.apiKey,
                   agentId: config?.agentId,
-                  accessToken: accessToken,
+                  ejentoAccessToken: ejentoAccessToken,
                 }),
               });
 

@@ -150,6 +150,7 @@ export function MessageActions({
     return null;
 
   const handleRegenerateclick = () => {
+    console.log(currentMessage,'cuu')
     append(currentMessage, true)
   }
 
@@ -171,6 +172,7 @@ export function MessageActions({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             metadata: {
+              id : currentMessage.id,
               ...currentMessage.metadata,
               is_upvote: true,
               is_downvote: false,
@@ -244,6 +246,7 @@ export function MessageActions({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             metadata: {
+              id : currentMessage.id,
               ...currentMessage.metadata,
               is_upvote: false,
               is_downvote: true,
@@ -326,6 +329,7 @@ export function MessageActions({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             metadata: {
+              id : currentMessage.id,
               ...currentMessage.metadata,
               comment: review,
               created_by: user?.email,

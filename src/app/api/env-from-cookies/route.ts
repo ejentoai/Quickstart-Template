@@ -13,18 +13,36 @@ export async function GET() {
       }, { status: 404 });
     }
 
+    let credentials: Record<string, any>;
     try {
-      const credentials = JSON.parse(credentialsCookie.value);
-      return NextResponse.json({
-        success: true,
-        data: credentials
-      });
+      credentials = JSON.parse(credentialsCookie.value);
     } catch (parseError) {
       return NextResponse.json({ 
         success: false, 
         message: 'Invalid credentials format' 
       }, { status: 500 });
     }
+
+    // Determine if authentication flow is enabled
+    const isAuthFlowEnabled = process.env.NEXT_PUBLIC_AUTH_FLOW === 'true';
+
+    // Validate fields based on auth flow
+    const isValid = isAuthFlowEnabled
+      ? !!(credentials.agentId && credentials.apiKey && credentials.baseUrl)
+      : !!(credentials.agentId && credentials.apiKey && credentials.baseUrl && credentials.ejentoAccessToken);
+
+    if (!isValid) {
+      return NextResponse.json({
+        success: false,
+        message: 'Incomplete credentials in cookie'
+      }, { status: 400 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: credentials
+    });
+
   } catch (error) {
     console.error('Error reading credentials from cookies:', error);
     return NextResponse.json({ 

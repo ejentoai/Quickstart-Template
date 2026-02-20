@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getIdentity } from "@/lib/getIdentity";
 import { ownerType } from "@/generated/prisma/enums";
-import { toast } from "sonner";
 
 export async function POST(req: Request) {
     try {
@@ -28,7 +27,7 @@ export async function POST(req: Request) {
       return NextResponse.json(thread)
     } catch (error) {
       return NextResponse.json(
-        { error: 'unable to create thread' },
+        { error: `unable to create thread : ${error}` },
         { status: 400 }
       )
     }
@@ -51,7 +50,6 @@ export async function GET(){
     }
     catch(error){
         console.error('Error in fetching all threads');
-        // Instead of 400, return empty array to prevent frontend crash
         return NextResponse.json([], { status: 200 });
     }
 }

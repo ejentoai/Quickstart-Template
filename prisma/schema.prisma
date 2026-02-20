@@ -26,7 +26,7 @@ model EjentoConfig {
   userId      Int      @unique
   baseUrl     String
   apiKey      String
-  accessToken String?
+  ejentoAccessToken String?
   agentId     Int
 
   createdAt   DateTime @default(now())

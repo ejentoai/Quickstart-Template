@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Button } from './ui/button';
 import { AlertCircle, XCircle } from 'lucide-react';
 import { ConfigError } from './configError';
+import { useEffect } from 'react';
 
 interface ConfigGuardProps {
   children: React.ReactNode;
@@ -12,8 +13,12 @@ interface ConfigGuardProps {
 }
 
 export function ConfigGuard({ children, requireConfig = true }: ConfigGuardProps) {
-  const { isConfigured, isLoading, isValidating, validationError, configSource } = useConfig();
-
+  const { isConfigured, isLoading, isValidating, validationError, configSource, loadConfig } = useConfig();
+ 
+  useEffect( () => {
+    loadConfig()
+  },[] )
+  
   // Show loading state while config is being loaded or validated
   if (isLoading || isValidating) {
     return (
