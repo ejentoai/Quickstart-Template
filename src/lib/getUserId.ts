@@ -7,7 +7,6 @@ export async function getUserId(): Promise<number | null> {
 
   try {
     const userInfo = JSON.parse(userInfoCookie)
-    console.log(userInfo,'userinfo')
     const userId = userInfo?.data?.id
     return userId ? Number(userId) : null
   } catch (err) {

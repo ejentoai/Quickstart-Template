@@ -4,12 +4,11 @@ import { v4 as uuidv4 } from 'uuid'
 
 export async function getIdentity() {
   const isAuthFlow = process.env.NEXT_PUBLIC_AUTH_FLOW === 'true'
-  const cookieStore = await cookies() // No await needed; cookies() is sync
+  const cookieStore = await cookies() 
 
   if (isAuthFlow) {
     const userInfoCookie = cookieStore.get('user_info')?.value
     if (!userInfoCookie) {
-      console.log('User not authenticated')
       throw new Error('User not authenticated')
       
     }
@@ -18,20 +17,16 @@ export async function getIdentity() {
     try {
       const userInfo = JSON.parse(userInfoCookie)
       userIdFromCookie = userInfo?.data?.id ?? null
-      console.log(userIdFromCookie,'userIdFromCookie')
     } catch (err) {
-      console.log(userIdFromCookie,'userIdFromCookije')
       throw new Error('Invalid user_info cookie')
     }
 
     if (!userIdFromCookie) {
-      console.log(userIdFromCookie,'userIdFrhhomCookie')
       throw new Error('User ID not found in cookie')
     }
 
-    // ✅ Lookup the user in the DB by userInfo ID
     const userRecord = await prisma.user.findUnique({
-      where: { userId: Number(userIdFromCookie) }, // assuming user_info.data.id maps to User.id
+      where: { userId: Number(userIdFromCookie) },
     })
 
     if (!userRecord) {
@@ -45,9 +40,6 @@ export async function getIdentity() {
     }
   }
 
-  // ==============================
-  // SESSION FLOW
-  // ==============================
   let sessionId = cookieStore.get('session_id')?.value
 
   let session = null

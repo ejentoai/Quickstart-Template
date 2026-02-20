@@ -54,11 +54,6 @@ export function SidebarUserNav() {
   const isPublicAgent = isPublicAgentMode(); 
 
   useEffect(() => {
-    console.log(config,'congigta')
-    console.log(process.env.NEXT_PUBLIC_AUTH_FLOW === 'true','process.env.NEXT_PUBLIC_AUTH_FLOW ===')
-    console.log(config?.apiKey,'1')
-    console.log(config?.agentId,'2')
-    console.log(config?.ejentoAccessToken,'3')
     if (isManageConfigOpen && config) {
       setConfigForm({
         baseUrl: config.baseUrl || '',
@@ -87,9 +82,7 @@ export function SidebarUserNav() {
   const handleLogout = async (userId: number) => {
     try {
       // Clear local tokens and storage
-      const result = clearTokens();
-      // const removed = clearUserFromCookie();
-  
+      const result = clearTokens();  
       if (result) {
         toast.success('Logout Successfully');
         router.push('/');
@@ -158,7 +151,6 @@ export function SidebarUserNav() {
           }
         };
       }
-      console.log(newConfig,'newConfig')
     
 
       if(isAuthFlowEnabled){
@@ -250,8 +242,6 @@ export function SidebarUserNav() {
       
       // For auth flow mode or when user data is not available
       updateConfig(newConfig as any,configSource);
-      console.log(newConfig,'debugi0#')
-      // debugger;
       saveConfig(newConfig);
       setIsManageConfigOpen(false);
       localStorage.setItem('configSaved','true')
@@ -271,7 +261,6 @@ export function SidebarUserNav() {
     }
   };
 
-  // const handleClearConfig = () => {
   //   // Prevent clearing if config is environment-driven
   //   if (configSource === 'environment') {
   //     toast.error('Configuration cannot be cleared. This application uses environment-driven configuration.');

@@ -1,12 +1,5 @@
 'use client';
 
-/**
- * Public Agent Session Context
- * 
- * Manages browser-only chat sessions for PUBLIC_AGENT mode.
- * Provides session state, thread management, and IndexedDB integration.
- */
-
 import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import {
   isPublicAgentMode,
@@ -45,7 +38,6 @@ interface PublicAgentSessionContextType {
     metadata?: StoredMessage['metadata']
   ) => Promise<StoredMessage>;
   
-  
   // Mode check
   isPublicAgentMode: boolean;
 }
@@ -76,9 +68,6 @@ export function PublicAgentSessionProvider({ children }: PublicAgentSessionProvi
   const [isLoading, setIsLoading] = useState(true);
   const [isInitialized, setIsInitialized] = useState(false);
   
-  // Get email from config for API calls
-  const userEmail = config?.userInfo?.email || 'user';
-
   // Initialize session on mount
   useEffect(() => {
     if (!isPublicAgent) {
@@ -86,64 +75,51 @@ export function PublicAgentSessionProvider({ children }: PublicAgentSessionProvi
       setIsInitialized(true);
       return;
     }
-
-    const initializeSession = async () => {
+  
+  //this session data is used for anonymus user 
+  //session will be user identity when auth is disanle
+  const initializeSession = async () => {
+    try {
+      const res = await fetch('/api/session', {
+        method: 'POST'
+      });
+      
+      if (!res.ok) {
+        console.error('Error in creating session');
+      }
+      
+      // Load all threads with better error handling
       try {
-        const res = await fetch('/api/session', {
-          method: 'POST'
-        });
-        
-        if (!res.ok) {
-          console.error('Error in creating session');
-        }
-        
-        // Load all threads with better error handling
-        try {
-          const allThreadsRes = await fetch('/api/thread');
-          
-          if (allThreadsRes.ok) {
-            const text = await allThreadsRes.text();
-            // Only parse if there's content
-            const allThreads = text ? JSON.parse(text) : [];
-            setThreads(Array.isArray(allThreads) ? allThreads : []);
-          } else {
-            console.error('Failed to fetch threads:', allThreadsRes.status);
-            setThreads([]);
-          }
-        } catch (threadError) {
-          console.error('Error fetching threads:', threadError);
+        const allThreadsRes = await fetch('/api/thread');
+        if (allThreadsRes.ok) {
+          const text = await allThreadsRes.text();
+          const allThreads = text ? JSON.parse(text) : [];
+          setThreads(Array.isArray(allThreads) ? allThreads : []);
+        } else {
+          console.error('Failed to fetch threads:', allThreadsRes.status);
           setThreads([]);
         }
-    
-        // // Set active thread to most recent if available
-        // if (threads.length > 0 && !activeThreadId) {
-        //   setActiveThreadIdState(threads[0].id);
-        // }
-      } catch (error) {
-        console.error('Error initializing public agent session:', error);
-        setThreads([]); // Ensure threads is at least an empty array
-      } finally {
-        setIsLoading(false);
-        setIsInitialized(true);
+      } catch (threadError) {
+        console.error('Error fetching threads:', threadError);
+        setThreads([]);
       }
-    };
+  
+      // // Set active thread to most recent if available
+      // if (threads.length > 0 && !activeThreadId) {
+      //   setActiveThreadIdState(threads[0].id);
+      // }
+      
+    } catch (error) {
+      console.error('Error initializing public agent session:', error);
+      setThreads([]); // Ensure threads is at least an empty array
+    } finally {
+      setIsLoading(false);
+      setIsInitialized(true);
+    }
+  };
 
     initializeSession();
   }, [isPublicAgent, activeThreadId]);
-
-  // Refresh metadata
-  // const refreshMetadata = useCallback(async () => {
-  //   if (!isPublicAgent) return;
-    
-  //   try {
-  //     const sessionMeta = await getSessionMetadata();
-  //     if (sessionMeta) {
-  //       setMetadata(sessionMeta);
-  //     }
-  //   } catch (error) {
-  //     console.error('Error refreshing metadata:', error);
-  //   }
-  // }, [isPublicAgent]);
 
   // Create new thread
   const createNewThread = useCallback(async (title: string = 'New Chat'): Promise<StoredThread> => {
@@ -166,7 +142,6 @@ export function PublicAgentSessionProvider({ children }: PublicAgentSessionProvi
       setThreads((prev) => [thread, ...prev]);
       setActiveThreadIdState(thread.id);
 
-
       return thread
     
     }
@@ -177,10 +152,6 @@ export function PublicAgentSessionProvider({ children }: PublicAgentSessionProvi
 
   }, [isPublicAgent]);
 
-  // Update thread title
-  // This is called when:
-  // 1. First response arrives: response API returns thread_id and chat_thread_name, we update IndexedDB with server ID
-  // 2. User manually edits title: we call updateChatThreadTitle API to update on server
   const updateThreadTitle = useCallback(async (threadId: string, title: string, serverThreadId?: number) => {
     if (!isPublicAgent) return;
     try{
@@ -213,7 +184,6 @@ export function PublicAgentSessionProvider({ children }: PublicAgentSessionProvi
       const numericId = Number(threadId);
       setThreads(prev => prev.filter(t => t.id !== numericId));
       // if (activeThreadId === threadId) {
-        
       //   setActiveThreadIdState(threads.length > 1 ? threads[0].id : null);
       // }
     } catch (error) {
@@ -222,13 +192,11 @@ export function PublicAgentSessionProvider({ children }: PublicAgentSessionProvi
     }
   }, [isPublicAgent, activeThreadId, threads]);
   
-
   // Set active thread
   const setActiveThread = useCallback((threadId: string | null) => {
     setActiveThreadIdState(threadId);
   }, []);
 
-  // Get thread messages
   // const getThreadMessages = useCallback(
   //   async (threadId: number): Promise<any[]> => {
   //     if (!isPublicAgent) {
@@ -267,8 +235,7 @@ export function PublicAgentSessionProvider({ children }: PublicAgentSessionProvi
       }
   
       let currentThreadId = threadId;
-  
-      // 1️⃣ Create thread if it doesn't exist
+
       if (!currentThreadId) {
         const title =
           metadata?.query
@@ -282,7 +249,7 @@ export function PublicAgentSessionProvider({ children }: PublicAgentSessionProvi
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             title,
-            ownerType: 'session', // or 'user'
+            ownerType: 'session',
             metaData: metadata ?? {},
           }),
         });
@@ -297,7 +264,6 @@ export function PublicAgentSessionProvider({ children }: PublicAgentSessionProvi
         setThreads((prev) => [thread, ...prev]);
       }
   
-      // 2️⃣ Create message (threadId passed in body)
       const messageRes = await fetch('/api/message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

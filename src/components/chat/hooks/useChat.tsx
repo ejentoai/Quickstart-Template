@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { decryptData, encryptData, handleSetQueryParams } from "@/lib/utils";
-import { getAccessToken, getEjentoAccessToken, getUserFromCookie } from "@/cookie";
+import { decryptData } from "@/lib/utils";
+import {getUserFromCookie } from "@/cookie";
 import { useApiService } from "@/hooks/useApiService";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useConfig } from "@/app/context/ConfigContext";
@@ -49,7 +49,6 @@ function isResponseForCurrentThread(
 
 export function useChat(arg0: { selectedCorpus: any | null }) {
     const apiService = useApiService();
-    const router = useRouter();
     const { selectedCorpus } = arg0;
     const [messages, setMessages] = useState<any>([]);
     const { config } = useConfig();
@@ -67,10 +66,6 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
     const id = decryptData(encryptedId);
     const thread_name_from_url = decryptData(thread_name_from_url_encrypted);
     const [chatStarted, setChatStarted] = useState(false);
-    const [promptTemplate, setPromptTemplate] = useState<string>("");
-    const [excludeCategory, setExcludeCategory] = useState<string>("");
-    const user = getUserFromCookie();
-    const userEmail = config?.userInfo?.email || user?.email || user?.data?.email || 'user';
     const [streaming, setStreaming] = useState(false);
     const [streamContent, setStreamContent] = useState<string>("");
     const [streamEvents, setStreamEvents] = useState<any>([]);
@@ -111,7 +106,6 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
               const threadData = await response.json();
               setHasExternalApiId(!!threadData.externalApiId);
               isFirstMessageRef.current = !threadData.externalApiId;
-              console.log('Thread external API ID status:', !!threadData.externalApiId);
             }
           } catch (error) {
             console.error('Error checking thread external API ID:', error);
@@ -163,7 +157,6 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
         if (response.ok) {
           setHasExternalApiId(true);
           isFirstMessageRef.current = false;
-          console.log('Successfully updated thread with external API ID:', externalApiId);
         } else {
           console.error('Failed to update thread with external API ID');
         }
@@ -226,9 +219,6 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
         if (process.env.NEXT_PUBLIC_STREAM_CHAT === 'true') {
           const controller = new AbortController();
           const signal = controller.signal;
- 
-          // CRITICAL FIX: For first message, send null to create external thread
-          // For subsequent messages, use the externalApiId from the thread
           let chatThreadId: number | null = null;
          
           if (!isFirstMessageRef.current && hasExternalApiId) {
@@ -238,7 +228,6 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
               if (response.ok) {
                 const threadData = await response.json();
                 chatThreadId = threadData.externalApiId;
-                console.log('Using existing external API ID for request:', chatThreadId);
               }
             } catch (error) {
               console.error('Error fetching external API ID:', error);
@@ -246,16 +235,8 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
             }
           } else {
             // First message - send null to create external thread
-            console.log('First message - sending null to create external thread');
             chatThreadId = null;
           }
- 
-          console.log('Thread determination:', {
-            isFirstMessage: isFirstMessageRef.current,
-            hasExternalApiId,
-            finalChatThreadId: chatThreadId,
-            id
-          });
  
           const requestBody: any = {
             chat_thread_id: chatThreadId,
@@ -329,10 +310,8 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                     ]);
                   } else {
                     threadName = response.chat_thread_name;
-                   
-                    // CRITICAL FIX: Only update external API ID if this is first message
+
                     if (response.thread_id && isFirstMessageRef.current) {
-                      console.log('Received external API ID from response:', response.thread_id);
                       if (isPublicAgent) {
                         await updateThreadWithExternalApiId(id, response.thread_id, response.chat_thread_name);
                       }
@@ -348,7 +327,6 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                       currentThreadId
                     );
                    
-                    // Update URL if needed (only for first message)
                     if (belongsToCurrentThread && response.thread_id && isFirstMessageRef.current) {
                       // Update URL with the external thread ID? No - keep using local DB ID
                       // Just update localStorage

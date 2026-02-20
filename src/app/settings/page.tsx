@@ -89,6 +89,7 @@ export default function SettingsPage() {
 
       if (isAuthEnabled) {
         // Auth enabled: store only a flag, then go to login
+        //because user id is not available yet so we cannot store in DB for now
         localStorage.setItem('config_validated', 'true'); //it means cookie has now config , it will be removed when DB become source of truth
         localStorage.setItem('configSaved','true') //keep track that config is validated and saved , it will remain in local storage and not change with change in source of data
         updateConfig({ ...newConfig }, 'cookie');
@@ -96,7 +97,7 @@ export default function SettingsPage() {
         setIsRedirecting(true);
         router.push('/auth/login');
       } else {
-        // Auth disabled: we already have user data – store user cookie and go to chat
+        // Auth disabled: we already have user data – store user cookie and DB and go to chat
         const userData = validationResult.userData;
         const userInfo = userData?.data || userData;
         const userId = userInfo?.id;

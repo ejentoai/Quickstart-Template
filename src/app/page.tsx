@@ -101,18 +101,6 @@ export default function Home() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <p className="text-sm text-blue-800 font-medium mb-2">Required Environment Variables:</p>
-                <ul className="text-xs text-blue-700 space-y-1 list-disc list-inside">
-                  <li><code>NEXT_PUBLIC_AGENT=true</code> ✓ (already set)</li>
-                  <li><code>ENV_DRIVEN=true</code> (or auto-detect)</li>
-                  <li><code>EJENTO_BASE_URL=...</code></li>
-                  <li><code>EJENTO_API_KEY=...</code></li>
-                  <li><code>EJENTO_ACCESS_TOKEN=...</code></li>
-                  <li><code>EJENTO_AGENT_ID=...</code></li>
-                </ul>
-              </div> */}
-              
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                 <p className="text-sm text-yellow-800 font-medium mb-1">What to do:</p>
                 <ul className="text-xs text-yellow-700 space-y-1 list-disc list-inside">
