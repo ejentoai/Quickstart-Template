@@ -50,8 +50,12 @@ function isResponseForCurrentThread(
   if (activeThreadId === currentThreadId) return true;
  
   // Special case: local thread receiving its first server response
+  console.log(isLocalThread,'isLocalThread')
+  console.log(responseThreadId,'responseThreadId')
+  console.log(activeThreadId,'activeThreadId')
+  console.log(`activeThreadId || '0'`)
   if (isLocalThread && responseThreadId && parseInt(activeThreadId || '0') < 0) return true;
- 
+  
   return false;
 }
  
@@ -340,7 +344,7 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                    
                     const activeThreadId = localStorage.getItem('active_thread_id');
                     const responseThreadId = response.thread_id?.toString();
-                    const currentThreadId = id;
+                    const currentThreadId = id?.toString();
                     const isLocalThread = parseInt(id) < 0;
                    
                     const belongsToCurrentThread = isResponseForCurrentThread(
@@ -349,19 +353,32 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                       currentThreadId,
                       isLocalThread
                     );
-                   
-                    if (belongsToCurrentThread && response.thread_id && isFirstMessageRef.current) {
+                    console.log(belongsToCurrentThread,'1')
+                    console.log(response.thread_id,'2')
+                    if (belongsToCurrentThread && response.thread_id) {
+                      
                       // Update URL with the external thread ID? No - keep using local DB ID
                       // Just update localStorage
-                      localStorage.setItem('active_thread_id', id);
                       // Determine if we need to update the URL
                       const shouldUpdateUrl = isLocalThread ||
                                             thread_name_from_url === "New Thread" ||
                                             thread_name_from_url === "New Chat";
                      
+                      if(isPublicAgent){
+                        localStorage.setItem('active_thread_id', id);
+                      }
+                      else{
+                        localStorage.setItem('active_thread_id', response.thread_id.toString());
+                      }
+                      
                       // Update URL once if needed
                       if (shouldUpdateUrl) {
-                        handleSetQueryParams(response.thread_id.toString(), response.chat_thread_name);
+                        if(isPublicAgent){
+                          handleSetQueryParams(id.toString(), response.chat_thread_name);
+                        }
+                        else{
+                          handleSetQueryParams(response.thread_id.toString(), response.chat_thread_name);
+                        }
                       }
  
                     }
