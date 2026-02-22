@@ -206,7 +206,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
               console.error('Environment-driven config failed:', errorData.error || 'Server error');
             }
           }
-          return null;
+          throw new Error('env variable validation fails');
         }
   
         const data = await res.json();
@@ -217,21 +217,21 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
           const envConfig: UserConfig = data.config;
           const isValid = await validateEnvConfig(envConfig);
           if (!isValid) {
+            console.log('i come here')
             setConfig(null);
             setConfigSource('environment');
-            return null;
+            throw new Error('env variable validation fails');
           }
   
           return envConfig;
         }
   
         if (data.envDrivenEnabled === true && !data.config && data.error) {
-          console.error('Environment-driven config error:', data.error);
+          throw new Error('env variable validation fails');
         }
       } catch (err) {
-        console.warn('Failed to load env config, falling back to localStorage:', err);
+        showErrorAndRedirect('env variable validation fails')
       }
-      return null;
     };
   
     //fetch from cookie

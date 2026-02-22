@@ -38,7 +38,7 @@ export async function PATCH(
     const { content, metadata } = body;
 
     const updated = await prisma.message.update({
-      where: { id: numericId },
+      where: { agent_response_id : numericId },
       data: {
         content,
         metadata,

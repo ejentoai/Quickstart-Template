@@ -4,8 +4,7 @@ import { prisma } from '@/lib/prisma';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { threadId, role, content, metadata } = body;
-
+    const { threadId, role, content, metadata,agent_response_id } = body;
     if (!threadId || !role || !content) {
       return NextResponse.json(
         { error: 'Missing required fields' },
@@ -19,6 +18,7 @@ export async function POST(req: NextRequest) {
         role,
         content,
         metadata,
+        agent_response_id
       },
     });
 

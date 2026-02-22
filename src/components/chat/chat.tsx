@@ -251,7 +251,8 @@ export default function Chat({
   const searchParams = useSearchParams();
   const encryptedId = searchParams.get("id");
   const encryptedTitle = searchParams.get("title");
-  const id = decryptData(encryptedId);
+  let id = decryptData(encryptedId);
+  
   const title = decryptData(encryptedTitle);
   const thread_id = typeof window !== 'undefined' ? localStorage.getItem('thread_id') : null;
   const query = typeof window !== 'undefined' ? localStorage.getItem('query') : null;
@@ -297,8 +298,15 @@ export default function Chat({
    * - Handling error responses with retry functionality
    */
   const fetchChat = async () => {
+
     setIsLoadingChat(true);
     let userQuery: { role: string; content: string | null; }[] = []
+    if (!id) {
+      const userQuery = thread_id && query ? [{ role: "user", content: query }] : [];
+      setMessages(userQuery); // <-- initialize messages immediately
+      setIsLoadingChat(false);
+      return;
+    }
     try {
       if (id) {
         if (isPublicAgent) {
@@ -319,6 +327,7 @@ export default function Chat({
                 // Ensure the id field is set from metadata.id (agent_response_id)
                 // This is critical for matching messages when updating votes
                 id: msg.id,
+                agent_response_id : msg.agent_response_id,
                 // Ensure vote fields are always boolean, never undefined
                 is_upvote: metadata.is_upvote === true,
                 is_downvote: metadata.is_downvote === true,

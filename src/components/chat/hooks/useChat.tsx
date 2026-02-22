@@ -63,7 +63,8 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
     const encryptedId = searchParams.get("id");
     const thread_name_from_url_encrypted = searchParams.get("title");
  
-    const id = decryptData(encryptedId);
+    let id = decryptData(encryptedId);
+    
     const thread_name_from_url = decryptData(thread_name_from_url_encrypted);
     const [chatStarted, setChatStarted] = useState(false);
     const [streaming, setStreaming] = useState(false);
@@ -219,23 +220,33 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
         if (process.env.NEXT_PUBLIC_STREAM_CHAT === 'true') {
           const controller = new AbortController();
           const signal = controller.signal;
-          let chatThreadId: number | null = null;
-         
-          if (!isFirstMessageRef.current && hasExternalApiId) {
-            // Not first message and we have externalApiId - need to fetch it
-            try {
-              const response = await fetch(`/api/thread/${id}`);
-              if (response.ok) {
-                const threadData = await response.json();
-                chatThreadId = threadData.externalApiId;
-              }
-            } catch (error) {
-              console.error('Error fetching external API ID:', error);
-              chatThreadId = null; // Fallback to creating new thread
+          let chatThreadId = null;
+
+          if (!isPublicAgent) {
+            if(id < 0){
+              chatThreadId = null
             }
+            else{
+              chatThreadId = id ? parseInt(id as string) : null;
+            }
+            // NORMAL MODE: always use the existing URL/thread ID so messages go to the same thread
+            
           } else {
-            // First message - send null to create external thread
-            chatThreadId = null;
+            // PUBLIC AGENT MODE: keep the old behavior
+            if (!isFirstMessageRef.current && hasExternalApiId) {
+              try {
+                const response = await fetch(`/api/thread/${id}`);
+                if (response.ok) {
+                  const threadData = await response.json();
+                  chatThreadId = threadData.externalApiId;
+                }
+              } catch (error) {
+                console.error('Error fetching external API ID:', error);
+                chatThreadId = null; // Fallback
+              }
+            } else {
+              chatThreadId = null;
+            }
           }
  
           const requestBody: any = {
@@ -312,6 +323,7 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                     threadName = response.chat_thread_name;
 
                     if (response.thread_id && isFirstMessageRef.current) {
+                      
                       if (isPublicAgent) {
                         await updateThreadWithExternalApiId(id, response.thread_id, response.chat_thread_name);
                       }
@@ -341,7 +353,8 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                         role: "assistant",
                         content: response?.answer,
                         query: question || input,
-                        id: response?.agent_response_id,
+                        id: null,
+                        agent_response_id : response?.agent_response_id,
                         is_upvote: false,
                         is_downvote: false,
                         followUpQuestions: response?.followup_questions,
@@ -354,17 +367,17 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                       };
                      
                       setMessages((messages: any) => [...messages, assistantMessage]);
-                     
+                      
                       // Save assistant message to database
                       if (isPublicAgent && publicAgentSession) {
                         try {
-                          await publicAgentSession.saveMessage(
+                          const savedMessage = await publicAgentSession.saveMessage(
                             parseInt(id),
                             'assistant',
                             response?.answer,
                             {
                               query: question || input,
-                              id: response?.agent_response_id,
+                              agent_response_id : response?.agent_response_id,
                               followUpQuestions: response?.followup_questions,
                               references: response?.references,
                               reflectionEvents: savedReflectionEvents,
@@ -373,6 +386,13 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                               is_upvote: false,
                               is_downvote: false,
                             }
+                          );
+                          setMessages((prev : any) =>
+                            prev.map((msg: any) =>
+                              msg.external_id === response?.agent_response_id
+                                ? { ...msg, id: savedMessage.messageId }
+                                : msg
+                            )
                           );
                         } catch (err) {
                           console.error('Error saving assistant message to DB:', err);
@@ -462,21 +482,27 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
           );
         } else {
           // Non-streaming version (similar fixes applied)
-          let chatThreadId: number | null = null;
-         
-          if (!isFirstMessageRef.current && hasExternalApiId) {
-            try {
-              const response = await fetch(`/api/thread/${id}`);
-              if (response.ok) {
-                const threadData = await response.json();
-                chatThreadId = threadData.externalApiId;
+          let chatThreadId = null;
+
+          if (!isPublicAgent) {
+            // NORMAL MODE: always use the existing URL/thread ID so messages go to the same thread
+            chatThreadId = id ? parseInt(id as string) : null;
+          } else {
+            // PUBLIC AGENT MODE: keep the old behavior
+            if (!isFirstMessageRef.current && hasExternalApiId) {
+              try {
+                const response = await fetch(`/api/thread/${id}`);
+                if (response.ok) {
+                  const threadData = await response.json();
+                  chatThreadId = threadData.externalApiId;
+                }
+              } catch (error) {
+                console.error('Error fetching external API ID:', error);
+                chatThreadId = null; // Fallback
               }
-            } catch (error) {
-              console.error('Error fetching external API ID:', error);
+            } else {
               chatThreadId = null;
             }
-          } else {
-            chatThreadId = null;
           }
  
           const requestBody: any = {

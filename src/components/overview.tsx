@@ -11,7 +11,7 @@ export const Overview = (props: any) => {
   const { corpus, setSelectedCorpus, selectedCorpus, append, input, setInput, isLoading, messages, isTextFieldSelected, setIsTextFieldSelected, forceComplete, setForceComplete} = props;
   const searchParams = useSearchParams();
   const encryptedId = searchParams.get("id");
-  const id = decryptData(encryptedId);
+  let id = decryptData(encryptedId);
   return (
     <motion.div
       key="overview"

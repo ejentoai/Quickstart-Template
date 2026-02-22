@@ -83,7 +83,7 @@ export function AppSidebar() {
 
   const searchParams = useSearchParams();
   const id = searchParams.get('id');
-
+  
   const { width: windowWidth } = useWindowSize();
   const isMobile = windowWidth ? windowWidth < 768 : false;
 

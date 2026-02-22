@@ -197,31 +197,6 @@ export function PublicAgentSessionProvider({ children }: PublicAgentSessionProvi
     setActiveThreadIdState(threadId);
   }, []);
 
-  // const getThreadMessages = useCallback(
-  //   async (threadId: number): Promise<any[]> => {
-  //     if (!isPublicAgent) {
-  //       return [];
-  //     }
-  
-  //     try {
-  //       const res = await fetch(`/api/thread/${threadId}/message`);
-  
-  //       if (!res.ok) {
-  //         throw new Error('Failed to fetch thread messages');
-  //       }
-  
-  //       const messages = await res.json();
-  
-  //       return messages;
-  //     } catch (error) {
-  //       console.error('Error getting thread messages:', error);
-  //       return [];
-  //     }
-  //   },
-  //   [isPublicAgent]
-  // );
-  
-
   // Save message
   const saveMessage = useCallback(
     async (
@@ -262,8 +237,11 @@ export function PublicAgentSessionProvider({ children }: PublicAgentSessionProvi
         currentThreadId = thread.id;
   
         setThreads((prev) => [thread, ...prev]);
-      }
-  
+      }  
+
+      console.log(metadata,'meer')
+      console.log(metadata?.id,'id')
+    
       const messageRes = await fetch('/api/message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -271,9 +249,18 @@ export function PublicAgentSessionProvider({ children }: PublicAgentSessionProvi
           threadId: currentThreadId,
           role,
           content,
+          agent_response_id: metadata?.agent_response_id,
           metadata,
         }),
       });
+      
+      if (!messageRes.ok) {
+        throw new Error("Failed to save message");
+      }
+      
+      const savedMessage = await messageRes.json();
+      
+      return savedMessage;  
   
       if (!messageRes.ok) {
         throw new Error('Failed to create message');

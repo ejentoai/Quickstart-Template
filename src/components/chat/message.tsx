@@ -1,11 +1,11 @@
 "use client";
-
+ 
 /**
  * MESSAGE COMPONENT - Individual chat message display and interaction
- * 
+ *
  * This component handles the rendering and interaction of individual chat messages.
  * It supports both user and assistant messages with rich features including:
- * 
+ *
  * Key Features:
  * - Rich text rendering with markdown support
  * - Citation handling and reference linking
@@ -15,14 +15,14 @@
  * - Error handling and retry functionality
  * - Expandable content sections
  * - Feedback and action buttons
- * 
+ *
  * Architecture:
  * - Uses memo for performance optimization
  * - Implements custom typewriter hook for streaming
  * - Handles complex text parsing and sanitization
  * - Integrates with external citation and reference systems
  */
-
+ 
 import cx from "classnames";
 import { motion } from "motion/react";
 import { memo, useState, useEffect, useRef, useMemo, type Dispatch, type SetStateAction } from "react";
@@ -37,7 +37,7 @@ import Image from "next/image";
 import DOMPurify from 'dompurify';
 import { ChevronUp, ChevronDown, ChevronRight } from "lucide-react";
 import { getEjentoAccessToken } from "@/cookie";
-
+ 
 /**
  * Message Interface - Structure for chat messages
  */
@@ -55,13 +55,13 @@ interface Message {
   /** AI reasoning steps for thought process display */
   reflectionEvents?: string[];
 }
-
+ 
 /**
  * Custom hook for typewriter effect
- * 
+ *
  * Creates a typewriter animation effect for text display,
  * useful for streaming AI responses to create a more natural feel.
- * 
+ *
  * @param text - The text to animate
  * @param speed - Speed of typing in milliseconds per word
  * @returns Object with displayText and isFinished status
@@ -69,11 +69,11 @@ interface Message {
 const useTypewriter = (text: string, speed = 30) => {
   const [displayText, setDisplayText] = useState('');
   const [isFinished, setIsFinished] = useState(false);
-
+ 
   useEffect(() => {
     const words = text?.split(' '); // Split the text into words
     let index = 0;
-
+ 
     const typeWord = () => {
       if (index < words?.length) {
         setDisplayText((prevText) =>
@@ -87,19 +87,19 @@ const useTypewriter = (text: string, speed = 30) => {
         }
       }
     };
-
+ 
     setIsFinished(false); // Reset the finished state when text or speed changes
     typeWord(); // Start typing words
-
+ 
     return () => {
       setDisplayText(''); // Reset the display text when unmounting
       setIsFinished(false); // Reset the finished state
     };
   }, [text, speed]);
-
+ 
   return { displayText, isFinished };
 };
-
+ 
 /**
  * Preview Message Component Props Interface
  */
@@ -125,14 +125,14 @@ interface PreviewMessageProps {
   setIsCache: Dispatch<SetStateAction<boolean>>;
   showThoughtProcessTemp: boolean;
 }
-
+ 
 /**
  * Pure Preview Message Component
- * 
+ *
  * This is the main implementation for rendering individual chat messages.
  * It handles complex text processing, citation parsing, thought process display,
  * and various interactive features.
- * 
+ *
  * Key responsibilities:
  * - Text sanitization and citation processing
  * - Thought process expansion/collapse
@@ -140,7 +140,7 @@ interface PreviewMessageProps {
  * - Typewriter effect for streaming responses
  * - Integration with message actions and editing
  */
-
+ 
 const PurePreviewMessage = ({
   chatId,
   message,
@@ -169,22 +169,22 @@ const PurePreviewMessage = ({
   const [expandedEvents, setExpandedEvents] = useState<{[key: number]: boolean}>({}); // Track which thought events are expanded
   const eventRefs = useRef<{[key: number]: HTMLDivElement | null}>({}); // References for measuring content height
   const maxHeight = 100; // Threshold for showing expand/collapse buttons
-
+ 
   // Memoized assistant message object for markdown rendering
   const assistantMessage = useMemo(() => ({ role: "assistant" }), []);
-
+ 
   // Parse reflection events for thought process display
   const parsedEvents = useMemo(() => {
     return message.reflectionEvents?.map((event: string) => parseText(event, ``)) || [];
   }, [message.reflectionEvents,parseText]);
-
+ 
   /**
    * Cleans and processes citations in message text
-   * 
+   *
    * Converts citation markers like [1] into clickable links that point to
    * the appropriate reference URLs. Handles both external URLs and internal
    * citation systems.
-   * 
+   *
    * @param text - The text containing citation markers
    * @param message - Message object containing reference data
    * @returns Processed text with citation links
@@ -201,39 +201,39 @@ const PurePreviewMessage = ({
       } else {
         // if(process.env.NEXT_PUBLIC_SHOW_CITATION == 'true') {
         //   return `[${reference?.order}](${process.env.NEXT_PUBLIC_CITATION_URL}${encodeURI(url)}?access_token=${access_token})`;  // Replace with formatted reference  // Replace with formatted reference
-        // } 
+        // }
         // else {
           return ``;  // Replace with formatted reference  // Replace with formatted reference
         // }
       }
     });
   }
-
+ 
   /**
    * Parses and sanitizes message text content
-   * 
+   *
    * This function handles complex text processing including:
    * - HTML sanitization for security
    * - Table extraction and formatting
    * - Citation processing and link conversion
    * - Markdown link handling within tables
-   * 
+   *
    * @param text - Raw text content to process
    * @param path - Base path for citation URLs
    * @returns Processed and sanitized text ready for display
    */
   function parseText(text: string, path: any) {
     const sanitizedAnswerHtml = DOMPurify.sanitize(text);
-
+ 
     let replacedString = sanitizedAnswerHtml
-
+ 
     const regexTable = /@([\s\S]*?<table[\s\S]*?<\/table>[\s\S]*?)@/g;
-
+ 
     replacedString = replacedString?.replace(regexTable, (match, p1) => {
       // Trim any additional @ characters from the beginning and end of p1
       const tableRegex = /(<table[\s\S]*?<\/table>)/;
       const tableMatch = p1.match(tableRegex);
-
+ 
       if (tableMatch && tableMatch[1]) {
         // Convert markdown links to HTML anchors inside table cells
         let tableContent = tableMatch[1]?.replace(/<td[^>]*>([\s\S]*?)<\/td>/g, (match: any, cellContent: any) => {
@@ -244,40 +244,40 @@ const PurePreviewMessage = ({
           });
           return `${withLinks}`;
         });
-
+ 
         return `<div id="identifyTable">${tableContent}</div>`;
       }
-      
+     
       return match;
     });
-
+ 
     let processedString = cleanCitations(replacedString, message);
     return processedString;
   }
-
+ 
   const updatedMsg = parseText(
     message.content as string,
     `${''}`
   );
-
+ 
   const handleRegenerateclick = () => {
     append(message, true)
   }
-
+ 
   const {displayText, isFinished} = useTypewriter(updatedMsg, 20);
-
+ 
   useEffect(() => {
     setIsFinished(isFinished);
   }, [isFinished])
-
+ 
   const toggleThoughtProcess = () => {
     setShowThoughtProcess(!showThoughtProcess);
   };
-
+ 
   const toggleEventExpansion = (index: number) => {
     setExpandedEvents(prev => ({...prev, [index]: !prev[index]}));
   };
-
+ 
   // Re-check heights when thought process is shown
   useEffect(() => {
     if (showThoughtProcess) {
@@ -292,20 +292,20 @@ const PurePreviewMessage = ({
       }, 0);
     }
   }, [showThoughtProcess]);
-
+ 
   const getMaxHeight = (index: number): string => {
     const element = eventRefs.current[index];
     if (!element) return 'none';
     return !expandedEvents[index] && element.scrollHeight > 100
-      ? '100px' 
+      ? '100px'
       : `${element.scrollHeight}px`;
   };
-
+ 
   const shouldShowToggle = (index: number): boolean => {
     const element = eventRefs.current[index];
     return element ? element.scrollHeight > 100 : false;
   };
-
+ 
   return (
     <motion.div
       className="w-full mx-auto max-w-3xl px-4 group/message"
@@ -333,17 +333,17 @@ const PurePreviewMessage = ({
             />
           </div>
         )}
-
+ 
         <div className="flex flex-col gap-2 w-full mt-1">
           {message.role === "assistant" && message.reflectionEvents?.length > 1 && (
             <div className="w-full max-w-xl">
               <div className="flex">
-                <button 
+                <button
                   className={`inline-flex items-center gap-2 px-4 py-2 cursor-pointer ${showThoughtProcess ? 'rounded-t-md' : 'rounded-md'}`}
                   onClick={toggleThoughtProcess}
                 >
                   <div className="flex items-center gap-1.5">
-                    <span 
+                    <span
                       className={cn(
                         "text-sm text-[#666] font-medium transition-all duration-300",
                         !showThoughtProcess && "overflow-hidden",
@@ -364,7 +364,7 @@ const PurePreviewMessage = ({
                   </div>
                 </button>
               </div>
-              
+             
               {showThoughtProcess && (
                 <div className="px-5 py-4 rounded-b-md w-full bg-transparent">
                   <div className="relative pb-0">
@@ -374,7 +374,7 @@ const PurePreviewMessage = ({
                         <div className="absolute left-0 top-[6px] size-[6px] bg-gray-400 rounded-full"></div>
                         {/* Show connecting line for all items including the last one */}
                         <div className="absolute left-[2.5px] top-[20px] w-0 border-l border-gray-200 h-full"></div>
-                        <div 
+                        <div
                           ref={(el: HTMLDivElement | null) => {
                             eventRefs.current[index] = el;
                           }}
@@ -385,7 +385,7 @@ const PurePreviewMessage = ({
                         >
                           <Markdown message={assistantMessage}>{parsedEvents[index]}</Markdown>
                         </div>
-                        
+                       
                         {shouldShowToggle(index) && (
                           <div className="mt-2">
                             <button
@@ -412,7 +412,7 @@ const PurePreviewMessage = ({
               )}
             </div>
           )}
-
+ 
           {message.content && mode === "view" && (
             <div className="flex flex-row gap-2 items-start">
               {
@@ -435,7 +435,7 @@ const PurePreviewMessage = ({
                       </div>
                       :
                       <div className="answer-chat">
-                        {(message.role !== 'user' && showRetry && message.currentChat) ? 
+                        {(message.role !== 'user' && showRetry && message.currentChat) ?
                         (<Markdown message={message}>{isCache ? displayText as string : updatedMsg as string}</Markdown>)
                         :
                         <Markdown message={message}>{updatedMsg as string}</Markdown>
@@ -446,7 +446,7 @@ const PurePreviewMessage = ({
               }
             </div>
           )}
-
+ 
           {message.content && mode === "edit" && (
             <div className="flex flex-row gap-2 items-start">
               <div className="size-8" />
@@ -459,7 +459,7 @@ const PurePreviewMessage = ({
               />
             </div>
           )}
-
+ 
         {!isReadonly && <MessageActions
               messages={messages}
               key={`action-${message.id}`}
@@ -479,7 +479,7 @@ const PurePreviewMessage = ({
     </motion.div>
   );
 };
-
+ 
 export const PreviewMessage = memo(
   PurePreviewMessage,
   (prevProps, nextProps) => {
@@ -493,18 +493,18 @@ export const PreviewMessage = memo(
     return true;
   }
 );
-
+ 
 export const ThinkingMessage = ({streamEvents, reflectionEvents, isReflecting, thoughtProcess, showThoughtProcess, toggleThoughtProcess}: {streamEvents: any, reflectionEvents: any, isReflecting: any, thoughtProcess: any, showThoughtProcess: any, toggleThoughtProcess: any}) => {
   const role = "assistant";
   const [expandedEvents, setExpandedEvents] = useState<{[key: number]: boolean}>({});
   const eventRefs = useRef<{[key: number]: HTMLDivElement | null}>({});
   const maxHeight = 100; // Lower threshold to make show more/less more sensitive
   const ISSTREAMINGON = process.env.NEXT_PUBLIC_STREAM_CHAT == 'true';
-
+ 
   const toggleEventExpansion = (index: number) => {
     setExpandedEvents(prev => ({...prev, [index]: !prev[index]}));
   };
-
+ 
   // Calculate all events to display - combine reflection events and current thought process
   const allEvents = useMemo(() => {
     const events = [...(reflectionEvents?.current || [])];
@@ -513,7 +513,7 @@ export const ThinkingMessage = ({streamEvents, reflectionEvents, isReflecting, t
     }
     return events;
   }, [reflectionEvents?.current, isReflecting?.current, thoughtProcess?.current,isReflecting,thoughtProcess,reflectionEvents]);
-
+ 
   // Re-check heights when thought process is shown
   useEffect(() => {
     if (showThoughtProcess) {
@@ -528,27 +528,27 @@ export const ThinkingMessage = ({streamEvents, reflectionEvents, isReflecting, t
       }, 0);
     }
   }, [showThoughtProcess, allEvents]);
-
+ 
   const getMaxHeight = (index: number): string => {
     const element = eventRefs.current[index];
     if (!element) return 'none';
     return !expandedEvents[index] && element.scrollHeight > maxHeight
-      ? '100px' 
+      ? '100px'
       : `${element.scrollHeight}px`;
   };
-
+ 
   const shouldShowToggle = (index: number): boolean => {
     const element = eventRefs.current[index];
     return element ? element.scrollHeight > maxHeight : false;
   };
-
+ 
   const getLatestEvent = () => {
     if (isReflecting?.current && thoughtProcess?.current) {
       return thoughtProcess.current;
     }
     return reflectionEvents?.current?.[reflectionEvents.current.length - 1] || streamEvents;
   };
-
+ 
   if (!ISSTREAMINGON) {
     return (
       <motion.div
@@ -566,9 +566,9 @@ export const ThinkingMessage = ({streamEvents, reflectionEvents, isReflecting, t
             width={50}
           />
         </div>
-
+ 
         <div className="flex flex-col gap-2 w-[90%] mt-1">
-        <span 
+        <span
           className={cn(
             "text-sm text-gray-700 transition-all duration-300",
             )}
@@ -580,7 +580,7 @@ export const ThinkingMessage = ({streamEvents, reflectionEvents, isReflecting, t
     </motion.div>
     );
   }
-
+ 
   return (
     <motion.div
       className="w-full mx-auto max-w-3xl px-4 group/message"
@@ -597,16 +597,16 @@ export const ThinkingMessage = ({streamEvents, reflectionEvents, isReflecting, t
             width={50}
           />
         </div>
-
+ 
         <div className="flex flex-col gap-2 w-[90%] mt-1">
           <div className="w-full max-w-xl">
-            <button 
+            <button
               className={`w-full text-left bg-gray-50 hover:bg-gray-100 transition-colors rounded-lg ${showThoughtProcess ? 'rounded-b-none' : ''}`}
               onClick={toggleThoughtProcess}
             >
               <div className="px-4 py-3 flex items-center justify-between">
                 <div className="flex flex-col gap-1 w-full">
-                  <span 
+                  <span
                     className={cn(
                       "text-sm text-gray-700 transition-all duration-300",
                       !showThoughtProcess && "overflow-hidden",
@@ -627,16 +627,16 @@ export const ThinkingMessage = ({streamEvents, reflectionEvents, isReflecting, t
                 )}
               </div>
             </button>
-            
+           
             {showThoughtProcess && (
               <div className="bg-gray-50 px-4 py-2 rounded-b-lg border-t border-gray-100">
                 <div>
                   {allEvents?.map((event, index) => (
                     <div key={index} className="mb-6 text-xs text-[#4b5563] font-normal relative pl-6">
-                      <motion.div 
+                      <motion.div
                         className={`absolute left-0 top-[6px] size-[6px] rounded-full ${
-                          index === allEvents?.length - 1 
-                            ? 'bg-primary' 
+                          index === allEvents?.length - 1
+                            ? 'bg-primary'
                             : 'bg-gray-400'
                         }`}
                         animate={index === allEvents?.length - 1 ? {
@@ -657,7 +657,7 @@ export const ThinkingMessage = ({streamEvents, reflectionEvents, isReflecting, t
                       {index < allEvents?.length - 1 && (
                         <div className="absolute left-[2.5px] top-[20px] w-0 border-l border-gray-200 h-full"></div>
                       )}
-                      <motion.div 
+                      <motion.div
                         ref={(el: HTMLDivElement | null) => {
                           eventRefs.current[index] = el;
                         }}
@@ -682,7 +682,7 @@ export const ThinkingMessage = ({streamEvents, reflectionEvents, isReflecting, t
                       >
                         {event}
                       </motion.div>
-                      
+                     
                       {shouldShowToggle(index) && (
                         <div className="mt-2">
                           <button
@@ -707,3 +707,5 @@ export const ThinkingMessage = ({streamEvents, reflectionEvents, isReflecting, t
     </motion.div>
   );
 };
+ 
+ 

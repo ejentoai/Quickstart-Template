@@ -66,6 +66,7 @@ model Message {
   role Role 
   content String 
   createdAt DateTime @default(now()) 
+  agent_response_id Int? @unique
   metadata Json? 
   
   thread Thread @relation(fields: [threadId], references: [id],  onDelete: Cascade) 

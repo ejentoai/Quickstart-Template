@@ -152,7 +152,7 @@ export async function POST(request: Request) {
     let userData = null;
     try {
       const userUrl = `${baseUrl}/api/v2/users/me`;
-      const userResponse = await axios.get(userUrl, { headers, timeout: 10000 });
+      const userResponse = await axios.get(userUrl, { headers });
       userData = userResponse.data;
       
       if (!userData || typeof userData === 'number') {
