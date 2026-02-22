@@ -332,11 +332,13 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                     const activeThreadId = localStorage.getItem('active_thread_id');
                     const responseThreadId = response.thread_id?.toString();
                     const currentThreadId = id;
+                    const isLocalThread = parseInt(id) < 0;
                    
                     const belongsToCurrentThread = isResponseForCurrentThread(
                       activeThreadId,
                       responseThreadId,
-                      currentThreadId
+                      currentThreadId,
+                      isLocalThread
                     );
                    
                     if (belongsToCurrentThread && response.thread_id && isFirstMessageRef.current) {
