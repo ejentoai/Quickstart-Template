@@ -9,6 +9,7 @@ import { useConfig } from "@/app/context/ConfigContext";
 import { toast } from 'sonner';
 import { isPublicAgentMode } from "@/lib/storage/indexeddb";
 import { usePublicAgentSession } from "@/hooks/usePublicAgentSession";
+import { handleSetQueryParams } from "@/lib/utils";
 
 export function formatChatData(chatArray: any[]) {
     if (!Array.isArray(chatArray) || chatArray.length === 0) {
@@ -36,16 +37,24 @@ export function formatChatData(chatArray: any[]) {
  
     return result;
 }
-
 function isResponseForCurrentThread(
   activeThreadId: string | null,
   responseThreadId: string | undefined,
-  currentThreadId: string | undefined
+  currentThreadId: string | undefined,
+  isLocalThread: boolean = false
 ): boolean {
+  // Direct match with response thread ID
   if (activeThreadId === responseThreadId) return true;
+ 
+  // Match with current thread ID (for local threads before server response)
   if (activeThreadId === currentThreadId) return true;
+ 
+  // Special case: local thread receiving its first server response
+  if (isLocalThread && responseThreadId && parseInt(activeThreadId || '0') < 0) return true;
+ 
   return false;
 }
+ 
 
 export function useChat(arg0: { selectedCorpus: any | null }) {
     const apiService = useApiService();
@@ -345,7 +354,45 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                       // Update URL with the external thread ID? No - keep using local DB ID
                       // Just update localStorage
                       localStorage.setItem('active_thread_id', id);
+                      // Determine if we need to update the URL
+                      const shouldUpdateUrl = isLocalThread ||
+                                            thread_name_from_url === "New Thread" ||
+                                            thread_name_from_url === "New Chat";
+                     
+                      // Update URL once if needed
+                      if (shouldUpdateUrl) {
+                        handleSetQueryParams(response.thread_id.toString(), response.chat_thread_name);
+                      }
+ 
                     }
+                    
+                    if (isLocalThread) {
+                      // Mark that we're transitioning to prevent fetchChat from running
+                      if ((window as any).setTransitioningState) {
+                        (window as any).setTransitioningState(true);
+                      }
+                     
+                      // Update the sidebar thread list with the real server ID
+                      if ((window as any).updateLocalThreadWithServerId) {
+                        (window as any).updateLocalThreadWithServerId(
+                          parseInt(id),
+                          response.thread_id,
+                          response.chat_thread_name
+                        );
+                      }
+                     
+                      // Clear any temporary thread data
+                      localStorage.removeItem('thread_id');
+                      localStorage.removeItem('query');
+                     
+                      // Clear transition state after a brief delay to allow URL update to complete
+                      setTimeout(() => {
+                        if ((window as any).setTransitioningState) {
+                          (window as any).setTransitioningState(false);
+                        }
+                      }, 100);
+                    }
+
                    
                     if (belongsToCurrentThread) {
                       const savedReflectionEvents = [...reflectionEventsRef.current];
