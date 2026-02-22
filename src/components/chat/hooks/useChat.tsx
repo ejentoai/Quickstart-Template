@@ -393,8 +393,9 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                       }, 100);
                     }
 
-                   
+                    console.log(belongsToCurrentThread,'belongsToCurrentThread')
                     if (belongsToCurrentThread) {
+                      
                       const savedReflectionEvents = [...reflectionEventsRef.current];
                       const savedReflectionContents = [...reflectionContentsRef.current];
                      
