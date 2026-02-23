@@ -186,7 +186,7 @@ export function MessageActions({
         if (!res.ok) {
           toast.error('Unable to upvote', { id: toastId });
           console.error('[DEBUG] Upvote failed (Public Agent):', res.statusText);
-          return;
+          return;a
         }
  
         toast.success('Upvoted Response!', { id: toastId });

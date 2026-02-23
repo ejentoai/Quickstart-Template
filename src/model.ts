@@ -18,6 +18,12 @@ export interface ChatThreadResponse {
   chat_id: null | number;
 }
 
+export interface createChatThreadResponse {
+  success: boolean;
+  message: string;
+  data: ChatThreadResponse;
+}
+
 export interface AllChatsResponseV2 {
   message: string;
   success: boolean;

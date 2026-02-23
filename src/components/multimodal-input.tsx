@@ -21,6 +21,10 @@ import { Textarea } from './ui/textarea';
 import 'regenerator-runtime/runtime';
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
+import { useApiService } from '@/hooks/useApiService';
+import { useConfig } from '@/app/context/ConfigContext';
+import { ConfigError } from './configError';
+import { handleSetQueryParams } from '@/lib/utils';
  
 function PureMultimodalInput({
   chatId,
@@ -54,6 +58,8 @@ function PureMultimodalInput({
   const { width } = useWindowSize();
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const { transcript, resetTranscript } = useSpeechRecognition();
+  const { isLoading: configLoading, validationError, config } = useConfig();
+  const apiService = useApiService();
  
   useEffect(() => {
     if (textareaRef.current) {
@@ -99,6 +105,11 @@ function PureMultimodalInput({
   useEffect(() => {
     setLocalStorageInput(input);
   }, [input, setLocalStorageInput]);
+
+  if (!apiService && !configLoading) {
+    //although config is validated before login but for safe side we are checking it here 
+    return <ConfigError validationError={validationError}/>;
+  }
  
   const handleInput = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     setForceComplete(false);
@@ -144,6 +155,85 @@ function PureMultimodalInput({
     setForceComplete,
     selectedFiles.length
   ]);
+
+  const createThread = async () => {
+
+    const active_thread_id = localStorage.getItem('active_thread_id')
+    const parseId = active_thread_id ? parseInt(active_thread_id) : null
+    console.log(parseId,'parseId')
+    if(!parseId || parseId < 0){
+      console.log('hete i ')
+        //so create thread first
+        //update the url and localStorage after document get selected
+          if(!config?.agentId){
+            throw new Error('Agent id missing')
+          }
+          const response = await apiService?.createChatThread(Number(config?.agentId))
+          console.log(response,'response hai')
+          if(response?.data.id){
+            console.log(response?.data.id,'response?.data.id')
+            localStorage.setItem('active_thread_id',response?.data?.id)
+            console.log('fdsa')
+            handleSetQueryParams(response?.data?.id.toString(), response?.data.title);
+            return response?.data?.id
+          }
+          else{
+            console.log('ejvdawj')
+            throw new Error('Failed to create thread')
+          }
+    }
+    else{
+      console.log('hete i esf')
+      return active_thread_id
+    }
+  }
+  
+  const createCorpus = async () => {
+    
+    const corpus_id = localStorage.getItem('corpus_id')
+    console.log(corpus_id,'cporpnjd')
+    if(!corpus_id){
+      try{
+        const response = await apiService?.createCorpus()
+        localStorage.setItem('corpus_id',response.data.id)
+        return response.data.id
+      }
+      catch(error){
+        console.error('failed to create corpus')
+        throw new Error('Failed to create corpus')
+      }
+    }
+    else{
+      return corpus_id
+    }
+  }
+
+  const handleFileSubmission = async () => {
+      console.log('file submited')
+      
+      //create thread if not exist
+      const thread_id = await createThread();
+      if (!thread_id) throw new Error("Failed to create thread");
+    
+      // create corpus if it does not exist
+      const corpus_id = await createCorpus();
+      if (!corpus_id) throw new Error("Failed to create corpus");
+
+      //create corpus and thread connection
+      const corpus_correction = localStorage.getItem('corpus_connection')
+      if(!corpus_correction){
+        const response = await apiService?.createCorpusThreadConnection(thread_id?.toString(),corpus_id?.toString())
+        localStorage.setItem('corpus_connection',response.data.id)
+        console.log(response,'response for corpus creation')
+      }
+
+      //upload document in corpus 
+      const response = await apiService?.uploadDocumentToCorpus(corpus_id,selectedFiles)
+      
+      
+
+          
+  }
  
   return (
     <div className="w-full flex flex-col items-center">
@@ -189,9 +279,18 @@ function PureMultimodalInput({
                 variant="ghost"
                 size="icon"
                 className="rounded-full h-10 w-10 hover:bg-slate-50 shrink-0"
-                onClick={(event) => {
+                onClick={async (event) => {
                   event.preventDefault();
-                  fileInputRef.current?.click();
+                  try{
+                    
+                    await handleFileSubmission();
+                    
+                  }
+                  catch(error){
+                    console.error('something went wrong when uploading file',error)
+                    toast.error('something went wrong when uploading file')
+                  }
+                 
                 }}
                 type="button"
               >
@@ -203,6 +302,7 @@ function PureMultimodalInput({
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
+ 
  
         <Textarea
           ref={textareaRef}

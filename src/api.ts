@@ -9,7 +9,8 @@ import {
   ChatThreadResponse, 
   chatThreadResponseV2, 
   AllChatsResponseV2, 
-  ChatThreadAgentResponsesV2
+  ChatThreadAgentResponsesV2,
+  createChatThreadResponse
 } from './model';
 
 /**
@@ -275,10 +276,10 @@ export class ApiService {
     }
   }
 
-  async createChatThread(agentId: number, created_by: string): Promise<ChatThreadResponse[]> {
+  async createChatThread(agentId: number, created_by?: string): Promise<createChatThreadResponse[]> {
 
-    if (!agentId || !created_by) {
-      throw new Error("All parameters (agentId, created_by) are required.");
+    if (!agentId) {
+      throw new Error("agentId is required.");
     }
 
     try {
@@ -291,7 +292,7 @@ export class ApiService {
         `api/v2/agents/${agentId}/chat-threads`,
         this.config.baseUrl
       );
-      const response = await axios.post<ChatThreadResponse[]>(url, body, {
+      const response = await axios.post<createChatThreadResponse[]>(url, body, {
         headers: this.getHeaders(),
       });
 
@@ -304,10 +305,118 @@ export class ApiService {
     }
   }
 
+  async createCorpusThreadConnection(threadId: string, corpus_id: string){
+
+    if (!threadId && !corpus_id) {
+      throw new Error("missing required parameters");
+    }
+
+    try {
+      const url = getProxiedUrl(
+        `/api/v2/chat-threads/${threadId}/corpora/${corpus_id}`,
+        this.config.baseUrl
+      );
+      const response = await axios.post(url,{
+        headers: this.getHeaders(),
+      });
+
+      return response.data;
+    } catch (error: any) {
+      if (axios.isAxiosError(error) && error.response) {
+        throw new Error(error.response.data?.message || "Failed to create chat thread.");
+      }
+      throw new Error("An unexpected error occurred while creating the chat thread.");
+    }
+  }
+
+  async createCorpus(){
+    const body = {
+      name: "Research Articles Corpus",
+      description: "A corpus of academic and scientific research articles for AI training.",
+      indexing_mode_id: 3,
+      corpus_type : 'structured',
+    }
+    try {
+      const url = getProxiedUrl(
+        `/api/v2/corpora`,
+        this.config.baseUrl
+      );
+      const response = await axios.post(url,body,{
+        headers: this.getHeaders(),
+
+      });
+      console.log(response,'response from corpus')
+      return response.data;
+    } catch (error: any) {
+      if (error.response) {
+        throw new Error(error.response.data.message || "Failed to get chat threads.");
+      }
+      throw new Error("An unexpected error occurred.");
+    }
+  }
+
+  async uploadDocumentToCorpus(corpusId: string, file: File) {
+    if (!corpusId || !file) {
+      throw new Error("Corpus ID and file are required");
+    }
+
+    const userId = 722 //change it and make dyna,ic
+  
+    try {
+      const formData = new FormData();   
+      formData.append("content_type", "file");
+      formData.append("source", file);
+      formData.append("upload_from", "web");
+      formData.append("user_id", String(userId));
+       // field name must match backend expectation
+  
+      const url = getProxiedUrl(
+        `/api/v2/corpora/${corpusId}/documents`,
+        this.config.baseUrl
+      );
+  
+      const response = await axios.post(url, formData, {
+        headers: {
+          ...this.getHeaders(),
+          "Content-Type": "multipart/form-data",
+        },
+      });
+  
+      return response.data;
+    } catch (error: any) {
+      if (axios.isAxiosError(error) && error.response) {
+        throw new Error(
+          error.response.data?.message || "Failed to upload document."
+        );
+      }
+      throw new Error("An unexpected error occurred while uploading document.");
+    }
+  }
+
+  async getDocumentStatus(documentId: number): Promise<any> {
+    try {
+      const url = getProxiedUrl(
+        `api/v2/documents/${documentId}`,
+        this.config.baseUrl
+      );
+      const response = await axios.get(url, {
+        headers: this.getHeaders(),
+      });
+      return response.data;
+    } catch (error: any) {
+      if (axios.isAxiosError(error) && error.response) {
+        throw new Error(
+          error.response.data?.message || "Failed to get document status."
+        );
+      }
+      throw new Error("An unexpected error occurred while getting document status.");
+    }
+  }
+
+
   async getChatThreads(): Promise<AllChatsResponseV2> {
 
     try {
-      console.log('this api is suing3')
       const url = getProxiedUrl(
         `api/v2/agents/${this.config.agentId}/chat-threads?query_source=app-ejento`,
         this.config.baseUrl
