@@ -337,8 +337,6 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                       currentThreadId,
                       isLocalThread
                     );
-                    console.log(belongsToCurrentThread,'1')
-                    console.log(response.thread_id,'2')
                     if (belongsToCurrentThread && response.thread_id) {
                       
                       // Update URL with the external thread ID? No - keep using local DB ID
@@ -673,22 +671,31 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
  
     const append = (message: any, regenerating?: boolean) => {
       if (regenerating && messages.length > 0) {
-        const assistantMessageIndex = messages.findIndex((m: any) =>
-          m.role === 'assistant' && m.id === message.id
+        // Find the assistant message to regenerate
+        const assistantMessageIndex = messages.findIndex((m: any) => 
+          m.role === 'assistant' && 
+          // For public agent, check both id and agent_response_id
+          (m.id === message.id || m.agent_response_id === message.id)
         );
- 
+    
         if (assistantMessageIndex !== -1) {
           const userMessageIndex = assistantMessageIndex - 1;
           if (userMessageIndex >= 0 && messages[userMessageIndex].role === 'user') {
             const userQuery = messages[userMessageIndex].content;
             const updatedMessages = [...messages];
+            
+            // Remove only the assistant message (same as normal mode)
             updatedMessages.splice(assistantMessageIndex, 1);
             setMessages(updatedMessages);
+            
+            // Call handleSubmit with the user query
             handleSubmit(userQuery, true, message.id);
+            return;
           }
-        } else {
-          handleSubmit(message?.query || message?.content, false);
         }
+        
+        // Fallback
+        handleSubmit(message?.query || message?.content, false);
       } else {
         handleSubmit(message?.query || message?.content, false);
       }

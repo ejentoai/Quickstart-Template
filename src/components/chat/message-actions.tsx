@@ -492,22 +492,7 @@ export function MessageActions({
                 </TooltipTrigger>
                 <TooltipContent>Downvote Response</TooltipContent>
               </Tooltip>
-              {
-                showRetry &&
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      className="py-1 px-2 h-fit text-muted-foreground !pointer-events-auto"
-                      variant="outline"
-                      onClick={() => handleRegenerateclick()}
-                    >
-                      <IconArrowRound></IconArrowRound>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Regenerate Response</TooltipContent>
-                </Tooltip>
-              }
- 
+              
               <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
                 <AlertDialogContent>
                   <AlertDialogHeader>
