@@ -254,7 +254,6 @@ export function AppSidebar() {
     if (initializationInProgressRef.current) {
       return;
     }
-
     try {
       initializationInProgressRef.current = true;
 

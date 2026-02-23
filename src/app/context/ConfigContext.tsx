@@ -196,7 +196,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     };
     
     //fetch from env variables
-    const fetchEnvConfig = async (): Promise<UserConfig | null> => {
+    const fetchEnvConfig = async (): Promise<UserConfig | null | undefined> => {
       try {
         const res = await fetch('/api/config', { signal: controller.signal });
         if (!res.ok) {

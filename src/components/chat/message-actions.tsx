@@ -375,7 +375,7 @@ export function MessageActions({
  
       else {
         const body = {
-          chat_id: id,
+          chat_id: messageId,
           comment: review,
           created_by: user?.email,
         };

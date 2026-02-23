@@ -10,7 +10,10 @@ export async function GET(req: Request) {
     if (AUTH_ENABLED && !userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const finalUserId = userId || "NO_AUTH_USER";
+    if (!userId) {
+      return NextResponse.json(null);
+    }
+    const finalUserId = userId;
     const config = await prisma.ejentoConfig.findUnique({
       where: { userId: finalUserId },
     });
@@ -31,6 +34,9 @@ export async function POST(req: Request) {
     if (AUTH_ENABLED && !userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    if (!userId) {
+      return NextResponse.json(null);
+    }
 
     const body = await req.json();
     const { baseUrl, apiKey, ejentoAccessToken, agentId } = body;
@@ -42,7 +48,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const finalUserId = userId || "NO_AUTH_USER";
+    const finalUserId = userId;
     const config = await prisma.ejentoConfig.upsert({
       where: { userId: finalUserId },
       update: {
@@ -79,8 +85,11 @@ export async function DELETE(req: Request) {
     if (AUTH_ENABLED && !userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    if (!userId) {
+      return NextResponse.json(null);
+    }
 
-    const finalUserId = userId || "NO_AUTH_USER";
+    const finalUserId = userId;
 
     await prisma.ejentoConfig.delete({
       where: { userId: finalUserId },
