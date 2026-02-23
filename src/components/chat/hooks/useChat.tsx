@@ -1,15 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { decryptData } from "@/lib/utils";
-import {getUserFromCookie } from "@/cookie";
+import { decryptData,handleSetQueryParams } from "@/lib/utils";
 import { useApiService } from "@/hooks/useApiService";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams} from "next/navigation";
 import { useConfig } from "@/app/context/ConfigContext";
 import { toast } from 'sonner';
 import { isPublicAgentMode } from "@/lib/storage/indexeddb";
 import { usePublicAgentSession } from "@/hooks/usePublicAgentSession";
-import { handleSetQueryParams } from "@/lib/utils";
 
 export function formatChatData(chatArray: any[]) {
     if (!Array.isArray(chatArray) || chatArray.length === 0) {
@@ -37,6 +35,7 @@ export function formatChatData(chatArray: any[]) {
  
     return result;
 }
+
 function isResponseForCurrentThread(
   activeThreadId: string | null,
   responseThreadId: string | undefined,
@@ -50,21 +49,15 @@ function isResponseForCurrentThread(
   if (activeThreadId === currentThreadId) return true;
  
   // Special case: local thread receiving its first server response
-  console.log(isLocalThread,'isLocalThread')
-  console.log(responseThreadId,'responseThreadId')
-  console.log(activeThreadId,'activeThreadId')
-  console.log(`activeThreadId || '0'`)
   if (isLocalThread && responseThreadId && parseInt(activeThreadId || '0') < 0) return true;
   
   return false;
 }
  
-
 export function useChat(arg0: { selectedCorpus: any | null }) {
     const apiService = useApiService();
     const { selectedCorpus } = arg0;
     const [messages, setMessages] = useState<any>([]);
-    const { config } = useConfig();
     const isPublicAgent = isPublicAgentMode();
     const publicAgentSession = usePublicAgentSession();
     const [input, setInput] = useState<any>("");
@@ -196,8 +189,8 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
      
       try {
         setIsLoading(true);
- 
         let chatHistory;
+
         if (regenerating && messageIdToRegenerate) {
           const filteredMessages = messages.filter((m: any) =>
             !(m.role === 'assistant' && m.id === messageIdToRegenerate)
@@ -211,7 +204,7 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
           const userMessage = { role: "user", content: question || input };
           setMessages((messages: any) => [...messages, userMessage]);
          
-          // Save user message to database
+          // Save user message to data base when public agent mode is on
           if (isPublicAgent && publicAgentSession) {
             try {
               const threadIdNum = parseInt(id);
@@ -235,29 +228,20 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
           const signal = controller.signal;
           let chatThreadId = null;
 
+          //initializing correct thread_id
           if (!isPublicAgent) {
-            if(id < 0){
-              chatThreadId = null
-            }
-            else{
-              chatThreadId = id ? parseInt(id as string) : null;
-            }
-            // NORMAL MODE: always use the existing URL/thread ID so messages go to the same thread
-            
-          } else {
-            // PUBLIC AGENT MODE: keep the old behavior
-            if (!isFirstMessageRef.current && hasExternalApiId) {
-              try {
-                const response = await fetch(`/api/thread/${id}`);
-                if (response.ok) {
-                  const threadData = await response.json();
-                  chatThreadId = threadData.externalApiId;
-                }
-              } catch (error) {
-                console.error('Error fetching external API ID:', error);
-                chatThreadId = null; // Fallback
+            const parseId = id ? Number(id) : NaN
+            chatThreadId = !isNaN(parseId) && parseId >= 0 ? parseId : null
+           
+          } else if (!isFirstMessageRef.current && hasExternalApiId) {
+            try {
+              const response = await fetch(`/api/thread/${id}`);
+              if (response.ok) {
+                const threadData = await response.json();
+                chatThreadId = threadData.externalApiId ?? null;
               }
-            } else {
+            } catch (error) {
+              console.error('Error fetching external API ID:', error);
               chatThreadId = null;
             }
           }
@@ -548,27 +532,22 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
             },
           );
         } else {
-          // Non-streaming version (similar fixes applied)
           let chatThreadId = null;
 
           if (!isPublicAgent) {
             // NORMAL MODE: always use the existing URL/thread ID so messages go to the same thread
             chatThreadId = id ? parseInt(id as string) : null;
-          } else {
-            // PUBLIC AGENT MODE: keep the old behavior
-            if (!isFirstMessageRef.current && hasExternalApiId) {
-              try {
-                const response = await fetch(`/api/thread/${id}`);
-                if (response.ok) {
-                  const threadData = await response.json();
-                  chatThreadId = threadData.externalApiId;
-                }
-              } catch (error) {
-                console.error('Error fetching external API ID:', error);
-                chatThreadId = null; // Fallback
+          } else if (!isFirstMessageRef.current && hasExternalApiId) {
+            // PUBLIC AGENT MODE: fetch external API ID
+            try {
+              const response = await fetch(`/api/thread/${id}`);
+              if (response.ok) {
+                const threadData = await response.json();
+                chatThreadId = threadData.externalApiId ?? null;
               }
-            } else {
-              chatThreadId = null;
+            } catch (error) {
+              console.error('Error fetching external API ID:', error);
+              chatThreadId = null; // fallback
             }
           }
  
