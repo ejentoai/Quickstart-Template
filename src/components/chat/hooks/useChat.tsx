@@ -222,6 +222,7 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                 { query: question || input }
               );
               localStorage.setItem('active_thread_id', id);
+              localStorage.removeItem('corpus_connection')
             } catch (err) {
               console.error('Error saving user message to DB:', err);
             }
@@ -366,9 +367,11 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                      
                       if(isPublicAgent){
                         localStorage.setItem('active_thread_id', id);
+                        localStorage.removeItem('corpus_connection')
                       }
                       else{
                         localStorage.setItem('active_thread_id', response.thread_id.toString());
+                        localStorage.removeItem('corpus_connection')
                       }
                       
                       // Update URL once if needed

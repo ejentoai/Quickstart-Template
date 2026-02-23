@@ -173,6 +173,8 @@ export function AppSidebar() {
 
         const threadId = String(newThread.id);
 
+        localStorage.removeItem('corpus_connection')
+
         handleSetQueryParams(
           threadId,
           newThread.title || 'New Chat'
@@ -182,7 +184,7 @@ export function AppSidebar() {
           'active_thread_id',
           threadId
         );
-
+        
         toast.success('New chat created');
 
       } catch (error) {

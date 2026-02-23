@@ -15,16 +15,25 @@ import {
 } from 'react';
 import { toast } from 'sonner';
 import { useLocalStorage, useWindowSize } from 'usehooks-ts';
-import { AnimatedMicIcon, ArrowUpIcon, MicIcon, AttachmentIcon } from './icons';
+import { Pencil, X, Paperclip, ArrowUp, XCircle } from 'lucide-react';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
-import 'regenerator-runtime/runtime';
-import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
+import { Spinner } from './ui/spinner';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { useApiService } from '@/hooks/useApiService';
 import { useConfig } from '@/app/context/ConfigContext';
 import { ConfigError } from './configError';
 import { handleSetQueryParams } from '@/lib/utils';
+import 'regenerator-runtime/runtime';
+import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
+ 
+// Interface for current file being uploaded
+interface CurrentFileUpload {
+  file: File;
+  status: 'uploading' | 'success' | 'error';
+  error?: string;
+  previewUrl?: string;
+}
  
 function PureMultimodalInput({
   chatId,
@@ -56,7 +65,18 @@ function PureMultimodalInput({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { width } = useWindowSize();
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+ 
+  // Track uploaded files (successful ones)
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  // Track current file being uploaded
+  const [currentUpload, setCurrentUpload] = useState<CurrentFileUpload | null>(null);
+  // Track if there are any failed uploads
+  const [hasFailedUpload, setHasFailedUpload] = useState(false);
+  // Track if thread is being created
+  const [isCreatingThread, setIsCreatingThread] = useState(false);
+  // Track if thread creation failed
+  const [threadCreationFailed, setThreadCreationFailed] = useState(false);
+ 
   const { transcript, resetTranscript } = useSpeechRecognition();
   const { isLoading: configLoading, validationError, config } = useConfig();
   const apiService = useApiService();
@@ -105,9 +125,22 @@ function PureMultimodalInput({
   useEffect(() => {
     setLocalStorageInput(input);
   }, [input, setLocalStorageInput]);
-
+ 
+  // Create preview URL for file
+  useEffect(() => {
+    if (currentUpload?.file) {
+      const file = currentUpload.file;
+      if (file.type.startsWith('image/')) {
+        const url = URL.createObjectURL(file);
+        setCurrentUpload(prev => prev ? { ...prev, previewUrl: url } : null);
+       
+        return () => URL.revokeObjectURL(url);
+      }
+    }
+  }, [currentUpload?.file]);
+ 
   if (!apiService && !configLoading) {
-    //although config is validated before login but for safe side we are checking it here 
+    //although config is validated before login but for safe side we are checking it here
     return <ConfigError validationError={validationError}/>;
   }
  
@@ -117,18 +150,134 @@ function PureMultimodalInput({
     adjustHeight();
   };
  
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files || []);
-    setSelectedFiles(prev => [...prev, ...files]);
-    toast.success(`${files.length} file(s) selected`);
+  const createThread = async () => {
+    const active_thread_id = localStorage.getItem('active_thread_id')
+    const parseId = active_thread_id ? parseInt(active_thread_id) : null
+   
+    if(!parseId || parseId < 0){
+        // Create thread first
+        if(!config?.agentId){
+          throw new Error('Agent id missing')
+        }
+        const response = await apiService?.createChatThread(Number(config?.agentId))
+       
+        if(response?.data.id){
+          localStorage.setItem('active_thread_id', response?.data?.id.toString())
+          handleSetQueryParams(response?.data?.id.toString(), response?.data.title);
+          return response?.data?.id
+        }
+        else{
+          throw new Error('Failed to create thread')
+        }
+    }
+    else{
+      return active_thread_id
+    }
+  }
+ 
+  const handleAttachClick = async (event: React.MouseEvent) => {
+    event.preventDefault();
+   
+    // Check if already uploading
+    if (currentUpload?.status === 'uploading') {
+      toast.error('Please wait for current upload to complete');
+      return;
+    }
+ 
+    // Check if already creating thread
+    if (isCreatingThread) {
+      toast.error('Please wait, creating thread...');
+      return;
+    }
+ 
+    // Reset thread creation failed state when user tries again
+    setThreadCreationFailed(false);
+ 
+    // Check if thread already exists
+    const active_thread_id = localStorage.getItem('active_thread_id');
+    const parseId = active_thread_id ? parseInt(active_thread_id) : null;
+   
+    // If thread already exists, open file dialog immediately
+    if (parseId && parseId > 0) {
+      fileInputRef.current?.click();
+      return;
+    }
+ 
+    // Otherwise, create thread first
+    try {
+      setIsCreatingThread(true);
+     
+      // Only create the thread, nothing else
+      const thread_id = await createThread();
+      if (!thread_id) throw new Error("Something went wrong");
+ 
+      // After thread is successfully created, open file dialog
+      fileInputRef.current?.click();
+     
+    } catch (error) {
+      console.error('Failed to create thread:', error);
+      setThreadCreationFailed(true);
+      toast.error(error instanceof Error ? error.message : 'Failed to create thread. Please try again.');
+    } finally {
+      setIsCreatingThread(false);
+    }
   };
  
-  const removeFile = (index: number) => {
-    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+   
+    // Only process one file at a time
+    if (files.length > 0) {
+      const file = files[0]; // Take only the first file
+     
+      // Check if already uploading
+      if (currentUpload?.status === 'uploading') {
+        toast.error('Please wait for current upload to complete');
+        return;
+      }
+     
+      // Set current upload
+      setCurrentUpload({
+        file,
+        status: 'uploading'
+      });
+     
+      // Clear any previous failed state
+      setHasFailedUpload(false);
+     
+      // Trigger file submission (now this will handle corpus creation, connection, and upload)
+      handleFileSubmission(file);
+    }
+   
+    // Clear the input value so the same file can be selected again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+ 
+  const removeUploadedFile = (index: number) => {
+    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+ 
+  const removeCurrentUpload = () => {
+    setCurrentUpload(null);
+    setHasFailedUpload(false);
+  };
+ 
+  const editCurrentUpload = () => {
+    if (currentUpload?.status !== 'uploading') {
+      fileInputRef.current?.click();
+    }
   };
  
   const submitForm = useCallback(() => {
-    if (input.trim().length === 0 && selectedFiles.length === 0) return;
+    if (input.trim().length === 0 && uploadedFiles.length === 0) return;
+   
+    // Check if any file is currently uploading
+    if (currentUpload?.status === 'uploading') {
+      toast.error('Please wait for file to finish uploading');
+      return;
+    }
    
     if (input?.length < 50 && (messages?.length || 0) < 1) {
       setForceComplete(true);
@@ -153,49 +302,158 @@ function PureMultimodalInput({
     input,
     messages?.length,
     setForceComplete,
-    selectedFiles.length
+    uploadedFiles.length,
+    currentUpload
   ]);
-
-  const createThread = async () => {
-
-    const active_thread_id = localStorage.getItem('active_thread_id')
-    const parseId = active_thread_id ? parseInt(active_thread_id) : null
-    console.log(parseId,'parseId')
-    if(!parseId || parseId < 0){
-      console.log('hete i ')
-        //so create thread first
-        //update the url and localStorage after document get selected
-          if(!config?.agentId){
-            throw new Error('Agent id missing')
+ 
+  const handleFileSubmission = async (file: File) => {
+    try {      
+      // Create corpus if it does not exist
+      const thread_id = localStorage.getItem('active_thread_id')
+      const corpus_id = await createCorpus(thread_id);
+      if (!corpus_id) throw new Error("Failed to create corpus");
+ 
+      // Get thread ID (should exist now from handleAttachClick)
+      // const thread_id = localStorage.getItem('active_thread_id');
+      if (!thread_id) throw new Error("Thread ID not found");
+ 
+      // Create corpus and thread connection
+      const corpus_connection = localStorage.getItem('corpus_connection')
+      if(!corpus_connection){
+        const response = await apiService?.createCorpusThreadConnection(thread_id?.toString(), corpus_id?.toString())
+        if (response?.data.id) {
+          localStorage.setItem('corpus_connection', response.data.id)
+        }
+      }
+ 
+      // Upload document to corpus
+      const uploadResponse = await apiService?.uploadDocumentToCorpus('19307', file);
+     
+      if (uploadResponse?.data?.id) {
+        const documentId = uploadResponse.data.id;
+       
+        // Start polling for document status
+        let pollCount = 0;
+        const maxPolls = 30; // 30 seconds max (1 second interval)
+        let pollingActive = true;
+       
+        const pollInterval = setInterval(async () => {
+          if (!pollingActive) return;
+         
+          try {
+            pollCount++;
+           
+            // Get document status
+            const statusResponse = await apiService?.getDocumentStatus(937357);
+           
+            if (statusResponse?.data) {
+              const documentData = statusResponse.data;
+             
+              // Check if step is "completed" or if there's an error
+              if (documentData.step === "completed") {
+                // Upload successful
+                pollingActive = false;
+                clearInterval(pollInterval);
+               
+                setCurrentUpload({
+                  file,
+                  status: 'success'
+                });
+               
+                setUploadedFiles(prev => [...prev, file]);
+                toast.success(`${file.name} uploaded successfully`);
+                setCurrentUpload(null);
+               
+              } else if (documentData.is_failed === true || documentData.step === "failed") {
+                // Upload failed
+                pollingActive = false;
+                clearInterval(pollInterval);
+               
+                // Get the current preview URL from the existing currentUpload state
+                const currentPreviewUrl = currentUpload?.previewUrl;
+               
+                // Mark current upload as error but preserve the preview
+                setCurrentUpload({
+                  file,
+                  status: 'error',
+                  error: 'Document processing failed',
+                  previewUrl: currentPreviewUrl // Preserve the preview URL
+                });
+               
+                setHasFailedUpload(true);
+                toast.error(`Failed to upload ${file.name} - processing failed`);
+               
+              } else if (pollCount >= maxPolls) {
+                // Timeout reached
+                pollingActive = false;
+                clearInterval(pollInterval);
+               
+                // Get the current preview URL from the existing currentUpload state
+                const currentPreviewUrl = currentUpload?.previewUrl;
+               
+                // Mark current upload as error due to timeout but preserve the preview
+                setCurrentUpload({
+                  file,
+                  status: 'error',
+                  error: 'Upload timeout - document processing took too long',
+                  previewUrl: currentPreviewUrl // Preserve the preview URL
+                });
+               
+                setHasFailedUpload(true);
+                toast.error(`Failed to upload ${file.name} - timeout`);
+              }
+              // Otherwise, continue polling (step is still "pending")
+            }
+          } catch (pollError) {
+            pollingActive = false;
+            clearInterval(pollInterval);
+           
+            // Get the current preview URL from the existing currentUpload state
+            const currentPreviewUrl = currentUpload?.previewUrl;
+           
+            // Mark current upload as error due to polling error but preserve the preview
+            setCurrentUpload({
+              file,
+              status: 'error',
+              error: pollError instanceof Error ? pollError.message : 'Error checking document status',
+              previewUrl: currentPreviewUrl // Preserve the preview URL
+            });
+           
+            setHasFailedUpload(true);
+            toast.error(`Failed to check status for ${file.name}`);
           }
-          const response = await apiService?.createChatThread(Number(config?.agentId))
-          console.log(response,'response hai')
-          if(response?.data.id){
-            console.log(response?.data.id,'response?.data.id')
-            localStorage.setItem('active_thread_id',response?.data?.id)
-            console.log('fdsa')
-            handleSetQueryParams(response?.data?.id.toString(), response?.data.title);
-            return response?.data?.id
-          }
-          else{
-            console.log('ejvdawj')
-            throw new Error('Failed to create thread')
-          }
+        }, 1000); // Poll every 1 second
+       
+      } else {
+        throw new Error('Upload failed - no document ID received');
+      }
+     
+    } catch (error) {
+      console.error('something went wrong when uploading file', error);
+     
+      // Get the current preview URL from the existing currentUpload state
+      const currentPreviewUrl = currentUpload?.previewUrl;
+     
+      // Mark current upload as error but preserve the preview
+      setCurrentUpload({
+        file,
+        status: 'error',
+        error: error instanceof Error ? error.message : 'Upload failed',
+        previewUrl: currentPreviewUrl // Preserve the preview URL
+      });
+     
+      setHasFailedUpload(true);
+      toast.error(`Failed to upload ${file.name}`);
     }
-    else{
-      console.log('hete i esf')
-      return active_thread_id
-    }
-  }
-  
-  const createCorpus = async () => {
-    
+  };
+ 
+  const createCorpus = async (thread_id : any) => {
     const corpus_id = localStorage.getItem('corpus_id')
-    console.log(corpus_id,'cporpnjd')
+     
     if(!corpus_id){
       try{
-        const response = await apiService?.createCorpus()
-        localStorage.setItem('corpus_id',response.data.id)
+        const response = await apiService?.createCorpus(thread_id)
+        localStorage.setItem('corpus_id', response.data.id)
         return response.data.id
       }
       catch(error){
@@ -207,53 +465,117 @@ function PureMultimodalInput({
       return corpus_id
     }
   }
-
-  const handleFileSubmission = async () => {
-      console.log('file submited')
-      
-      //create thread if not exist
-      const thread_id = await createThread();
-      if (!thread_id) throw new Error("Failed to create thread");
-    
-      // create corpus if it does not exist
-      const corpus_id = await createCorpus();
-      if (!corpus_id) throw new Error("Failed to create corpus");
-
-      //create corpus and thread connection
-      const corpus_correction = localStorage.getItem('corpus_connection')
-      if(!corpus_correction){
-        const response = await apiService?.createCorpusThreadConnection(thread_id?.toString(),corpus_id?.toString())
-        localStorage.setItem('corpus_connection',response.data.id)
-        console.log(response,'response for corpus creation')
-      }
-
-      //upload document in corpus 
-      const response = await apiService?.uploadDocumentToCorpus(corpus_id,selectedFiles)
-      
-      
-
-          
-  }
+ 
+  const retryFailedUpload = () => {
+    if (currentUpload && currentUpload.status === 'error') {
+      const file = currentUpload.file;
+      setCurrentUpload({
+        file,
+        status: 'uploading',
+        previewUrl: currentUpload.previewUrl // Preserve preview URL during retry
+      });
+      setHasFailedUpload(false);
+      handleFileSubmission(file);
+    }
+  };
+ 
+  const getFileIcon = (filename: string) => {
+    const ext = filename.split('.').pop()?.toLowerCase();
+    switch (ext) {
+      case 'pdf':
+        return '📄';
+      case 'doc':
+      case 'docx':
+        return '📝';
+      case 'txt':
+        return '📃';
+      case 'csv':
+        return '📊';
+      default:
+        return '📎';
+    }
+  };
  
   return (
     <div className="w-full flex flex-col items-center">
-      {/* File preview section */}
-      {selectedFiles.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-2 p-2 bg-muted/30 rounded-lg w-full max-w-3xl">
-          {selectedFiles.map((file, index) => (
-            <div
-              key={index}
-              className="flex items-center gap-2 bg-background border rounded-lg px-3 py-1.5 text-sm"
-            >
-              <span className="max-w-[150px] truncate">{file.name}</span>
+      {/* Small File Preview Thumbnails */}
+      {(currentUpload || uploadedFiles.length > 0) && (
+        <div className="flex flex-wrap gap-2 mb-3 w-full max-w-3xl px-2">
+          {/* Current upload preview */}
+          {currentUpload && (
+            <div className="relative">
+              <div className={cx(
+                "w-20 h-20 rounded-lg overflow-hidden border-2 bg-gray-100 flex items-center justify-center",
+                currentUpload.status === 'error' ? 'border-red-500' : 'border-gray-300'
+              )}>
+                {/* Always show preview URL if available, regardless of status */}
+                {currentUpload.previewUrl ? (
+                  <img
+                    src={currentUpload.previewUrl}
+                    alt={currentUpload.file.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  /* Only show icon if there's no preview URL (non-image files) */
+                  <div className="text-3xl opacity-50">
+                    {getFileIcon(currentUpload.file.name)}
+                  </div>
+                )}
+               
+                {/* Loading Spinner Overlay - only show when uploading */}
+                {currentUpload.status === 'uploading' && (
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                    <Spinner className="h-6 w-6 text-white" />
+                  </div>
+                )}
+              </div>
+             
+              {/* Close button - always red for error state, otherwise black */}
               <button
-                onClick={() => removeFile(index)}
-                className="text-muted-foreground hover:text-foreground"
+                onClick={removeCurrentUpload}
+                className={cx(
+                  "absolute -top-1 -right-1 h-5 w-5 rounded-full flex items-center justify-center text-xs shadow-lg",
+                  currentUpload.status === 'error'
+                    ? "bg-red-500 hover:bg-red-600 text-white"
+                    : "bg-gray-800 hover:bg-gray-900 text-white"
+                )}
               >
                 ×
               </button>
             </div>
-          ))}
+          )}
+         
+          {/* Previously uploaded files */}
+          {uploadedFiles.map((file, index) => {
+            const isImage = file.type.startsWith('image/');
+            const previewUrl = isImage ? URL.createObjectURL(file) : null;
+           
+            return (
+              <div key={index} className="relative">
+                <div className="w-20 h-20 rounded-lg overflow-hidden border-2 border-gray-300 bg-gray-100 flex items-center justify-center">
+                  {previewUrl ? (
+                    <img
+                      src={previewUrl}
+                      alt={file.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="text-3xl opacity-50">
+                      {getFileIcon(file.name)}
+                    </div>
+                  )}
+                </div>
+               
+                {/* Close button */}
+                <button
+                  onClick={() => removeUploadedFile(index)}
+                  className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-gray-800 hover:bg-gray-900 text-white flex items-center justify-center text-xs shadow-lg"
+                >
+                  ×
+                </button>
+              </div>
+            );
+          })}
         </div>
       )}
      
@@ -267,42 +589,43 @@ function PureMultimodalInput({
           ref={fileInputRef}
           onChange={handleFileSelect}
           className="hidden"
-          multiple
           accept="image/*,.pdf,.doc,.docx,.txt,.csv"
+          disabled={currentUpload?.status === 'uploading' || isCreatingThread}
         />
        
-        {/* Plus button inside input */}
+        {/* Plus button */}
         <TooltipProvider>
           <Tooltip delayDuration={0}>
             <TooltipTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                className="rounded-full h-10 w-10 hover:bg-slate-50 shrink-0"
-                onClick={async (event) => {
-                  event.preventDefault();
-                  try{
-                    
-                    await handleFileSubmission();
-                    
-                  }
-                  catch(error){
-                    console.error('something went wrong when uploading file',error)
-                    toast.error('something went wrong when uploading file')
-                  }
-                 
-                }}
+                className={cx(
+                  "rounded-full h-10 w-10 hover:bg-slate-50 shrink-0 transition-all",
+                  (currentUpload?.status === 'uploading' || isCreatingThread) && "opacity-50 cursor-not-allowed"
+                )}
+                onClick={handleAttachClick}
                 type="button"
+                disabled={currentUpload?.status === 'uploading' || isCreatingThread}
               >
-                <AttachmentIcon size={24} />
+                {isCreatingThread ? (
+                  <Spinner className="h-5 w-5" />
+                ) : (
+                  <Paperclip className="h-5 w-5" />
+                )}
               </Button>
             </TooltipTrigger>
             <TooltipContent side="top" className="bg-black text-white border-none rounded-lg px-3 py-1.5 text-xs mb-2">
-              Add files and more
+              {isCreatingThread
+                ? 'Creating thread...'
+                : currentUpload?.status === 'uploading'
+                  ? 'Uploading file...'
+                  : threadCreationFailed
+                    ? 'Click to retry thread creation'
+                    : 'Add files (one at a time)'}
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
- 
  
         <Textarea
           ref={textareaRef}
@@ -318,6 +641,10 @@ function PureMultimodalInput({
               event.preventDefault();
               if (isLoading) {
                 toast.error('Please wait for the model to finish its response!');
+              } else if (currentUpload?.status === 'uploading') {
+                toast.error('Please wait for file to finish uploading');
+              } else if (isCreatingThread) {
+                toast.error('Please wait for thread creation to complete');
               } else {
                 submitForm();
                 resetTranscript()
@@ -326,23 +653,32 @@ function PureMultimodalInput({
           }}
         />
        
-        {/* Arrow icon replacing Mic icon */}
+        {/* Arrow icon */}
         <Button
           variant="ghost"
           size="icon"
           className={cx(
             "rounded-full h-10 w-10 transition-all shrink-0",
-            (input.trim().length > 0 || selectedFiles.length > 0) ? "text-slate-900" : "text-slate-300",
-            "hover:bg-slate-50"
+            (input.trim().length > 0 || uploadedFiles.length > 0) ? "text-slate-900" : "text-slate-300",
+            "hover:bg-slate-50",
+            (currentUpload?.status === 'uploading' || isLoading || isCreatingThread) && "opacity-50 cursor-not-allowed"
           )}
           onClick={(event) => {
             event.preventDefault();
+            if (currentUpload?.status === 'uploading') {
+              toast.error('Please wait for file to finish uploading');
+              return;
+            }
+            if (isCreatingThread) {
+              toast.error('Please wait for thread creation to complete');
+              return;
+            }
             submitForm();
             resetTranscript()
           }}
-          disabled={(input.trim().length === 0 && selectedFiles.length === 0) || isLoading}
+          disabled={(input.trim().length === 0 && uploadedFiles.length === 0) || isLoading || currentUpload?.status === 'uploading' || isCreatingThread}
         >
-          <ArrowUpIcon size={24} />
+          <ArrowUp className="h-5 w-5" />
         </Button>
       </div>
     </div>

@@ -329,12 +329,13 @@ export class ApiService {
     }
   }
 
-  async createCorpus(){
+  async createCorpus(thread_id :  any){
+    console.log(thread_id,'thread id')
     const body = {
-      name: "Research Articles Corpus",
-      description: "A corpus of academic and scientific research articles for AI training.",
+      name: `AttachmentCorpus-${thread_id}`,
+      description: "Attachment Corpus",
       indexing_mode_id: 3,
-      corpus_type : 'structured',
+      corpus_type : 'attachment',
     }
     try {
       const url = getProxiedUrl(
@@ -365,10 +366,13 @@ export class ApiService {
     try {
       const formData = new FormData();   
       formData.append("content_type", "file");
-      formData.append("source", file);
+      const originalName = file.name;
+      const fixedName = originalName.replace(/(\.\w+)\1$/, "$1");
+      formData.append("source", file,originalName);
+      console.log(file,'file')
       formData.append("upload_from", "web");
       formData.append("user_id", String(userId));
-       // field name must match backend expectation
+      formData.append("attachment", 'true');
   
       const url = getProxiedUrl(
         `/api/v2/corpora/${corpusId}/documents`,
