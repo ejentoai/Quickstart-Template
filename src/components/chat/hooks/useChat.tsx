@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { decryptData,handleSetQueryParams } from "@/lib/utils";
 import { useApiService } from "@/hooks/useApiService";
 import { useSearchParams} from "next/navigation";
-import { useConfig } from "@/app/context/ConfigContext";
 import { toast } from 'sonner';
 import { isPublicAgentMode } from "@/lib/storage/indexeddb";
 import { usePublicAgentSession } from "@/hooks/usePublicAgentSession";
