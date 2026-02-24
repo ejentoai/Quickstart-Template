@@ -192,7 +192,7 @@ function PureMultimodalInput({
  
     // Reset thread creation failed state when user tries again
     setThreadCreationFailed(false);
- 
+    
     // Check if thread already exists
     const active_thread_id = localStorage.getItem('active_thread_id');
     const parseId = active_thread_id ? parseInt(active_thread_id) : null;

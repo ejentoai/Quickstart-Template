@@ -737,5 +737,6 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
       reflectionContentsRef,
       thoughtProcessRef,
       isReflectingRef,
+      updateThreadWithExternalApiId
     };
 }

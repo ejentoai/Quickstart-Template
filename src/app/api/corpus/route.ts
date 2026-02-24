@@ -10,7 +10,7 @@ let cookieCredentials;
 const envDriven = process.env.NEXT_PUBLIC_ENV_DRIVEN === 'true';
 
 export async function POST(req : NextRequest){
-
+    
     const { searchParams} = new URL(req.url)
     const id  = searchParams.get('id')
     if(!id){
@@ -36,7 +36,6 @@ export async function POST(req : NextRequest){
     let headers = {}
     headers['Authorization'] = `${ejentoAccessToken}`
     headers[INDEXING_SERVICE_HEADER] = INDEXING_SERVICE_KEY
-    console.log(headers,'headers')
     try{
       const formData = await req.formData()
       const source = formData.get('source')
