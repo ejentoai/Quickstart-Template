@@ -87,15 +87,9 @@ export function AppSidebar() {
   const { config } = useConfig();
   
   // PUBLIC_AGENT mode: Get session context
-  const isPublicAgent = isPublicAgentMode();
-  let publicAgentSession: ReturnType<typeof usePublicAgentSession> | null = null;
-  try {
-    if (isPublicAgent) {
-      publicAgentSession = usePublicAgentSession();
-    }
-  } catch (error) {
-    // Context not available, continue without it
-  }
+  const publicAgentSession = usePublicAgentSession(); 
+  const isPublicAgent = isPublicAgentMode(); 
+  const isAuthFlowEnabled = process.env.NEXT_PUBLIC_AUTH_FLOW === 'true'
 
   const agentImageUrl = process.env.NEXT_PUBLIC_AGENT_IMAGE?.trim();
 
@@ -121,7 +115,7 @@ export function AppSidebar() {
   });
 
   const user_info = getUserFromStorage(); // Current user information
-  // Get email from config first (set in ENV_DRIVEN mode), then fall back to user storage
+  // Get email from config first (set in  mode), then fall back to user storage
   // Always provide a fallback to ensure created_by is never undefined
   const userEmail = config?.userInfo?.email || user_info?.email || user_info?.data?.email || 'user';
 
@@ -553,7 +547,7 @@ export function AppSidebar() {
         <SidebarHistory isLoading={isLoading} threads={threads} groupedChats={groupedChats} fetchThreads={fetchThreads} setThreads={setThreads} groupChatsByDate={groupChatsByDate} updateChatTitle={updateChatTitle} />
       </SidebarContent>
       <SidebarFooter>
-        { (isPublicAgent && publicAgentSession) ? null : (
+        { (isPublicAgent && publicAgentSession && !isAuthFlowEnabled) ? null : (
          <SidebarUserNav  />
         )}
       </SidebarFooter>

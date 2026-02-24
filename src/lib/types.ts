@@ -1,5 +1,7 @@
 // import { type Message } from 'ai'
 
+import { z } from "zod";
+
 export interface Chat extends Record<string, any> {
   id: string
   title: string
@@ -17,3 +19,9 @@ export type ServerActionResult<Result> = Promise<
       error: string
     }
 >
+
+export const loginSchema = z.object({
+  email : z.string().min(1,'Email is required').email('please enter a valid email adress')
+})
+
+export type TloginSchema = z.infer<typeof loginSchema>

@@ -7,10 +7,10 @@ import { UserConfig } from '@/app/context/ConfigContext';
  */
 export async function GET() {
   // Check if environment-driven mode is explicitly enabled
-  const envDriven = process.env.ENV_DRIVEN === 'true' || process.env.ENV_DRIVEN === '1';
+  const envDriven = process.env.NEXT_PUBLIC_ENV_DRIVEN === 'true';
   
   // If ENV_DRIVEN is explicitly false, return null immediately (use manual config)
-  if (process.env.ENV_DRIVEN === 'false' || process.env.ENV_DRIVEN === '0') {
+  if (process.env.NEXT_PUBLIC_ENV_DRIVEN === 'false' || process.env.NEXT_PUBLIC_ENV_DRIVEN === '0') {
     return NextResponse.json({
       config: null,
       source: 'manual' as const,

@@ -94,45 +94,8 @@ export function useChat(arg0: { selectedCorpus: any | null }): {
     const { selectedCorpus } = arg0;
     const [messages, setMessages] = useState<any>([]);
     const { config } = useConfig();
-    
-    // PUBLIC_AGENT mode: Get session context (only if mode is enabled)
     const isPublicAgent = isPublicAgentMode();
-    let publicAgentSession: ReturnType<typeof usePublicAgentSession> | null = null;
-    try {
-      if (isPublicAgent) {
-        publicAgentSession = usePublicAgentSession();
-      }
-    } catch (error) {
-      // Context not available, continue without it
-      console.warn('PublicAgentSessionContext not available, continuing without IndexedDB persistence');
-    }
-    
-    // Handle null apiService
-    if (!apiService) {
-      return {
-        streaming: false,
-        streamContent: "",
-        streamEvents: [],
-        streamContentRef: { current: "" },
-        messages: [],
-        setMessages: () => {},
-        handleSubmit: () => {},
-        input: "",
-        setInput: () => {},
-        append: () => Promise.resolve(null),
-        isLoading: false,
-        stop: false,
-        reload: false,
-        data: null,
-        chatStarted: false,
-        isCache: false,
-        setIsCache: () => {},
-        reflectionEventsRef: { current: [] },
-        reflectionContentsRef: { current: [] },
-        thoughtProcessRef: { current: "" },
-        isReflectingRef: { current: false }
-      };
-    }
+    const publicAgentSession = usePublicAgentSession();
     const [input, setInput] = useState<any>("");
     const [isLoading, setIsLoading] = useState(false);
     const [stop, setStop] = useState(false);
@@ -183,6 +146,33 @@ export function useChat(arg0: { selectedCorpus: any | null }): {
         setChatStarted(false);
       }
     }, [messages]);
+
+     // Handle null apiService
+     if (!apiService) {
+      return {
+        streaming: false,
+        streamContent: "",
+        streamEvents: [],
+        streamContentRef: { current: "" },
+        messages: [],
+        setMessages: () => {},
+        handleSubmit: () => {},
+        input: "",
+        setInput: () => {},
+        append: () => Promise.resolve(null),
+        isLoading: false,
+        stop: false,
+        reload: false,
+        data: null,
+        chatStarted: false,
+        isCache: false,
+        setIsCache: () => {},
+        reflectionEventsRef: { current: [] },
+        reflectionContentsRef: { current: [] },
+        thoughtProcessRef: { current: "" },
+        isReflectingRef: { current: false }
+      };
+    }
   
     const handleSubmit = async (question?: string, regenerating?: boolean, messageIdToRegenerate?: string) => {
       localStorage.setItem('query', question || input)

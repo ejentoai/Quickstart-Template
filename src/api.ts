@@ -34,7 +34,7 @@ export class ApiService {
     // For environment-driven config, credentials may not be in client config
     // They are retrieved server-side via proxy. Use empty strings as fallback.
     return getApiHeaders(
-      baseUrl || this.config.baseUrl,
+      baseUrl || this.config.baseUrl, 
       this.config.ejentoAccessToken || '',
       this.config.apiKey || ''
     );
@@ -43,7 +43,7 @@ export class ApiService {
   async getCurrentUser(): Promise<any> {
     try {
       const url = getProxiedUrl(
-        `${this.config.baseUrl}/api/v2/users/me`,
+        'api/v2/users/me',
         this.config.baseUrl
       );
       const response = await axios.get(url, {
@@ -51,9 +51,6 @@ export class ApiService {
       });
       return response.data;
     } catch (error: any) {
-      if (error.response) {
-        return error.response.status;
-      }
       throw error;
     }
   }
@@ -61,7 +58,7 @@ export class ApiService {
   async getAgent(agentId: string): Promise<{success: boolean, message: string, data: any}> {
     try {
       const url = getProxiedUrl(
-        `${this.config.baseUrl}/api/v2/agents/${agentId}`,
+        `api/v2/agents/${agentId}`,
         this.config.baseUrl
       );
       const response = await axios.get(url, {
@@ -85,15 +82,13 @@ export class ApiService {
 
   async getCorpus(): Promise<any> {
     try {
-      // Construct URL path - when baseUrl is empty, just use the path directly
-      const urlPath = this.config.baseUrl 
-        ? `${this.config.baseUrl}/api/v2/agents/${this.config.agentId}/corpora?verbosity=medium&is_enabled=true`
-        : `/api/v2/agents/${this.config.agentId}/corpora?verbosity=medium&is_enabled=true`;
-      const url = getProxiedUrl(urlPath, this.config.baseUrl);
+      const url = getProxiedUrl(
+        `api/v2/agents/${this.config.agentId}/corpora?verbosity=medium&is_enabled=true`,
+        this.config.baseUrl
+      );
       const response = await axios.get(url, {
         headers: this.getHeaders(),
       });
-      // console.log(response.data);
       return response.data;
     } catch (error: any) {
       if (error.response) {
@@ -117,7 +112,7 @@ export class ApiService {
   
     try {
       const url = getProxiedUrl(
-        `${this.config.baseUrl}/response-service/api/v2/agents/${agentId}/responses/stream`,
+        `response-service/api/v2/agents/${agentId}/responses/stream`,
         this.config.baseUrl
       );
       const headers = this.getHeaders();
@@ -158,13 +153,12 @@ export class ApiService {
     try {
       const { agent_id, ...rest } = data;
       const url = getProxiedUrl(
-        `${this.config.baseUrl}/response-service/api/v2/agents/${this.config.agentId}/responses`,
+        `response-service/api/v2/agents/${this.config.agentId}/responses`,
         this.config.baseUrl
       );
       const response = await axios.post<any>(url, data, {
         headers: this.getHeaders(),
       });
-      // console.log("sendChat response", response.data);
       return response.data;
     } catch (error: any) {
       if (error.response) {
@@ -190,13 +184,12 @@ export class ApiService {
   async getChatlogs(threadID: number): Promise<ChatThreadAgentResponsesV2> {
     try {
       const url = getProxiedUrl(
-        `${this.config.baseUrl}/api/v2/chat-threads/${threadID}/agent-responses?include_steps=true`,
+        `api/v2/chat-threads/${threadID}/agent-responses?include_steps=true`,
         this.config.baseUrl
       );
       const response = await axios.get<ChatThreadAgentResponsesV2>(url, {
         headers: this.getHeaders(),
       });
-      // console.log(response.data);
       return response.data;
     } catch (error: any) {
       if (error.response) {
@@ -214,7 +207,7 @@ export class ApiService {
 
     try {
       const url = getProxiedUrl(
-        `${this.config.baseUrl}/api/v2/agent-responses/${chatId}/feedbacks`,
+        `api/v2/agent-responses/${chatId}/feedbacks`,
         this.config.baseUrl
       );
       const response = await axios.post(url, body, {
@@ -239,7 +232,7 @@ export class ApiService {
 
     try {
       const url = getProxiedUrl(
-        `${this.config.baseUrl}/api/v2/agent-responses/${chatId}/feedbacks`,
+        `api/v2/agent-responses/${chatId}/feedbacks`,
         this.config.baseUrl
       );
       const response = await axios.post(url, body, {
@@ -264,7 +257,7 @@ export class ApiService {
         created_by: data?.created_by
       }
       const url = getProxiedUrl(
-        `${this.config.baseUrl}/api/v2/agent-responses/${data?.chat_id}/comments`,
+        `api/v2/agent-responses/${data?.chat_id}/comments`,
         this.config.baseUrl
       );
       const response = await axios.post(url, body, {
@@ -294,7 +287,7 @@ export class ApiService {
       };
 
       const url = getProxiedUrl(
-        `${this.config.baseUrl}/api/v2/agents/${agentId}/chat-threads`,
+        `api/v2/agents/${agentId}/chat-threads`,
         this.config.baseUrl
       );
       const response = await axios.post<ChatThreadResponse[]>(url, body, {
@@ -314,13 +307,12 @@ export class ApiService {
 
     try {
       const url = getProxiedUrl(
-        `${this.config.baseUrl}/api/v2/agents/${this.config.agentId}/chat-threads?query_source=app-ejento`,
+        `api/v2/agents/${this.config.agentId}/chat-threads?query_source=app-ejento`,
         this.config.baseUrl
       );
       const response = await axios.get<AllChatsResponseV2>(url, {
         headers: this.getHeaders(),
       });
-      // console.log(response.data);
       return response.data;
     } catch (error: any) {
       if (error.response) {
@@ -334,7 +326,7 @@ export class ApiService {
 
     try {
       const url = getProxiedUrl(
-        `${this.config.baseUrl}/api/v2/chat-threads/${deleteId}`,
+        `api/v2/chat-threads/${deleteId}`,
         this.config.baseUrl
       );
       const response = await axios.delete<any>(url, {
@@ -355,7 +347,7 @@ export class ApiService {
     const created_by = modifiedBy || this.config.userInfo?.email || 'user'
     try {
       const url = getProxiedUrl(
-        `${this.config.baseUrl}/api/v2/chat-threads/${chatId}`,
+        `api/v2/chat-threads/${chatId}`,
         this.config.baseUrl
       );
       const response = await axios.put<AllChatsResponseV2>(
@@ -376,4 +368,212 @@ export class ApiService {
       throw new Error("An unexpected error occurred while updating the chat thread title.");
     }
   }
-}
+
+    // ==================== Authentication METHODS ====================
+
+    async passwordlessAuth(email: string, otp_session_id? : string) {
+      if (!email) {
+        throw new Error("Email is required for passwordless authentication.");
+      }
+    
+      try {
+        const url = getProxiedUrl(
+          'auth-service/api/v2/users/passwordless-auth',
+          this.config.baseUrl
+        );
+
+        const path = `${process.env.NEXT_PUBLIC_APP_URL}/auth/confirmation/`
+
+        const payload: {
+          email: string;
+          next: string;
+          otp_session_id?: string;
+        } = {
+          email,
+          next: path,
+        };
+        
+        if (otp_session_id) {
+          payload.otp_session_id = otp_session_id; //needed when we are requiring a new otp code 
+        }
+    
+        const response = await axios.post(url, payload, {
+          headers: this.getHeaders(),
+        });
+        console.log('Response at line 401:', response); 
+        return {
+          success: true,
+          message: "Email sent successfully.",
+          data: response.data || {},
+        };
+      } catch (error: any) {
+        
+        
+        const status = error?.response?.status;
+        let userMessage;
+
+        if( status === 401 ) { userMessage = 'you are not authorized' }
+        else if (status === 500) userMessage = "Server error. Try again later.";
+        else{
+          userMessage = error?.response?.data?.detail || "Something went wrong. Please try again.";
+        }
+
+        if (axios.isAxiosError(error) && error.response) {
+          return {
+            success: false,
+            message: userMessage,
+          };
+        }
+    
+        return {
+          success: false,
+          message: "An unexpected error occurred.",
+        };
+      }
+    };
+
+    async featureFlags() {
+      try {
+        const url = getProxiedUrl(
+          'auth-service/api/v2/feature-flags/logins',
+          this.config.baseUrl
+        );
+    
+        const response = await axios.get(url,{
+          headers: getApiHeaders(
+            this.config.baseUrl,
+            this.config.ejentoAccessToken || '',
+            this.config.apiKey || ''
+          ),
+        });
+    
+        return {
+          success: true,
+          data: response.data || {},
+        };
+      } catch (error: any) {
+        
+        if (axios.isAxiosError(error) && error.response) {
+          return {
+            success: false,
+            error: error,
+          };
+        }
+    
+        throw new Error('An unexpected error occurred.');
+        };
+    }
+
+    async validateMagicLink(token : string) {
+      if (!token) {
+        throw new Error("Token is required for magic link validation.");
+      }
+    
+      try {
+        const url = getProxiedUrl(
+          'auth-service/api/v2/users/validate-magic-link',
+          this.config.baseUrl
+        );
+
+        const response = await axios.post(url, {token}, {
+          headers: getApiHeaders(
+            this.config.baseUrl,
+            this.config.ejentoAccessToken || '',
+            this.config.apiKey || ''
+          ),
+        });
+         
+        if(response?.data?.success){
+           
+          return {
+            success: true,
+            message: "Magic link validated successfully",
+            data: response.data || {},
+          };
+
+        }
+        else{
+          return {
+            success: false,
+            message: response.data.message || 'Unable to validate magic link',
+            data: response.data || {},
+          };
+        }
+    
+      } catch (error : any) {
+        const status = error?.response?.status;
+        let userMessage;
+        if (status === 401) userMessage = "You are not authorized.";
+        else if (status === 500) userMessage = "Server error. Try again later.";
+        else {
+          userMessage = error?.response?.data?.detail || "Something went wrong. Please try again.";
+        }
+    
+        return {
+          success: false,
+          message: userMessage,
+        };
+      }
+    }
+
+    async validateOtp(otp_session_id : string, code : string) {
+      if (!otp_session_id && !code) {
+        throw new Error("Something went wrong. Please try again.");
+      }
+    
+      try {
+        const url = getProxiedUrl(
+          'auth-service/api/v2/users/verify-otp',
+          this.config.baseUrl
+        );
+    
+        const response = await axios.post(url, {otp_session_id,code}, {
+          headers: getApiHeaders(
+            this.config.baseUrl,
+            this.config.ejentoAccessToken || '',
+            this.config.apiKey || ''
+          ),
+        });
+    
+        return {
+          success: true,
+          message: "otp validated successfully",
+          data: response.data || {},
+        };
+    
+      } catch (error : any) {
+        const status = error?.response?.status;
+        let userMessage;
+        if (status === 401) userMessage = "You are not authorized.";
+        else if (status === 500) userMessage = "Server error. Try again later.";
+        else{
+          userMessage = error?.response?.data?.detail || 'Something went wrong. Please try again.'
+        }
+    
+        return {
+          success: false,
+          message: userMessage,
+        };
+      }
+    }
+
+    // ==================== SSO METHODS ====================
+
+    async SSO_PROVIDER(provider: string): Promise<string | null> {
+      try {
+        const res = await fetch(`/api/sso/${provider}`);
+        const data = await res.json();
+    
+        if (data?.success && data?.redirectUrl) {
+          return data.redirectUrl;
+        }
+    
+        return null;
+      } catch (error) {
+        console.error(error);
+        return null;
+      }
+    }
+    
+  }
+  

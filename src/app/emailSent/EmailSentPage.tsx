@@ -49,7 +49,7 @@ export default function ResetPage() {
                         <h3 className="text-xl font-semibold dark:text-zinc-50 mb-4">Recovery email sent</h3>
                         {/* Description */}
                         <p className="text-sm text-gray-500 mb-6">
-                            Didn't receive the email? Please check the email address you used to make sure it matches
+                            didn&apos;t receive the email? Please check the email address you used to make sure it matches
                             the address on your account. Look in your spam folder, or request another email below.
                         </p>
 

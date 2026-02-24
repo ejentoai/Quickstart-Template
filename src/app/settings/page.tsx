@@ -10,13 +10,16 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { Eye, EyeOff, Save, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
-import { setUserToStorage } from '@/cookie';
-import Link from 'next/link';
+import { setUserToStorage, getAccessToken, getEjentoAccessToken, setUserToCookie } from '@/cookie';
 
 export default function SettingsPage() {
   const { config, updateConfig, isEnvConfigured, configSource, isLoading, isValidating, validationError, isConfigured } = useConfig();
   const router = useRouter();
   const isPublicAgent = isPublicAgentMode();
+  let canProceed;
+  let newConfig;
+  let updatedConfig;
+  const redirectPath = process.env.NEXT_PUBLIC_AUTH_FLOW === 'true' ? '/auth/login' : '/chat'
   
   const [formData, setFormData] = useState({
     baseUrl: '',
@@ -31,6 +34,7 @@ export default function SettingsPage() {
   });
 
   const [isSavingConfig, setIsSavingConfig] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   useEffect(() => {
     if (config) {
@@ -52,21 +56,34 @@ export default function SettingsPage() {
   };
 
   const handleSaveAndProceed = async () => {
-    // Validate required fields
-    if (!formData.baseUrl.trim() || !formData.apiKey.trim() || !formData.ejentoAccessToken.trim() || !formData.agentId.trim()) {
+    // Validate required fields based on auth flow
+    const isAuthEnabled = process.env.NEXT_PUBLIC_AUTH_FLOW === 'true';
+    const isValid = isAuthEnabled
+      ? formData.baseUrl.trim() && formData.apiKey.trim() && formData.agentId.trim()
+      : formData.baseUrl.trim() && formData.apiKey.trim() && formData.ejentoAccessToken.trim() && formData.agentId.trim();
+    
+    if (!isValid) {
       toast.error('Please fill in all required fields');
       return;
     }
-
     setIsSavingConfig(true);
     
     try {
-      const newConfig = {
-        baseUrl: formData.baseUrl.trim(),
-        apiKey: formData.apiKey.trim(),
-        ejentoAccessToken: formData.ejentoAccessToken.trim(),
-        agentId: formData.agentId.trim(),
-      };
+      if(process.env.NEXT_PUBLIC_AUTH_FLOW === 'true'){
+        newConfig = {
+          baseUrl: formData.baseUrl.trim(),
+          apiKey: formData.apiKey.trim(),
+          agentId: formData.agentId.trim(),
+        };
+      }
+      else{
+        newConfig = {
+          baseUrl: formData.baseUrl.trim(),
+          apiKey: formData.apiKey.trim(),
+          ejentoAccessToken: formData.ejentoAccessToken.trim(),
+          agentId: formData.agentId.trim(),
+        };
+      }
 
       // SECURITY FIX: Use the validation endpoint which validates AND stores credentials in secure cookie
       // This ensures credentials are available for proxy requests
@@ -100,11 +117,19 @@ export default function SettingsPage() {
         is_superuser: user.is_superuser || false,
       } : undefined;
       
-      const updatedConfig = {
-        ...newConfig,
-        userInfo: filteredUser || config?.userInfo,
-      };
-
+      if(process.env.NEXT_PUBLIC_AUTH_FLOW === 'true'){
+        updatedConfig = {
+          ...newConfig,
+        };
+      }
+      else{
+        updatedConfig = {
+          ...newConfig,
+          userInfo: filteredUser || config?.userInfo,
+        };
+  
+      }
+      
       // Store filtered user data in localStorage for UI purposes
       // The sidebar expects the user data in a specific format with a 'data' property
       if (filteredUser) {
@@ -114,58 +139,67 @@ export default function SettingsPage() {
           message: 'User data loaded', 
           data: filteredUser 
         };
-        setUserToStorage(userInfoToStore);
+        setUserToCookie(userInfoToStore);
       }
 
       // Save configuration to localStorage (for UI state, credentials are in cookie)
       updateConfig(updatedConfig);
       
-      toast.success('Configuration validated and saved successfully!');
+      // Set redirecting state to show loading overlay
+      setIsRedirecting(true);
       
-      // Redirect to chat page
-      router.push('/chat');
+      // Check if user has both tokens - if so, redirect directly to chat to avoid login page flash
+      const token = getAccessToken();
+      const ejentoToken = getEjentoAccessToken();
+      const finalRedirectPath = (token && ejentoToken) ? '/chat' : redirectPath;
+      
+      // Redirect to appropriate page
+      router.push(finalRedirectPath);
     } catch (error) {
       console.error('Error saving configuration:', error);
       toast.error('Failed to save configuration. Please verify your credentials and try again.');
-    } finally {
       setIsSavingConfig(false);
+      setIsRedirecting(false);
     }
   };
 
   // Check if all required fields are filled
-  const canProceed = formData.baseUrl.trim() && formData.apiKey.trim() && formData.ejentoAccessToken.trim() && formData.agentId.trim();
-
+  if(process.env.NEXT_PUBLIC_AUTH_FLOW === 'true'){
+    canProceed = formData.baseUrl.trim() && formData.apiKey.trim() && formData.agentId.trim();
+  }
+  else{
+    canProceed = formData.baseUrl.trim() && formData.apiKey.trim() && formData.ejentoAccessToken.trim() && formData.agentId.trim();
+  }
+  
   // Redirect env-driven users away from settings page - they should go directly to chat
   useEffect(() => {
     // If env config is validated and configured, redirect to chat
     // In PUBLIC_AGENT mode, still redirect if config is valid
     if (!isLoading && !isValidating && configSource === 'environment' && isConfigured && !validationError) {
-      router.replace('/chat');
+      router.replace(redirectPath);
     }
   }, [router, isLoading, isValidating, configSource, isConfigured, validationError]);
 
   // Show loading state while checking config
   if (isLoading || isValidating) {
     return (
-      <div className="container mx-auto p-6 max-w-2xl">
-        <div className="flex flex-col items-center justify-center min-h-[400px]">
-          <Loader2 className="h-12 w-12 animate-spin text-gray-400" />
-          <p className="text-gray-600 mt-4">
-            {isValidating ? 'Validating configuration...' : 'Loading configuration...'}
-          </p>
-        </div>
+      <div className="flex flex-col items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+        <p className="mt-4 text-gray-600">
+          {isValidating ? 'Validating configuration...' : 'Loading...'}
+        </p>
       </div>
     );
   }
 
-  // If env config is active and valid, show loading while redirecting (shouldn't usually see this)
+  // If env config is active and valid, show skeleton while redirecting
   if ((isEnvConfigured || configSource === 'environment') && isConfigured && !validationError) {
     return (
-      <div className="container mx-auto p-6 max-w-2xl">
-        <div className="flex flex-col items-center justify-center min-h-[400px]">
-          <Loader2 className="h-12 w-12 animate-spin text-gray-400" />
-          <p className="text-gray-600 mt-4">Redirecting to chat...</p>
-        </div>
+      <div className="flex flex-col items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+        <p className="mt-4 text-gray-600">
+          Loading...
+        </p>
       </div>
     );
   }
@@ -327,99 +361,129 @@ export default function SettingsPage() {
 
   // Show normal form for manual configuration
   return (
-    <div className="container mx-auto p-6 max-w-2xl">
-      <div className="mb-8 text-center">
-        <h1 className="text-3xl font-bold">Configuration</h1>
-        <p className="text-gray-600 mt-2">Enter your API credentials to get started</p>
-      </div>
+    <div className="container mx-auto p-6 max-w-2xl relative">
+      {isRedirecting ?
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Required Configuration</CardTitle>
-          <CardDescription>Please provide the following information to access the chat application</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div>
-            <Label htmlFor="baseUrl">Base URL *</Label>
-            <Input
-              id="baseUrl"
-              value={formData.baseUrl}
-              onChange={(e) => handleInputChange('baseUrl', e.target.value)}
-              placeholder="https://api.example.com"
-              className="mt-1"
-            />
+        <div className="flex flex-col items-center justify-center min-h-screen">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+          <p className="mt-4 text-gray-600">
+            Loading...
+          </p>
+        </div>
+        :
+        <div>
+          <div className="mb-8 text-center">
+            <h1 className="text-3xl font-bold">Configuration</h1>
+            <p className="text-gray-600 mt-2">Enter your API credentials to get started</p>
           </div>
+          <Card className={isRedirecting ? 'opacity-60 pointer-events-none' : ''}>
+            <CardHeader>
+              <CardTitle>Required Configuration</CardTitle>
+              <CardDescription>Please provide the following information to access the chat application</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div>
+                <Label htmlFor="baseUrl">Base URL *</Label>
+                <Input
+                  id="baseUrl"
+                  value={formData.baseUrl}
+                  onChange={(e) => handleInputChange('baseUrl', e.target.value)}
+                  placeholder="https://api.example.com"
+                  className="mt-1"
+                  disabled={isSavingConfig || isRedirecting}
+                />
+              </div>
 
-          <div>
-            <Label htmlFor="apiKey">API Key *</Label>
-            <div className="relative mt-1">
-              <Input
-                id="apiKey"
-                type={showTokens.apiKey ? 'text' : 'password'}
-                value={formData.apiKey}
-                onChange={(e) => handleInputChange('apiKey', e.target.value)}
-                placeholder="Your API key"
-                className="pr-10"
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="absolute right-0 top-0 h-full px-3"
-                onClick={() => toggleTokenVisibility('apiKey')}
-              >
-                {showTokens.apiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </Button>
-            </div>
-          </div>
+              <div>
+                <Label htmlFor="apiKey">API Key *</Label>
+                <div className="relative mt-1">
+                  <Input
+                    id="apiKey"
+                    type={showTokens.apiKey ? 'text' : 'password'}
+                    value={formData.apiKey}
+                    onChange={(e) => handleInputChange('apiKey', e.target.value)}
+                    placeholder="Your API key"
+                    className="pr-10"
+                    disabled={isSavingConfig || isRedirecting}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3"
+                    onClick={() => toggleTokenVisibility('apiKey')}
+                    disabled={isSavingConfig || isRedirecting}
+                  >
+                    {showTokens.apiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>  
+              </div>
+              {
+                process.env.NEXT_PUBLIC_AUTH_FLOW === 'true' ? '' : 
+                <div>
+                <Label htmlFor="ejentoAccessToken">Ejento Access Token *</Label>
+                <div className="relative mt-1">
+                  <Input
+                    id="ejentoAccessToken"
+                    type={showTokens.ejentoAccessToken ? 'text' : 'password'}
+                    value={formData.ejentoAccessToken}
+                    onChange={(e) => handleInputChange('ejentoAccessToken', e.target.value)}
+                    placeholder="Your Ejento access token"
+                    className="pr-10"
+                    disabled={isSavingConfig || isRedirecting}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3"
+                    onClick={() => toggleTokenVisibility('ejentoAccessToken')}
+                    disabled={isSavingConfig || isRedirecting}
+                  >
+                    {showTokens.ejentoAccessToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+              }
+              
 
-          <div>
-            <Label htmlFor="ejentoAccessToken">Ejento Access Token *</Label>
-            <div className="relative mt-1">
-              <Input
-                id="ejentoAccessToken"
-                type={showTokens.ejentoAccessToken ? 'text' : 'password'}
-                value={formData.ejentoAccessToken}
-                onChange={(e) => handleInputChange('ejentoAccessToken', e.target.value)}
-                placeholder="Your Ejento access token"
-                className="pr-10"
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="absolute right-0 top-0 h-full px-3"
-                onClick={() => toggleTokenVisibility('ejentoAccessToken')}
-              >
-                {showTokens.ejentoAccessToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </Button>
-            </div>
-          </div>
+              <div>
+                <Label htmlFor="agentId">Agent ID *</Label>
+                <Input
+                  id="agentId"
+                  value={formData.agentId}
+                  onChange={(e) => handleInputChange('agentId', e.target.value)}
+                  placeholder="agentId"
+                  className="mt-1"
+                  disabled={isSavingConfig || isRedirecting}
+                />
+              </div>
 
-          <div>
-            <Label htmlFor="agentId">Agent ID *</Label>
-            <Input
-              id="agentId"
-              value={formData.agentId}
-              onChange={(e) => handleInputChange('agentId', e.target.value)}
-              placeholder="agent-123"
-              className="mt-1"
-            />
-          </div>
-
-          <div className="pt-4">
-            <Button 
-              onClick={handleSaveAndProceed} 
-              className="w-full"
-              disabled={isSavingConfig || !canProceed}
-              size="lg"
-            >
-              <Save className="h-4 w-4 mr-2" />
-              {isSavingConfig ? 'Saving...' : 'Save Configuration and Proceed'}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+              <div className="pt-4">
+                <Button 
+                  onClick={handleSaveAndProceed} 
+                  className="w-full"
+                  disabled={isSavingConfig || isRedirecting || !canProceed}
+                  size="lg"
+                >
+                  {isRedirecting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Redirecting...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4 mr-2" />
+                      {isSavingConfig ? 'Saving...' : 'Save Configuration and Proceed'}
+                    </>
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      }
+      
     </div>
   );
 }
