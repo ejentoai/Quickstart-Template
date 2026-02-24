@@ -275,7 +275,7 @@ export function SidebarHistory({ fetchThreads, threads, groupedChats, setThreads
   const handleDelete = async () => {
     if (!deleteId) return;
     
-    // PUBLIC_AGENT mode: Delete from IndexedDB
+    // PUBLIC_AGENT mode: Delete from DB
     if (isPublicAgent && publicAgentSession) {
       try {
         const threadIdString = deleteId.toString();
@@ -319,6 +319,11 @@ export function SidebarHistory({ fetchThreads, threads, groupedChats, setThreads
     if (!apiService) return;
     
     try {
+      //this shows that thread is not craeted on backend yet
+      if(deleteId < 0) {
+        localStorage.removeItem('active_thread_id')
+        return
+      }
       const responsePromise = apiService.deleteChatThread(deleteId);
       toast.promise(responsePromise, {
         loading: 'Deleting chat...',
