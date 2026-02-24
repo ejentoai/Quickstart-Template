@@ -355,47 +355,31 @@ export class ApiService {
       throw new Error("An unexpected error occurred.");
     }
   }
-
-  async uploadDocumentToCorpus(corpusId: string, file: File) {
-    if (!corpusId || !file) {
-      throw new Error("Corpus ID and file are required");
-    }
-
-    const userId = 722 //change it and make dyna,ic
-  
+  async uploadDocumentToCorpus(corpusId: string, file: File){
     try {
-      const formData = new FormData();   
-      formData.append("content_type", "file");
-      const originalName = file.name;
-      const fixedName = originalName.replace(/(\.\w+)\1$/, "$1");
-      formData.append("source", file,originalName);
-      console.log(file,'file')
-      formData.append("upload_from", "web");
-      formData.append("user_id", String(userId));
-      formData.append("attachment", 'true');
+      const formData = new FormData();
   
-      const url = getProxiedUrl(
-        `/api/v2/corpora/${corpusId}/documents`,
-        this.config.baseUrl
-      );
+      formData.append("user_id", "722"); // required
+      formData.append("content_type", "file"); // required
+      formData.append("upload_from", "web"); // required
+      formData.append("attachment", "true"); // required
+      formData.append("source", file); // important (file)
   
-      const response = await axios.post(url, formData, {
-        headers: {
-          ...this.getHeaders(),
-          "Content-Type": "multipart/form-data",
-        },
+      const response = await fetch(`/api/corpus?id=${corpusId}`, {
+        method: "POST",
+        body: formData,
       });
   
-      return response.data;
-    } catch (error: any) {
-      if (axios.isAxiosError(error) && error.response) {
-        throw new Error(
-          error.response.data?.message || "Failed to upload document."
-        );
+      const data = await response.json();
+  
+      if (!response.ok) {
+        throw new Error(data.message || "Upload failed");
       }
-      throw new Error("An unexpected error occurred while uploading document.");
+      return data
+    } catch (error) {
+      console.error("Error uploading document:", error);
     }
-  }
+  };
 
   async getDocumentStatus(documentId: number): Promise<any> {
     try {

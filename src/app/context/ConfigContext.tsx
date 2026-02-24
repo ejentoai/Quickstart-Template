@@ -181,7 +181,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const showErrorAndRedirect = (message: string) => {
+    const showErrorAndRedirect = () => {
       setTimeout(() => {
         router.push('/settings');
       }, 500);
@@ -211,18 +211,16 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
   
         const data = await res.json();
   
-        if (data.envDrivenEnabled === false) return null;
+        if (data.envDrivenEnabled === 'false') return null;
   
         if (data.config && data.source === 'environment') {
           const envConfig: UserConfig = data.config;
           const isValid = await validateEnvConfig(envConfig);
           if (!isValid) {
-            console.log('i come here')
             setConfig(null);
             setConfigSource('environment');
             throw new Error('env variable validation fails');
           }
-  
           return envConfig;
         }
   
@@ -249,9 +247,12 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
             ejentoAccessToken: result.data.ejentoAccessToken || '',
           };
         }
+        else{
+          throw new Error('Error fetching cookies')
+        }
       } catch (err) {
         console.error("Error fetching config from cookies:", err);
-        showErrorAndRedirect('Error fetching config from cookies')
+        showErrorAndRedirect()
       }
       return null;
     };
@@ -261,12 +262,11 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
       try {
         const res = await fetch("/api/ejento-config");
         if (!res.ok) throw new Error('Error loading config!');
-  
         const dbConfig = await res.json();
         return dbConfig || null;
       } catch (err) {
         console.error("Error fetching config:", err);
-        showErrorAndRedirect('Error fetching config')
+        showErrorAndRedirect()
         return null
       }
     };

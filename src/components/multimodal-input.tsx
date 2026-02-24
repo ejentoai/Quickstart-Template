@@ -308,15 +308,15 @@ function PureMultimodalInput({
  
   const handleFileSubmission = async (file: File) => {
     try {      
+      const thread_id = localStorage.getItem('active_thread_id');
+  
       // Create corpus if it does not exist
-      const thread_id = localStorage.getItem('active_thread_id')
       const corpus_id = await createCorpus(thread_id);
       if (!corpus_id) throw new Error("Failed to create corpus");
- 
+  
       // Get thread ID (should exist now from handleAttachClick)
-      // const thread_id = localStorage.getItem('active_thread_id');
       if (!thread_id) throw new Error("Thread ID not found");
- 
+  
       // Create corpus and thread connection
       const corpus_connection = localStorage.getItem('corpus_connection')
       if(!corpus_connection){
@@ -325,17 +325,19 @@ function PureMultimodalInput({
           localStorage.setItem('corpus_connection', response.data.id)
         }
       }
- 
+  
       // Upload document to corpus
-      const uploadResponse = await apiService?.uploadDocumentToCorpus('19307', file);
-     
+      const uploadResponse = await apiService?.uploadDocumentToCorpus(corpus_id?.toString(), file);
+      console.log(uploadResponse,'uploadRespinse')
       if (uploadResponse?.data?.id) {
+        console.log(uploadResponse?.data?.id,'uploadResponse?.data?.id')
         const documentId = uploadResponse.data.id;
        
         // Start polling for document status
         let pollCount = 0;
         const maxPolls = 30; // 30 seconds max (1 second interval)
         let pollingActive = true;
+        let toastShown = false; // Flag to prevent multiple toasts
        
         const pollInterval = setInterval(async () => {
           if (!pollingActive) return;
@@ -344,7 +346,7 @@ function PureMultimodalInput({
             pollCount++;
            
             // Get document status
-            const statusResponse = await apiService?.getDocumentStatus(937357);
+            const statusResponse = await apiService?.getDocumentStatus(documentId);
            
             if (statusResponse?.data) {
               const documentData = statusResponse.data;
@@ -361,7 +363,13 @@ function PureMultimodalInput({
                 });
                
                 setUploadedFiles(prev => [...prev, file]);
-                toast.success(`${file.name} uploaded successfully`);
+                
+                // Only show toast if not already shown
+                if (!toastShown) {
+                  toastShown = true;
+                  toast.success(`${file.name} uploaded successfully`);
+                }
+                
                 setCurrentUpload(null);
                
               } else if (documentData.is_failed === true || documentData.step === "failed") {
@@ -381,7 +389,12 @@ function PureMultimodalInput({
                 });
                
                 setHasFailedUpload(true);
-                toast.error(`Failed to upload ${file.name} - processing failed`);
+                
+                // Only show toast if not already shown
+                if (!toastShown) {
+                  toastShown = true;
+                  toast.error(`Failed to upload ${file.name} - processing failed`);
+                }
                
               } else if (pollCount >= maxPolls) {
                 // Timeout reached
@@ -400,27 +413,40 @@ function PureMultimodalInput({
                 });
                
                 setHasFailedUpload(true);
-                toast.error(`Failed to upload ${file.name} - timeout`);
+                
+                // Only show toast if not already shown
+                if (!toastShown) {
+                  toastShown = true;
+                  toast.error(`Failed to upload ${file.name} - timeout`);
+                }
               }
               // Otherwise, continue polling (step is still "pending")
             }
           } catch (pollError) {
-            pollingActive = false;
-            clearInterval(pollInterval);
-           
-            // Get the current preview URL from the existing currentUpload state
-            const currentPreviewUrl = currentUpload?.previewUrl;
-           
-            // Mark current upload as error due to polling error but preserve the preview
-            setCurrentUpload({
-              file,
-              status: 'error',
-              error: pollError instanceof Error ? pollError.message : 'Error checking document status',
-              previewUrl: currentPreviewUrl // Preserve the preview URL
-            });
-           
-            setHasFailedUpload(true);
-            toast.error(`Failed to check status for ${file.name}`);
+            // Only handle error if polling is still active
+            if (pollingActive) {
+              pollingActive = false;
+              clearInterval(pollInterval);
+             
+              // Get the current preview URL from the existing currentUpload state
+              const currentPreviewUrl = currentUpload?.previewUrl;
+             
+              // Mark current upload as error due to polling error but preserve the preview
+              setCurrentUpload({
+                file,
+                status: 'error',
+                error: pollError instanceof Error ? pollError.message : 'Error checking document status',
+                previewUrl: currentPreviewUrl // Preserve the preview URL
+              });
+             
+              setHasFailedUpload(true);
+              
+              // Only show toast if not already shown
+              if (!toastShown) {
+                toastShown = true;
+                toast.error(`Failed to check status for ${file.name}`);
+              }
+            }
           }
         }, 1000); // Poll every 1 second
        
@@ -449,7 +475,7 @@ function PureMultimodalInput({
  
   const createCorpus = async (thread_id : any) => {
     const corpus_id = localStorage.getItem('corpus_id')
-     
+   
     if(!corpus_id){
       try{
         const response = await apiService?.createCorpus(thread_id)
