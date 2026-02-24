@@ -169,7 +169,6 @@ const ChatItem = ({
             onClick={() => {
               handleSetQueryParams(chat.id.toString(), document.getElementById(chat.id.toString())!.innerText);
               localStorage.setItem('active_thread_id', chat.id.toString())
-              localStorage.removeItem('corpus_connection')
               setOpenMobile(false);
             }}
           >
@@ -250,7 +249,6 @@ export function SidebarHistory({ fetchThreads, threads, groupedChats, setThreads
       const updatedThreads = threads.map(thread => {
         if (thread.id === parseInt(id)) {
           localStorage.setItem('active_thread_id', thread.id.toString())
-          localStorage.removeItem('corpus_connection')
           return {
             ...thread,
             title: title,
@@ -322,6 +320,10 @@ export function SidebarHistory({ fetchThreads, threads, groupedChats, setThreads
     if (!apiService) return;
     
     try {
+      if(deleteId < 0){
+        localStorage.removeItem('active_thread_id')
+        return
+      }
       const responsePromise = apiService.deleteChatThread(deleteId);
       toast.promise(responsePromise, {
         loading: 'Deleting chat...',

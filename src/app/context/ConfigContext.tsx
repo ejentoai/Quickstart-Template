@@ -228,7 +228,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
           throw new Error('env variable validation fails');
         }
       } catch (err) {
-        showErrorAndRedirect('env variable validation fails')
+        showErrorAndRedirect()
       }
     };
   
