@@ -211,7 +211,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
   
         const data = await res.json();
   
-        if (data.envDrivenEnabled === false) return null;
+        if (data.envDrivenEnabled === 'false') return null;
   
         if (data.config && data.source === 'environment') {
           const envConfig: UserConfig = data.config;
@@ -248,6 +248,9 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
             agentId: result.data.agentId,
             ejentoAccessToken: result.data.ejentoAccessToken || '',
           };
+        }
+        else{
+          throw new Error('error fetching cookies')
         }
       } catch (err) {
         console.error("Error fetching config from cookies:", err);
