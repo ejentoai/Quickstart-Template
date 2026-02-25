@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { decryptData } from "@/lib/utils";
-import {getUserFromCookie } from "@/cookie";
 import { useApiService } from "@/hooks/useApiService";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useConfig } from "@/app/context/ConfigContext";
@@ -179,7 +178,8 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
       }
     };
  
-    const handleSubmit = async (question?: string, regenerating?: boolean, messageIdToRegenerate?: string) => {
+    const handleSubmit = async (question?: string, regenerating?: boolean, messageIdToRegenerate?: string, Attachment?:boolean) => {
+      console.log(Attachment,'attachemtn')
       localStorage.setItem('query', question || input);
       localStorage.setItem('thread_id', id);
  
@@ -246,7 +246,11 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
             
           } else {
             // PUBLIC AGENT MODE: keep the old behavior
-            if (!isFirstMessageRef.current && hasExternalApiId) {
+            const external_thread_id = Number(localStorage.getItem('external_thread_id'));
+
+            if (external_thread_id) {
+              chatThreadId = external_thread_id;
+            } else if (!isFirstMessageRef.current) {
               try {
                 const response = await fetch(`/api/thread/${id}`);
                 if (response.ok) {
@@ -255,7 +259,7 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                 }
               } catch (error) {
                 console.error('Error fetching external API ID:', error);
-                chatThreadId = null; // Fallback
+                chatThreadId = null;
               }
             } else {
               chatThreadId = null;
@@ -273,6 +277,7 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
             },
             caching_enabled: regenerating ? false : true,
             user_query: question || input,
+            is_file_attached : true
           };
          
           setInput("");
@@ -556,20 +561,23 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
             chatThreadId = id ? parseInt(id as string) : null;
           } else {
             // PUBLIC AGENT MODE: keep the old behavior
-            if (!isFirstMessageRef.current && hasExternalApiId) {
-              try {
-                const response = await fetch(`/api/thread/${id}`);
-                if (response.ok) {
-                  const threadData = await response.json();
-                  chatThreadId = threadData.externalApiId;
+            const external_thread_id = Number(localStorage.getItem('external_thread_id'));
+              if (external_thread_id) {
+                chatThreadId = external_thread_id;
+              } else if (!isFirstMessageRef.current) {
+                try {
+                  const response = await fetch(`/api/thread/${id}`);
+                  if (response.ok) {
+                    const threadData = await response.json();
+                    chatThreadId = threadData.externalApiId;
+                  }
+                } catch (error) {
+                  console.error('Error fetching external API ID:', error);
+                  chatThreadId = null;
                 }
-              } catch (error) {
-                console.error('Error fetching external API ID:', error);
-                chatThreadId = null; // Fallback
+              } else {
+                chatThreadId = null;
               }
-            } else {
-              chatThreadId = null;
-            }
           }
  
           const requestBody: any = {
@@ -577,12 +585,12 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
             ...(chatHistory && chatHistory.length > 0 && { history: chatHistory }),
             user_query: question || input,
             query_source: "app-ejento",
-            is_file_attached: false,
+            is_file_attached: true,
             caching_enabled: regenerating ? false : true,
             overrides: {
               log_intermediate_response: true,
               retrieve_data_points: true
-            }
+            },
           };
  
           const response: any = await apiService.sendChat(requestBody);
@@ -692,7 +700,7 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
       }
     };
  
-    const append = (message: any, regenerating?: boolean) => {
+    const append = (message: any, regenerating?: boolean, Attachment?: boolean) => {
       if (regenerating && messages.length > 0) {
         const assistantMessageIndex = messages.findIndex((m: any) =>
           m.role === 'assistant' && m.id === message.id
@@ -705,13 +713,13 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
             const updatedMessages = [...messages];
             updatedMessages.splice(assistantMessageIndex, 1);
             setMessages(updatedMessages);
-            handleSubmit(userQuery, true, message.id);
+            handleSubmit(userQuery, true, message.id,Attachment);
           }
         } else {
-          handleSubmit(message?.query || message?.content, false);
+          handleSubmit(message?.query || message?.content,false,undefined,Attachment);
         }
       } else {
-        handleSubmit(message?.query || message?.content, false);
+        handleSubmit(message?.query || message?.content,false,undefined,Attachment);
       }
     };
  

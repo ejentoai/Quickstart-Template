@@ -174,6 +174,7 @@ export function AppSidebar() {
         const threadId = String(newThread.id);
 
         localStorage.removeItem('corpus_connection')
+        localStorage.removeItem('external_thread_id')
 
         handleSetQueryParams(
           threadId,
@@ -231,6 +232,8 @@ export function AppSidebar() {
       };
 
       const updatedThreads = [newThread, ...threads];
+      localStorage.removeItem('corpus_connection');
+      localStorage.removeItem('external_thread_id')
       setThreads(updatedThreads);
       groupChatsByDate(updatedThreads);
 

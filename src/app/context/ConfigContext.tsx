@@ -60,6 +60,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
   const [isValidating, setIsValidating] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const isAuthEnabled = process.env.NEXT_PUBLIC_AUTH_FLOW === 'true';
+  const isEnvDriven = process.env.NEXT_PUBLIC_ENV_DRIVEN === 'true'
   const [isConfigured, setIsConfigured] = useState<boolean>(false);
   let stored : any;
 
@@ -314,12 +315,13 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
       }
       //when auth is disable , variables would always be in Data Base because they had stored after validation
       // Auth flow disabled → fetch DB config
-      const dbConfig = await fetchDBConfig();
-      if (dbConfig) {
-        setConfig(dbConfig);
-        setConfigSource('database');
+      if(!isEnvDriven){
+        const dbConfig = await fetchDBConfig();
+        if (dbConfig) {
+          setConfig(dbConfig);
+          setConfigSource('database');
+        }
       }
-  
     } catch (err) {
       console.error("Error loading config:", err);
     } finally {

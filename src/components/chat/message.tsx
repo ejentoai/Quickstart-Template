@@ -414,6 +414,7 @@ const PurePreviewMessage = ({
           )}
  
           {message.content && mode === "view" && (
+            
             <div className="flex flex-row gap-2 items-start">
               {
                 <div
@@ -424,7 +425,7 @@ const PurePreviewMessage = ({
                   style={{ maxWidth: message.role === "user" ? '100%' : '', textWrap: 'wrap', wordBreak: 'break-word', backgroundColor: message.role === 'user' ? '#FF6B35' : '' }}
                 >
                   {
-                    message.content.includes('error::') ?
+                    typeof message.content === 'string' && message.content.includes('error::') ?
                       <div style={{ backgroundColor: '#fadede' }} className="px-3 py-2 rounded-xl">
                         <p style={{ color: 'red' }} className="pe-1">{!message.content.includes('undefined') ? message.content.split('::')[1] : `An unexpected error occurred. Please try again. `}</p>
                         <button

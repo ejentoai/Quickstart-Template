@@ -310,17 +310,6 @@ export class ApiService {
     if (!threadId && !corpus_id) {
       throw new Error("missing required parameters");
     }
-    if(process.env.NEXT_PUBLIC_AGENT === 'true'){
-         const thread = await axios.get(`/api/thread/${threadId}`)
-         console.log(thread,'threaddd')
-         if(thread.data.externalApiId){
-           threadId = thread.data.externalApiId
-         }
-         else{
-          console.error('error in getting thread external api id')
-          throw new Error('Error in fetching thread')
-         }
-    }
     try {
       const url = getProxiedUrl(
         `/api/v2/chat-threads/${threadId}/corpora/${corpus_id}`,
