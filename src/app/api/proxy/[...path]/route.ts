@@ -147,7 +147,7 @@ async function proxyRequest(request: NextRequest, pathArray: string[], method: s
         axiosFormData.append('user_id', userId.toString())
         axiosFormData.append('content_type', contentType.toString())
         axiosFormData.append('upload_from', uploadFrom.toString())
-        axiosFormData.append('attachment', attachment.toString())
+        axiosFormData.append('attachment', attachment?.toString() ?? '')
         
         // Handle file correctly - this is the tricky part
         if (source instanceof Blob) {

@@ -64,6 +64,8 @@ function PureMultimodalInput({
   isFinished?: boolean;
   setForceComplete: (value: boolean) => void;
 }) {
+  const pollingTimeRef = useRef<NodeJS.Timeout | null>(null) //reference to set time out poll
+  const isPollingActiveRef = useRef<boolean>(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { width } = useWindowSize();
@@ -92,6 +94,14 @@ function PureMultimodalInput({
     if (textareaRef.current) {
       adjustHeight();
     }
+    return () => {
+      // Clean up polling when component unmounts
+      isPollingActiveRef.current = false;
+      if (pollingTimeRef.current) {
+        clearTimeout(pollingTimeRef.current);
+        pollingTimeRef.current = null;
+      }
+    };
   }, []);
  
   const inactivityTimer = useRef<NodeJS.Timeout | null>(null);
@@ -146,10 +156,7 @@ function PureMultimodalInput({
     }
   }, [currentUpload?.file]);
  
-  if (!apiService && !configLoading) {
-    //although config is validated before login but for safe side we are checking it here
-    return <ConfigError validationError={validationError}/>;
-  }
+  
  
   const handleInput = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     setForceComplete(false);
@@ -305,6 +312,16 @@ function PureMultimodalInput({
   };
  
   const removeCurrentUpload = () => {
+    // Stop polling
+    isPollingActiveRef.current = false;
+    
+    // Clear any pending timeout
+    if (pollingTimeRef.current) {
+      clearTimeout(pollingTimeRef.current);
+      pollingTimeRef.current = null;
+    }
+    
+    // Clear the upload from UI
     setCurrentUpload(null);
     setHasFailedUpload(false);
   };
@@ -324,18 +341,20 @@ function PureMultimodalInput({
       return;
     } 
 
+    const Attachment = uploadedFiles.length > 0 || currentUpload !== null;
    
     if (input?.length < 50 && (messages?.length || 0) < 1) {
-      const Attachment = uploadedFiles.length > 0 || currentUpload !== null;
       setForceComplete(true);
       setTimeout(() => {
         handleSubmit(input,undefined,undefined,Attachment);
-
+        setCurrentUpload(null)
+        setUploadedFiles([])
         setLocalStorageInput('');
       }, 700);
     } else {
-      const Attachment = uploadedFiles.length > 0 || currentUpload !== null;
       handleSubmit(input,undefined,undefined,Attachment);
+      setCurrentUpload(null)
+      setUploadedFiles([])
       setLocalStorageInput('');
     }
     if (textareaRef.current) {
@@ -357,7 +376,6 @@ function PureMultimodalInput({
  
   const handleFileSubmission = async (file: File) => {
     try {      
-
       if(isPublicAgent){
         thread_id = localStorage.getItem('external_thread_id');
       }
@@ -383,117 +401,144 @@ function PureMultimodalInput({
   
       // Upload document to corpus
       const uploadResponse = await apiService?.uploadDocumentToCorpus(corpus_id?.toString(), file);
-      console.log(uploadResponse,'uploadRespinse')
+      
       if (uploadResponse?.data?.id) {
-        console.log(uploadResponse?.data?.id,'uploadResponse?.data?.id')
         const documentId = uploadResponse.data.id;
        
         // Start polling for document status
-      let pollCount = 0;
-      const maxPolls = 30;
-      let toastShown = false;
-
-      const poll = async () => {
-        try {
-          pollCount++;
-
-          const statusResponse = await apiService?.getDocumentStatus(documentId);
-
-          if (statusResponse?.data) {
-            const documentData = statusResponse.data;
-
-            // ✅ SUCCESS
-            if (documentData.step === "completed") {
-              setCurrentUpload({
-                file,
-                status: "success"
-              });
-
-              setUploadedFiles(prev => [...prev, file]);
-
-              if (!toastShown) {
-                toastShown = true;
-                toast.success(`${file.name} uploaded successfully`);
-              }
-
-              setCurrentUpload(null);
-              return; // 🔥 STOP polling
-            }
-
-            // ❌ FAILED
-            if (
-              documentData.is_failed === true ||
-              documentData.step === "failed"
-            ) {
-              const currentPreviewUrl = currentUpload?.previewUrl;
-
-              setCurrentUpload({
-                file,
-                status: "error",
-                error: "Document processing failed",
-                previewUrl: currentPreviewUrl
-              });
-
-              setHasFailedUpload(true);
-
-              if (!toastShown) {
-                toastShown = true;
-                toast.error(`Failed to upload ${file.name}`);
-              }
-
-              return; // 🔥 STOP polling
-            }
-
-            // ⏳ TIMEOUT
-            if (pollCount >= maxPolls) {
-              const currentPreviewUrl = currentUpload?.previewUrl;
-
-              setCurrentUpload({
-                file,
-                status: "error",
-                error: "Upload timeout - document processing took too long",
-                previewUrl: currentPreviewUrl
-              });
-
-              setHasFailedUpload(true);
-
-              if (!toastShown) {
-                toastShown = true;
-                toast.error(`Failed to upload ${file.name} - timeout`);
-              }
-
-              return; // 🔥 STOP polling
-            }
+        let pollCount = 0;
+        const maxPolls = 30;
+        let toastShown = false;
+  
+        // Set polling as active
+        isPollingActiveRef.current = true;
+  
+        const poll = async () => {
+          if (!isPollingActiveRef.current) {
+            console.log('Polling stopped by user - exiting');
+            return;
           }
+  
+          try {
+            pollCount++;
+  
+            const statusResponse = await apiService?.getDocumentStatus(documentId);
+  
+            // Check again after await in case user clicked close during the API call
+            if (!isPollingActiveRef.current) {
+              console.log('Polling stopped during API call - exiting');
+              return;
+            }
+  
+            if (statusResponse?.data) {
+              const documentData = statusResponse.data;
+  
+              if (documentData.step === "completed") {
+                if (!isPollingActiveRef.current) return;
+                
+                setCurrentUpload({
+                  file,
+                  status: "success"
+                });
+  
+                setUploadedFiles(prev => [...prev, file]);
+  
+                if (!toastShown) {
+                  toastShown = true;
+                  toast.success(`${file.name} uploaded successfully`);
+                }
+  
+                setCurrentUpload(null);
+                isPollingActiveRef.current = false;
+                return;
+              }
 
-          // 🔁 Continue polling only if not stopped
-          setTimeout(poll, 1000);
+              if (
+                documentData.is_failed === true ||
+                documentData.step === "failed"
+              ) {
+                if (!isPollingActiveRef.current) return;
+                
+                const currentPreviewUrl = currentUpload?.previewUrl;
+  
+                setCurrentUpload({
+                  file,
+                  status: "error",
+                  error: "Document processing failed",
+                  previewUrl: currentPreviewUrl
+                });
+  
+                setHasFailedUpload(true);
+  
+                if (!toastShown) {
+                  toastShown = true;
+                  toast.error(`Failed to upload ${file.name}`);
+                }
+                isPollingActiveRef.current = false;
+                return;
+              }
 
-        } catch (pollError) {
-          const currentPreviewUrl = currentUpload?.previewUrl;
-
-          setCurrentUpload({
-            file,
-            status: "error",
-            error:
-              pollError instanceof Error
-                ? pollError.message
-                : "Error checking document status",
-            previewUrl: currentPreviewUrl
-          });
-
-          setHasFailedUpload(true);
-
-          if (!toastShown) {
-            toastShown = true;
-            toast.error(`Failed to check status for ${file.name}`);
+              if (pollCount >= maxPolls) {
+                if (!isPollingActiveRef.current) return;
+                
+                const currentPreviewUrl = currentUpload?.previewUrl;
+  
+                setCurrentUpload({
+                  file,
+                  status: "error",
+                  error: "Upload timeout - document processing took too long",
+                  previewUrl: currentPreviewUrl
+                });
+  
+                setHasFailedUpload(true);
+  
+                if (!toastShown) {
+                  toastShown = true;
+                  toast.error(`Failed to upload ${file.name} - timeout`);
+                }
+                isPollingActiveRef.current = false;
+                return;
+              }
+            }
+  
+            // Schedule next poll ONLY if still active
+            if (isPollingActiveRef.current) {
+              // Clear any existing timeout first (safety measure)
+              if (pollingTimeRef.current) {
+                clearTimeout(pollingTimeRef.current);
+              }
+              
+              pollingTimeRef.current = setTimeout(poll, 1000);
+            } else {
+              console.log('Not scheduling next poll - polling inactive');
+            }
+  
+          } catch (pollError) {
+            if (!isPollingActiveRef.current) return;
+            
+            const currentPreviewUrl = currentUpload?.previewUrl;
+  
+            setCurrentUpload({
+              file,
+              status: "error",
+              error: pollError instanceof Error ? pollError.message : "Error checking document status",
+              previewUrl: currentPreviewUrl
+            });
+  
+            setHasFailedUpload(true);
+  
+            if (!toastShown) {
+              toastShown = true;
+              toast.error(`Failed to check status for ${file.name}`);
+            }
+  
+            isPollingActiveRef.current = false;
+            return;
           }
-
-          return; // 🔥 STOP polling
-        }
-      };
-
-      poll();
+        };
+  
+        // Start the first poll
+        poll();
        
       } else {
         throw new Error('Upload failed - no document ID received');
@@ -502,15 +547,13 @@ function PureMultimodalInput({
     } catch (error) {
       console.error('something went wrong when uploading file', error);
      
-      // Get the current preview URL from the existing currentUpload state
       const currentPreviewUrl = currentUpload?.previewUrl;
      
-      // Mark current upload as error but preserve the preview
       setCurrentUpload({
         file,
         status: 'error',
         error: error instanceof Error ? error.message : 'Upload failed',
-        previewUrl: currentPreviewUrl // Preserve the preview URL
+        previewUrl: currentPreviewUrl
       });
      
       setHasFailedUpload(true);
@@ -566,20 +609,25 @@ function PureMultimodalInput({
         return '📎';
     }
   };
+
+  if (!apiService && !configLoading) {
+    //although config is validated before login but for safe side we are checking it here
+    return <ConfigError validationError={validationError}/>;
+  }
  
   return (
     <div className="w-full flex flex-col items-center">
-      {/* Small File Preview Thumbnails */}
+
       {(currentUpload || uploadedFiles.length > 0) && (
         <div className="flex flex-wrap gap-2 mb-3 w-full max-w-3xl px-2">
-          {/* Current upload preview */}
+
           {currentUpload && (
             <div className="relative">
               <div className={cx(
                 "w-20 h-20 rounded-lg overflow-hidden border-2 bg-gray-100 flex items-center justify-center",
                 currentUpload.status === 'error' ? 'border-red-500' : 'border-gray-300'
               )}>
-                {/* Always show preview URL if available, regardless of status */}
+                
                 {currentUpload.previewUrl ? (
                   <img
                     src={currentUpload.previewUrl}
@@ -587,13 +635,13 @@ function PureMultimodalInput({
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  /* Only show icon if there's no preview URL (non-image files) */
+                   
                   <div className="text-3xl opacity-50">
                     {getFileIcon(currentUpload.file.name)}
                   </div>
                 )}
                
-                {/* Loading Spinner Overlay - only show when uploading */}
+                {/* Loading Spinner Overlay  */}
                 {currentUpload.status === 'uploading' && (
                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                     <Spinner className="h-6 w-6 text-white" />
@@ -601,7 +649,7 @@ function PureMultimodalInput({
                 )}
               </div>
              
-              {/* Close button - always red for error state, otherwise black */}
+              {/* Close button */}
               <button
                 onClick={removeCurrentUpload}
                 className={cx(

@@ -23,6 +23,12 @@ export async function POST(req : NextRequest){
     }
     else{
         cookieCredentials = req.cookies.get('ejento_api_credentials')?.value
+        if (!cookieCredentials) {
+        return NextResponse.json(
+            { error: 'Authentication required' },
+            { status: 401 }
+        )
+        }
         console.log(cookieCredentials,'cookieCredentials')
         const parsedCredentials = JSON.parse(cookieCredentials)
         console.log(parsedCredentials,'parse')
@@ -33,7 +39,15 @@ export async function POST(req : NextRequest){
             { error: 'Authentication required' }, { status: 401 }
         )
     }
-    let headers = {}
+
+    if (!INDEXING_SERVICE_HEADER || !INDEXING_SERVICE_KEY) {
+        return NextResponse.json(
+          { error: 'Indexing service env variables are missing' },
+          { status: 500 }
+        )
+    }
+
+    let headers: Record<string, string> = {}
     headers['Authorization'] = `${ejentoAccessToken}`
     headers[INDEXING_SERVICE_HEADER] = INDEXING_SERVICE_KEY
     try{
@@ -44,7 +58,7 @@ export async function POST(req : NextRequest){
         formData.append('source',source,filename)
       }
       else{
-         formData.append('source',source?.toString())
+          formData.append('source', source?.toString() || '')
       }
       const url = `${INDEXING_SERVICE_URL}/api/v2/corpora/${id}/documents`
       const response = await axios.post(url, formData, { headers })

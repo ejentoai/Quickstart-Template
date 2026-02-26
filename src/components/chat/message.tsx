@@ -117,7 +117,7 @@ interface PreviewMessageProps {
   messages: Array<any>;
   selectedCorpus?: any;
   showRetry: boolean;
-  append: (message: any, chatRequestOptions?: any) => Promise<string | null | undefined>;
+  append: (message: any, chatRequestOptions?: any, Attachment?:any) => Promise<string | null | undefined>;
   setIsFinished: Dispatch<SetStateAction<boolean>>;
   streaming: boolean;
   streamContentRef: any;

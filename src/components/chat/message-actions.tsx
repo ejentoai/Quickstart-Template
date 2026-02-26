@@ -51,7 +51,7 @@ export function MessageActions({
   vote: any | undefined;
   isLoading: boolean;
   setMessages: any;
-  append: (message: any, chatRequestOptions?: any) => Promise<string | null | undefined>
+  append: (message: any, chatRequestOptions?: any, Attachment?:any) => Promise<string | null | undefined>
   showRetry: boolean;
   messages: any[],
   index: number
@@ -186,7 +186,7 @@ export function MessageActions({
         if (!res.ok) {
           toast.error('Unable to upvote', { id: toastId });
           console.error('[DEBUG] Upvote failed (Public Agent):', res.statusText);
-          return;a
+          return;
         }
  
         toast.success('Upvoted Response!', { id: toastId });
