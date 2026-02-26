@@ -3,6 +3,7 @@
 import { setUserToCookie } from '@/cookie';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { ConfigError } from '@/components/configError';
 
 export interface UserConfig {
   baseUrl: string;
@@ -38,8 +39,6 @@ interface ConfigContextType {
   setConfigSource: (source: ConfigSource) => void;
   setConfig: (config: UserConfig) => void,
   loadConfig: () => Promise<void>
-
-
 }
 
 const ConfigContext = createContext<ConfigContextType | undefined>(undefined);
@@ -62,7 +61,6 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
   const isAuthEnabled = process.env.NEXT_PUBLIC_AUTH_FLOW === 'true';
   const [isConfigured, setIsConfigured] = useState<boolean>(false);
   const isEnvDriven = process.env.NEXT_PUBLIC_ENV_DRIVEN === 'true'
-  let stored : any;
 
   const updateConfig = (newConfig: Partial<UserConfig>, source: ConfigSource) => {
     setConfig(prev => (prev ? { ...prev, ...newConfig } : (newConfig as UserConfig)));
@@ -89,7 +87,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  //this method is used to store configuration to data base basen on next js api
+  //this method is used to store configuration to data base via next js api
   const saveConfig = async (updatedConfig? : any ) => {
     if (!config || typeof window === 'undefined' || configSource !== 'database') {
       return;
@@ -173,7 +171,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
   //2. data base (prisma)
   //3. env variables when env driven is enable
   const loadConfig = async () => {
-    const configSaved = localStorage.getItem('configSaved')
+    const configSaved = localStorage.getItem('configSaved') 
     if(configSource !== 'environment' && configSaved){
       setIsConfigured(true)
     }
@@ -182,11 +180,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const showErrorAndRedirect = (message: string) => {
-      setTimeout(() => {
-        router.push('/settings');
-      }, 500);
-    };
+    const showErrorAndRedirect = () => <ConfigError/>
   
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000);
@@ -218,12 +212,10 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
           const envConfig: UserConfig = data.config;
           const isValid = await validateEnvConfig(envConfig);
           if (!isValid) {
-            console.log('i come here')
             setConfig(null);
             setConfigSource('environment');
             throw new Error('env variable validation fails');
           }
-  
           return envConfig;
         }
   
@@ -231,7 +223,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
           throw new Error('env variable validation fails');
         }
       } catch (err) {
-        showErrorAndRedirect('env variable validation fails')
+        showErrorAndRedirect()
       }
     };
   
@@ -251,11 +243,11 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
           };
         }
         else{
-          throw new Error('error fetching cookies')
+          throw new Error('Error fetching cookies')
         }
       } catch (err) {
         console.error("Error fetching config from cookies:", err);
-        showErrorAndRedirect('Error fetching config from cookies')
+        showErrorAndRedirect()
       }
       return null;
     };
@@ -265,12 +257,11 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
       try {
         const res = await fetch("/api/ejento-config");
         if (!res.ok) throw new Error('Error loading config!');
-  
         const dbConfig = await res.json();
         return dbConfig || null;
       } catch (err) {
         console.error("Error fetching config:", err);
-        showErrorAndRedirect('Error fetching config')
+        showErrorAndRedirect()
         return null
       }
     };
@@ -285,9 +276,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
         cleanup();
         return;
       }
-
       const isAuthFlow = process.env.NEXT_PUBLIC_AUTH_FLOW === "true";
-  
       if (isAuthFlow) {
         //when auth is enable there are 2 cases 
         //1. variables are in cookie and not store to data base yet because user id is not available 
@@ -307,26 +296,24 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
           cleanup();
           return;
         }
-
-        if(!isEnvDriven){
-          // If validator not present, fetch from DB
-          const dbConfig = await fetchDBConfig();
-          if (dbConfig) {
-            setConfig(dbConfig);
-            setConfigSource('database');
-          }
-          cleanup();
-          return;
-          }
+        // If validator not present, fetch from DB
+        const dbConfig = await fetchDBConfig();
+        if (dbConfig) {
+          setConfig(dbConfig);
+          setConfigSource('database');
+        }
+        cleanup();
+        return;
       }
       //when auth is disable , variables would always be in Data Base because they had stored after validation
       // Auth flow disabled → fetch DB config
-      const dbConfig = await fetchDBConfig();
-      if (dbConfig) {
-        setConfig(dbConfig);
-        setConfigSource('database');
+      if(!isEnvDriven && configSaved){
+        const dbConfig = await fetchDBConfig();
+        if (dbConfig) {
+          setConfig(dbConfig);
+          setConfigSource('database');
+        }
       }
-  
     } catch (err) {
       console.error("Error loading config:", err);
     } finally {
