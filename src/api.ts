@@ -276,7 +276,7 @@ export class ApiService {
     }
   }
 
-  async createChatThread(agentId: number, created_by?: string): Promise<createChatThreadResponse[]> {
+  async createChatThread(agentId: number, created_by?: string): Promise<createChatThreadResponse> {
 
     if (!agentId) {
       throw new Error("agentId is required.");
@@ -292,7 +292,7 @@ export class ApiService {
         `api/v2/agents/${agentId}/chat-threads`,
         this.config.baseUrl
       );
-      const response = await axios.post<createChatThreadResponse[]>(url, body, {
+      const response = await axios.post<createChatThreadResponse>(url, body, {
         headers: this.getHeaders(),
       });
 

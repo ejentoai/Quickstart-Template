@@ -1,9 +1,5 @@
 'use client';
- 
-import type {
-  ChatRequestOptions,
-  CreateMessage,
-} from 'ai';
+
 import cx from 'classnames';
 import type React from 'react';
 import {
@@ -64,10 +60,13 @@ function PureMultimodalInput({
   isFinished?: boolean;
   setForceComplete: (value: boolean) => void;
 }) {
+  
   const pollingTimeRef = useRef<NodeJS.Timeout | null>(null) //reference to set time out poll
   const isPollingActiveRef = useRef<boolean>(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isUploadCancelledRef = useRef<boolean>(false);
+
   const { width } = useWindowSize();
   let thread_id;
   const searchParams = useSearchParams()
@@ -156,14 +155,21 @@ function PureMultimodalInput({
     }
   }, [currentUpload?.file]);
  
-  
- 
   const handleInput = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     setForceComplete(false);
     setInput(event.target.value);
     adjustHeight();
   };
  
+  const isDuplicateFile = (file : File) => {
+    const alreadyUploaded = uploadedFiles.some(
+      (f) => 
+        f.name === file.name &&
+        f.size === file.size &&
+        f.lastModified === file.lastModified
+    )
+    return alreadyUploaded
+  }
   const createThread = async () => {
 
     if(isPublicAgent){
@@ -220,6 +226,7 @@ function PureMultimodalInput({
 
     //for public agebt mode always create the thread as we need extrenal thread id 
     if(isPublicAgent){
+      const external_thread_id = localStorage.getItem('external_thread_id')
       try{
         const response = await fetch(`/api/thread/${id}`);
         if (response.ok) {
@@ -229,7 +236,7 @@ function PureMultimodalInput({
             localStorage.setItem('external_thread_id',threadData.externalApiId)
             thread_id = threadData.externalApiId
           }
-          else{
+          else if(!external_thread_id){
             thread_id = await createThread();
             console.log('created the thread',thread_id)
             if (!thread_id) throw new Error("Something went wrong");
@@ -281,6 +288,12 @@ function PureMultimodalInput({
     // Only process one file at a time
     if (files.length > 0) {
       const file = files[0]; // Take only the first file
+
+      //Duplicate check
+      if(isDuplicateFile(file)){
+        toast.error('This file has already been uploaded.');
+        return;
+      }
      
       // Check if already uploading
       if (currentUpload?.status === 'uploading') {
@@ -312,16 +325,19 @@ function PureMultimodalInput({
   };
  
   const removeCurrentUpload = () => {
+    // Mark upload as cancelled
+    isUploadCancelledRef.current = true;
+  
     // Stop polling
     isPollingActiveRef.current = false;
-    
-    // Clear any pending timeout
+  
+    // Clear timeout if exists
     if (pollingTimeRef.current) {
       clearTimeout(pollingTimeRef.current);
       pollingTimeRef.current = null;
     }
-    
-    // Clear the upload from UI
+  
+    // Clear UI state
     setCurrentUpload(null);
     setHasFailedUpload(false);
   };
@@ -375,187 +391,187 @@ function PureMultimodalInput({
   ]);
  
   const handleFileSubmission = async (file: File) => {
-    try {      
-      if(isPublicAgent){
+    try {
+      // Reset cancel flag when new upload starts
+      isUploadCancelledRef.current = false;
+  
+      if (isPublicAgent) {
         thread_id = localStorage.getItem('external_thread_id');
-      }
-      else{
+      } else {
         thread_id = localStorage.getItem('active_thread_id');
       }
-     
-      // Create corpus if it does not exist
+  
+      if (isUploadCancelledRef.current) return;
+  
+      // Create corpus
       const corpus_id = await createCorpus(thread_id);
       if (!corpus_id) throw new Error("Failed to create corpus");
   
-      // Get thread ID (should exist now from handleAttachClick)
+      if (isUploadCancelledRef.current) return;
+  
       if (!thread_id) throw new Error("Thread ID not found");
   
-      // Create corpus and thread connection
-      const corpus_connection = localStorage.getItem('corpus_connection')
-      if(!corpus_connection){
-        const response = await apiService?.createCorpusThreadConnection(thread_id?.toString(), corpus_id?.toString())
+      // Create corpus-thread connection if not exists
+      const corpus_connection = localStorage.getItem('corpus_connection');
+  
+      if (!corpus_connection) {
+        const response = await apiService?.createCorpusThreadConnection(
+          thread_id?.toString(),
+          corpus_id?.toString()
+        );
+  
+        if (isUploadCancelledRef.current) return;
+  
         if (response?.data.id) {
-          localStorage.setItem('corpus_connection', response.data.id)
+          localStorage.setItem('corpus_connection', response.data.id);
         }
       }
   
-      // Upload document to corpus
-      const uploadResponse = await apiService?.uploadDocumentToCorpus(corpus_id?.toString(), file);
-      
-      if (uploadResponse?.data?.id) {
-        const documentId = uploadResponse.data.id;
-       
-        // Start polling for document status
-        let pollCount = 0;
-        const maxPolls = 30;
-        let toastShown = false;
+      if (isUploadCancelledRef.current) return;
   
-        // Set polling as active
-        isPollingActiveRef.current = true;
+      // Upload document
+      const uploadResponse = await apiService?.uploadDocumentToCorpus(
+        corpus_id?.toString(),
+        file
+      );
   
-        const poll = async () => {
-          if (!isPollingActiveRef.current) {
-            console.log('Polling stopped by user - exiting');
+      if (isUploadCancelledRef.current) {
+        console.log("Upload cancelled before completion");
+        return;
+      }
+  
+      if (!uploadResponse?.data?.id) {
+        throw new Error('Upload failed - no document ID received');
+      }
+  
+      const documentId = uploadResponse.data.id;
+  
+      // Start polling ONLY if not cancelled
+      if (isUploadCancelledRef.current) return;
+  
+      let pollCount = 0;
+      const maxPolls = 30;
+      let toastShown = false;
+  
+      isPollingActiveRef.current = true;
+  
+      const poll = async () => {
+        if (!isPollingActiveRef.current || isUploadCancelledRef.current) {
+          return;
+        }
+  
+        try {
+          pollCount++;
+  
+          const statusResponse = await apiService?.getDocumentStatus(documentId);
+  
+          if (!isPollingActiveRef.current || isUploadCancelledRef.current) {
             return;
           }
   
-          try {
-            pollCount++;
+          if (statusResponse?.data) {
+            const documentData = statusResponse.data;
   
-            const statusResponse = await apiService?.getDocumentStatus(documentId);
+            if (documentData.step === "completed") {
+              setCurrentUpload({
+                file,
+                status: "success"
+              });
   
-            // Check again after await in case user clicked close during the API call
-            if (!isPollingActiveRef.current) {
-              console.log('Polling stopped during API call - exiting');
+              setUploadedFiles(prev => [...prev, file]);
+  
+              if (!toastShown) {
+                toastShown = true;
+                toast.success(`${file.name} uploaded successfully`);
+              }
+  
+              setCurrentUpload(null);
+              isPollingActiveRef.current = false;
               return;
             }
   
-            if (statusResponse?.data) {
-              const documentData = statusResponse.data;
+            if (
+              documentData.is_failed === true ||
+              documentData.step === "failed"
+            ) {
+              setCurrentUpload({
+                file,
+                status: "error",
+                error: "Document processing failed"
+              });
   
-              if (documentData.step === "completed") {
-                if (!isPollingActiveRef.current) return;
-                
-                setCurrentUpload({
-                  file,
-                  status: "success"
-                });
+              setHasFailedUpload(true);
   
-                setUploadedFiles(prev => [...prev, file]);
-  
-                if (!toastShown) {
-                  toastShown = true;
-                  toast.success(`${file.name} uploaded successfully`);
-                }
-  
-                setCurrentUpload(null);
-                isPollingActiveRef.current = false;
-                return;
+              if (!toastShown) {
+                toastShown = true;
+                toast.error(`Failed to upload ${file.name}`);
               }
-
-              if (
-                documentData.is_failed === true ||
-                documentData.step === "failed"
-              ) {
-                if (!isPollingActiveRef.current) return;
-                
-                const currentPreviewUrl = currentUpload?.previewUrl;
   
-                setCurrentUpload({
-                  file,
-                  status: "error",
-                  error: "Document processing failed",
-                  previewUrl: currentPreviewUrl
-                });
-  
-                setHasFailedUpload(true);
-  
-                if (!toastShown) {
-                  toastShown = true;
-                  toast.error(`Failed to upload ${file.name}`);
-                }
-                isPollingActiveRef.current = false;
-                return;
-              }
-
-              if (pollCount >= maxPolls) {
-                if (!isPollingActiveRef.current) return;
-                
-                const currentPreviewUrl = currentUpload?.previewUrl;
-  
-                setCurrentUpload({
-                  file,
-                  status: "error",
-                  error: "Upload timeout - document processing took too long",
-                  previewUrl: currentPreviewUrl
-                });
-  
-                setHasFailedUpload(true);
-  
-                if (!toastShown) {
-                  toastShown = true;
-                  toast.error(`Failed to upload ${file.name} - timeout`);
-                }
-                isPollingActiveRef.current = false;
-                return;
-              }
+              isPollingActiveRef.current = false;
+              return;
             }
   
-            // Schedule next poll ONLY if still active
-            if (isPollingActiveRef.current) {
-              // Clear any existing timeout first (safety measure)
-              if (pollingTimeRef.current) {
-                clearTimeout(pollingTimeRef.current);
+            if (pollCount >= maxPolls) {
+              setCurrentUpload({
+                file,
+                status: "error",
+                error: "Upload timeout - document processing took too long"
+              });
+  
+              setHasFailedUpload(true);
+  
+              if (!toastShown) {
+                toastShown = true;
+                toast.error(`Failed to upload ${file.name} - timeout`);
               }
-              
-              pollingTimeRef.current = setTimeout(poll, 1000);
-            } else {
-              console.log('Not scheduling next poll - polling inactive');
+  
+              isPollingActiveRef.current = false;
+              return;
             }
-  
-          } catch (pollError) {
-            if (!isPollingActiveRef.current) return;
-            
-            const currentPreviewUrl = currentUpload?.previewUrl;
-  
-            setCurrentUpload({
-              file,
-              status: "error",
-              error: pollError instanceof Error ? pollError.message : "Error checking document status",
-              previewUrl: currentPreviewUrl
-            });
-  
-            setHasFailedUpload(true);
-  
-            if (!toastShown) {
-              toastShown = true;
-              toast.error(`Failed to check status for ${file.name}`);
-            }
-  
-            isPollingActiveRef.current = false;
-            return;
           }
-        };
   
-        // Start the first poll
+          if (isPollingActiveRef.current && !isUploadCancelledRef.current) {
+            pollingTimeRef.current = setTimeout(poll, 1000);
+          }
+  
+        } catch (pollError) {
+          if (isUploadCancelledRef.current) return;
+  
+          setCurrentUpload({
+            file,
+            status: "error",
+            error: pollError instanceof Error
+              ? pollError.message
+              : "Error checking document status"
+          });
+  
+          setHasFailedUpload(true);
+  
+          if (!toastShown) {
+            toastShown = true;
+            toast.error(`Failed to check status for ${file.name}`);
+          }
+  
+          isPollingActiveRef.current = false;
+        }
+      };
+  
+      // Start first poll only if not cancelled
+      if (!isUploadCancelledRef.current) {
         poll();
-       
-      } else {
-        throw new Error('Upload failed - no document ID received');
       }
-     
+  
     } catch (error) {
+      if (isUploadCancelledRef.current) return;
+  
       console.error('something went wrong when uploading file', error);
-     
-      const currentPreviewUrl = currentUpload?.previewUrl;
-     
+  
       setCurrentUpload({
         file,
         status: 'error',
-        error: error instanceof Error ? error.message : 'Upload failed',
-        previewUrl: currentPreviewUrl
+        error: error instanceof Error ? error.message : 'Upload failed'
       });
-     
+  
       setHasFailedUpload(true);
       toast.error(`Failed to upload ${file.name}`);
     }
