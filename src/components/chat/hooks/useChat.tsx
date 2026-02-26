@@ -5,7 +5,7 @@ import { decryptData,handleSetQueryParams } from "@/lib/utils";
 import { useApiService } from "@/hooks/useApiService";
 import { useSearchParams} from "next/navigation";
 import { toast } from 'sonner';
-import { isPublicAgentMode } from "@/lib/storage/indexeddb";
+import { isPublicAgentMode } from '@/lib/utils';
 import { usePublicAgentSession } from "@/hooks/usePublicAgentSession";
 
 export function formatChatData(chatArray: any[]) {
@@ -390,8 +390,6 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                         }
                       }, 100);
                     }
-
-                    console.log(belongsToCurrentThread,'belongsToCurrentThread')
                     if (belongsToCurrentThread) {
                       
                       const savedReflectionEvents = [...reflectionEventsRef.current];

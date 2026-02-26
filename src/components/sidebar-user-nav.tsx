@@ -24,7 +24,7 @@ import { useRouter } from 'next/navigation';
 import { clearUserFromStorage, getUserFromCookie, removeAccessToken, removeEjentoAccessToken, setUserToCookie, getEjentoAccessToken, clearUserFromCookie } from '@/cookie';
 import { toast } from 'sonner';
 import { Eye, EyeOff,LogOut } from 'lucide-react';
-import { isPublicAgentMode } from '@/lib/storage/indexeddb';
+import { isPublicAgentMode } from '@/lib/utils';
 import { usePublicAgentSession } from '@/hooks/usePublicAgentSession';
 
 export function SidebarUserNav() {
@@ -219,12 +219,7 @@ export function SidebarUserNav() {
             email: userData.email || newConfig?.userInfo?.email,
           }
         };
-        
-        console.log(updatedConfig,'updatedConfigupdatedConfig')
-        console.log(configSource,'configSource')
-        console.log(configSource,'sourceeeeeee')
         updateConfig(updatedConfig as any,configSource);
-        console.log('goin to save config')
         saveConfig(updatedConfig);
         setUserInfo(getUserFromCookie()); // Refresh user info display
         setIsManageConfigOpen(false);

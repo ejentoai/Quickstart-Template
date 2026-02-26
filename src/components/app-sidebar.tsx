@@ -42,7 +42,7 @@ import { getUserFromCookie } from '@/cookie';
 import { useApiService } from '@/hooks/useApiService';
 import { ChatThreadResponse } from '@/model';
 import { toast } from 'sonner';
-import { isPublicAgentMode } from '@/lib/storage/indexeddb';
+import { isPublicAgentMode } from '@/lib/utils';
 import { usePublicAgentSession } from '@/hooks/usePublicAgentSession';
 import { handleSetQueryParams } from '@/lib/utils';
 import { useSearchParams } from 'next/navigation';

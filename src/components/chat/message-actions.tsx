@@ -12,8 +12,7 @@ import {
 import { useApiService } from '@/hooks/useApiService';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { getAccessToken, getUserFromCookie, getEjentoAccessToken } from '@/cookie';
-import { isPublicAgentMode} from '@/lib/storage/indexeddb';
-import { usePublicAgentSession } from '@/hooks/usePublicAgentSession';
+import { isPublicAgentMode } from '@/lib/utils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -77,7 +76,6 @@ export function MessageActions({
   // Use useMemo to ensure it updates when messages array or index changes
   const currentMessage = useMemo(() => {
     const msg = messages[index] || message;
-    // console.log(msg,'msg')
     // Ensure vote properties are always boolean (not undefined)
     // This handles cases where messages might not have these properties set
     const normalizedMsg = {
@@ -152,14 +150,12 @@ export function MessageActions({
     return null;
  
   const handleRegenerateclick = () => {
-    console.log(currentMessage,'cuu')
     append(currentMessage, true)
   }
  
   const handleUpvoteclick = async () => {
     if (currentMessage.is_upvote) return;
     if (!user) return;
-    console.log(currentMessage,'curr')
  
     try {
       
@@ -244,7 +240,6 @@ export function MessageActions({
   }
   const handleDownvoteclick = async () => {
     if (currentMessage.is_downvote || !user) return;
-    console.log(currentMessage,'curr')
  
     try {
       

@@ -238,9 +238,6 @@ export function PublicAgentSessionProvider({ children }: PublicAgentSessionProvi
   
         setThreads((prev) => [thread, ...prev]);
       }  
-
-      console.log(metadata,'meer')
-      console.log(metadata?.id,'id')
     
       const messageRes = await fetch('/api/message', {
         method: 'POST',

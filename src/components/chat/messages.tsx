@@ -79,7 +79,6 @@ function PureMessages({
   const [forceComplete, setForceComplete] = useState(false); // State to force complete the animation
   const [showThoughtProcess, setShowThoughtProcess] = useState(false);
   const toggleThoughtProcess = () => {
-    // console.log("toggleThoughtProcess", reflectionEvents);
     setShowThoughtProcess(!showThoughtProcess)
   };
   return (

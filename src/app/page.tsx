@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useConfig } from './context/ConfigContext';
-import { isPublicAgentMode } from '@/lib/storage/indexeddb';
+import { isPublicAgentMode } from '@/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -13,9 +13,8 @@ export default function Home() {
   const router = useRouter();
   const { isConfigured, isLoading, isValidating, validationError, configSource, config } = useConfig();
   const isPublicAgent = isPublicAgentMode();
-  let path;
   const isAuthEnabled = process.env.NEXT_PUBLIC_AUTH_FLOW === 'true';
-  path = isAuthEnabled ? '/auth/login' : '/chat' 
+  const path = isAuthEnabled ? '/auth/login' : '/chat';
 
   useEffect(() => {
     // Wait for loading and validation to complete before routing

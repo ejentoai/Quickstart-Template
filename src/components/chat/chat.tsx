@@ -16,7 +16,7 @@ import { useSearchParams } from "next/navigation";
 import { Skeleton } from "../ui/skeleton";
 import { Item } from "@/model";
 import { useChat } from "./hooks/useChat";
-import { isPublicAgentMode } from "@/lib/storage/indexeddb";
+import { isPublicAgentMode } from '@/lib/utils';
  
 /**
  * CHAT COMPONENT - Main chat interface
@@ -410,7 +410,6 @@ export default function Chat({
 
   // Show loading while config is loading
   if (configLoading) {
-    console.log('here on chat')
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
@@ -422,7 +421,6 @@ export default function Chat({
  
   // Show message if no config after loading
   if (!apiService) {
-    console.log('here on chat2')
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">

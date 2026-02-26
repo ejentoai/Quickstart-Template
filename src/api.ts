@@ -109,7 +109,6 @@ export class ApiService {
     const signal = handlers.signal || controller.signal;
   
     try {
-      console.log('this api is suing9')
       const url = getProxiedUrl(
         `response-service/api/v2/agents/${agentId}/responses/stream`,
         this.config.baseUrl
@@ -150,7 +149,6 @@ export class ApiService {
 
   async sendChat(data: any): Promise<any> {
     try {
-      console.log('this api is suing8')
       const { agent_id, ...rest } = data;
       const url = getProxiedUrl(
         `response-service/api/v2/agents/${this.config.agentId}/responses`,
@@ -183,7 +181,6 @@ export class ApiService {
 
   async getChatlogs(threadID: number): Promise<ChatThreadAgentResponsesV2> {
     try {
-      console.log('this api is suing7')
       const url = getProxiedUrl(
         `api/v2/chat-threads/${threadID}/agent-responses?include_steps=true`,
         this.config.baseUrl
@@ -307,7 +304,6 @@ export class ApiService {
   async getChatThreads(): Promise<AllChatsResponseV2> {
 
     try {
-      console.log('this api is suing3')
       const url = getProxiedUrl(
         `api/v2/agents/${this.config.agentId}/chat-threads?query_source=app-ejento`,
         this.config.baseUrl
@@ -327,7 +323,6 @@ export class ApiService {
   async deleteChatThread(deleteId: number): Promise<any> {
 
     try {
-      console.log('this api is suing2')
       const url = getProxiedUrl(
         `api/v2/chat-threads/${deleteId}`,
         this.config.baseUrl
@@ -349,7 +344,6 @@ export class ApiService {
 
     const created_by = modifiedBy || this.config.userInfo?.email || 'user'
     try {
-      console.log('this api is suing')
       const url = getProxiedUrl(
         `api/v2/chat-threads/${chatId}`,
         this.config.baseUrl
@@ -404,7 +398,6 @@ export class ApiService {
         const response = await axios.post(url, payload, {
           headers: this.getHeaders(),
         });
-        console.log('Response at line 401:', response); 
         return {
           success: true,
           message: "Email sent successfully.",

@@ -71,7 +71,6 @@
 //             ejentoAccessToken: newToken
 //           },null);
           
-//           console.log('Token refreshed successfully');
 //         } else {
 //           console.warn('Token refresh failed, will retry on next interval');
 //         }

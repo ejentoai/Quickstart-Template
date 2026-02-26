@@ -37,7 +37,7 @@ import { useApiService } from '@/hooks/useApiService';
 import { ChatThreadResponse } from '@/model';
 import { decryptData, handleSetQueryParams } from '@/lib/utils';
 import { getAccessToken, getUserFromCookie } from '@/cookie';
-import { isPublicAgentMode } from '@/lib/storage/indexeddb';
+import { isPublicAgentMode } from '@/lib/utils';
 import { usePublicAgentSession } from '@/hooks/usePublicAgentSession';
 
 interface props {

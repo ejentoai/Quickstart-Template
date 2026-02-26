@@ -42,8 +42,6 @@ export function ConfigGuard({ children, requireConfig = true }: ConfigGuardProps
 
   // Only show "Configuration Required" after loading is complete and config is missing
   if (requireConfig && !isConfigured) {
-    console.log(requireConfig,'requireConfig')
-    console.log(isConfigured,'jj')
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
         <div className="text-center space-y-4 max-w-md mx-auto">

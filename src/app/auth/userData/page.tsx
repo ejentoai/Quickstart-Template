@@ -23,20 +23,12 @@ const UserData = () => {
 
 
   useEffect(() => {
-    console.log('from user datapage')
     const fetchUser = async (): Promise<void> => {
       try {
         if (!apiService) return;
    
         // Agent validation (only when authentication flow is enabled)
         if (isAuthEnabled) {
-          console.log('Validating agent with config:', {
-            hasConfig: !!config,
-            baseUrl: config?.baseUrl ? '[PRESENT]' : '[MISSING]',
-            apiKey: config?.apiKey ? '[PRESENT]' : '[MISSING]',
-            agentId: config?.agentId ? '[PRESENT]' : '[MISSING]',
-          });
-
           // Make sure we have config
           if (!envDriven && (!config?.baseUrl || !config?.apiKey || !config?.agentId)) {
             console.error('Missing config for agent validation');
@@ -59,7 +51,6 @@ const UserData = () => {
           });
    
           const validationResult = await validationResponse.json();
-          console.log('Validation result:', validationResult);
    
           if (!validationResult.success) {
             toast.error(validationResult.message || 'Agent validation failed. Please check your configuration.');
@@ -68,12 +59,9 @@ const UserData = () => {
             router.push('/auth/login');
             return;
           }
-
-          console.log('Agent validation successful');
         }
    
         // Agent validation successful, fetch user data
-        console.log('Fetching user data...');
         const response = await apiService.getCurrentUser();
         const user = response.data;
         const userId = user.id;
@@ -113,7 +101,6 @@ const UserData = () => {
                 throw new Error(data.error);
               }
               router.push('/chat');
-              console.log("User created:", data);
               
             } catch (error: any) {
               console.error(error.message);
@@ -125,9 +112,6 @@ const UserData = () => {
           };
           
           if (!envDriven && !publicMode) {
-            console.log('Public mode detected. Preparing config for DB save...');
-
-
             // Validate config before saving
             if (!config?.baseUrl || !config?.apiKey || !config?.agentId) {
               console.error('Missing configuration in public mode');
@@ -140,8 +124,6 @@ const UserData = () => {
             }
 
             try {
-              console.log('Saving config to database for user:', userId);
-
               const configResponse = await fetch('/api/ejento-config', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -164,8 +146,6 @@ const UserData = () => {
                 router.push('/settings');
                 return;
               }
-
-              console.log('Config saved successfully');
             } catch (configError) {
               console.error('Error saving config:', configError);
               toast.error('Network error while saving configuration.');
@@ -184,7 +164,6 @@ const UserData = () => {
           // Store user locally for sidebar usage
    
           // Success → redirect to chat
-          console.log('User data processed successfully, redirecting to chat');
           await loadConfig()       
           router.push('/chat');
         } catch (error: any) {
