@@ -43,7 +43,7 @@ export type EjentoConfigMinAggregateOutputType = {
   userId: number | null
   baseUrl: string | null
   apiKey: string | null
-  accessToken: string | null
+  ejentoAccessToken: string | null
   agentId: number | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -54,7 +54,7 @@ export type EjentoConfigMaxAggregateOutputType = {
   userId: number | null
   baseUrl: string | null
   apiKey: string | null
-  accessToken: string | null
+  ejentoAccessToken: string | null
   agentId: number | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -65,7 +65,7 @@ export type EjentoConfigCountAggregateOutputType = {
   userId: number
   baseUrl: number
   apiKey: number
-  accessToken: number
+  ejentoAccessToken: number
   agentId: number
   createdAt: number
   updatedAt: number
@@ -90,7 +90,7 @@ export type EjentoConfigMinAggregateInputType = {
   userId?: true
   baseUrl?: true
   apiKey?: true
-  accessToken?: true
+  ejentoAccessToken?: true
   agentId?: true
   createdAt?: true
   updatedAt?: true
@@ -101,7 +101,7 @@ export type EjentoConfigMaxAggregateInputType = {
   userId?: true
   baseUrl?: true
   apiKey?: true
-  accessToken?: true
+  ejentoAccessToken?: true
   agentId?: true
   createdAt?: true
   updatedAt?: true
@@ -112,7 +112,7 @@ export type EjentoConfigCountAggregateInputType = {
   userId?: true
   baseUrl?: true
   apiKey?: true
-  accessToken?: true
+  ejentoAccessToken?: true
   agentId?: true
   createdAt?: true
   updatedAt?: true
@@ -210,7 +210,7 @@ export type EjentoConfigGroupByOutputType = {
   userId: number
   baseUrl: string
   apiKey: string
-  accessToken: string | null
+  ejentoAccessToken: string | null
   agentId: number
   createdAt: Date
   updatedAt: Date
@@ -244,7 +244,7 @@ export type EjentoConfigWhereInput = {
   userId?: Prisma.IntFilter<"EjentoConfig"> | number
   baseUrl?: Prisma.StringFilter<"EjentoConfig"> | string
   apiKey?: Prisma.StringFilter<"EjentoConfig"> | string
-  accessToken?: Prisma.StringNullableFilter<"EjentoConfig"> | string | null
+  ejentoAccessToken?: Prisma.StringNullableFilter<"EjentoConfig"> | string | null
   agentId?: Prisma.IntFilter<"EjentoConfig"> | number
   createdAt?: Prisma.DateTimeFilter<"EjentoConfig"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"EjentoConfig"> | Date | string
@@ -255,10 +255,11 @@ export type EjentoConfigOrderByWithRelationInput = {
   userId?: Prisma.SortOrder
   baseUrl?: Prisma.SortOrder
   apiKey?: Prisma.SortOrder
-  accessToken?: Prisma.SortOrderInput | Prisma.SortOrder
+  ejentoAccessToken?: Prisma.SortOrderInput | Prisma.SortOrder
   agentId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  _relevance?: Prisma.EjentoConfigOrderByRelevanceInput
 }
 
 export type EjentoConfigWhereUniqueInput = Prisma.AtLeast<{
@@ -269,7 +270,7 @@ export type EjentoConfigWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.EjentoConfigWhereInput | Prisma.EjentoConfigWhereInput[]
   baseUrl?: Prisma.StringFilter<"EjentoConfig"> | string
   apiKey?: Prisma.StringFilter<"EjentoConfig"> | string
-  accessToken?: Prisma.StringNullableFilter<"EjentoConfig"> | string | null
+  ejentoAccessToken?: Prisma.StringNullableFilter<"EjentoConfig"> | string | null
   agentId?: Prisma.IntFilter<"EjentoConfig"> | number
   createdAt?: Prisma.DateTimeFilter<"EjentoConfig"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"EjentoConfig"> | Date | string
@@ -280,7 +281,7 @@ export type EjentoConfigOrderByWithAggregationInput = {
   userId?: Prisma.SortOrder
   baseUrl?: Prisma.SortOrder
   apiKey?: Prisma.SortOrder
-  accessToken?: Prisma.SortOrderInput | Prisma.SortOrder
+  ejentoAccessToken?: Prisma.SortOrderInput | Prisma.SortOrder
   agentId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -299,7 +300,7 @@ export type EjentoConfigScalarWhereWithAggregatesInput = {
   userId?: Prisma.IntWithAggregatesFilter<"EjentoConfig"> | number
   baseUrl?: Prisma.StringWithAggregatesFilter<"EjentoConfig"> | string
   apiKey?: Prisma.StringWithAggregatesFilter<"EjentoConfig"> | string
-  accessToken?: Prisma.StringNullableWithAggregatesFilter<"EjentoConfig"> | string | null
+  ejentoAccessToken?: Prisma.StringNullableWithAggregatesFilter<"EjentoConfig"> | string | null
   agentId?: Prisma.IntWithAggregatesFilter<"EjentoConfig"> | number
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"EjentoConfig"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"EjentoConfig"> | Date | string
@@ -309,7 +310,7 @@ export type EjentoConfigCreateInput = {
   userId: number
   baseUrl: string
   apiKey: string
-  accessToken?: string | null
+  ejentoAccessToken?: string | null
   agentId: number
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -320,7 +321,7 @@ export type EjentoConfigUncheckedCreateInput = {
   userId: number
   baseUrl: string
   apiKey: string
-  accessToken?: string | null
+  ejentoAccessToken?: string | null
   agentId: number
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -330,7 +331,7 @@ export type EjentoConfigUpdateInput = {
   userId?: Prisma.IntFieldUpdateOperationsInput | number
   baseUrl?: Prisma.StringFieldUpdateOperationsInput | string
   apiKey?: Prisma.StringFieldUpdateOperationsInput | string
-  accessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  ejentoAccessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   agentId?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -341,7 +342,7 @@ export type EjentoConfigUncheckedUpdateInput = {
   userId?: Prisma.IntFieldUpdateOperationsInput | number
   baseUrl?: Prisma.StringFieldUpdateOperationsInput | string
   apiKey?: Prisma.StringFieldUpdateOperationsInput | string
-  accessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  ejentoAccessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   agentId?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -352,7 +353,7 @@ export type EjentoConfigCreateManyInput = {
   userId: number
   baseUrl: string
   apiKey: string
-  accessToken?: string | null
+  ejentoAccessToken?: string | null
   agentId: number
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -362,7 +363,7 @@ export type EjentoConfigUpdateManyMutationInput = {
   userId?: Prisma.IntFieldUpdateOperationsInput | number
   baseUrl?: Prisma.StringFieldUpdateOperationsInput | string
   apiKey?: Prisma.StringFieldUpdateOperationsInput | string
-  accessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  ejentoAccessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   agentId?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -373,10 +374,16 @@ export type EjentoConfigUncheckedUpdateManyInput = {
   userId?: Prisma.IntFieldUpdateOperationsInput | number
   baseUrl?: Prisma.StringFieldUpdateOperationsInput | string
   apiKey?: Prisma.StringFieldUpdateOperationsInput | string
-  accessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  ejentoAccessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   agentId?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+export type EjentoConfigOrderByRelevanceInput = {
+  fields: Prisma.EjentoConfigOrderByRelevanceFieldEnum | Prisma.EjentoConfigOrderByRelevanceFieldEnum[]
+  sort: Prisma.SortOrder
+  search: string
 }
 
 export type EjentoConfigCountOrderByAggregateInput = {
@@ -384,7 +391,7 @@ export type EjentoConfigCountOrderByAggregateInput = {
   userId?: Prisma.SortOrder
   baseUrl?: Prisma.SortOrder
   apiKey?: Prisma.SortOrder
-  accessToken?: Prisma.SortOrder
+  ejentoAccessToken?: Prisma.SortOrder
   agentId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -401,7 +408,7 @@ export type EjentoConfigMaxOrderByAggregateInput = {
   userId?: Prisma.SortOrder
   baseUrl?: Prisma.SortOrder
   apiKey?: Prisma.SortOrder
-  accessToken?: Prisma.SortOrder
+  ejentoAccessToken?: Prisma.SortOrder
   agentId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -412,7 +419,7 @@ export type EjentoConfigMinOrderByAggregateInput = {
   userId?: Prisma.SortOrder
   baseUrl?: Prisma.SortOrder
   apiKey?: Prisma.SortOrder
-  accessToken?: Prisma.SortOrder
+  ejentoAccessToken?: Prisma.SortOrder
   agentId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -439,46 +446,26 @@ export type EjentoConfigSelect<ExtArgs extends runtime.Types.Extensions.Internal
   userId?: boolean
   baseUrl?: boolean
   apiKey?: boolean
-  accessToken?: boolean
+  ejentoAccessToken?: boolean
   agentId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["ejentoConfig"]>
 
-export type EjentoConfigSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
-  id?: boolean
-  userId?: boolean
-  baseUrl?: boolean
-  apiKey?: boolean
-  accessToken?: boolean
-  agentId?: boolean
-  createdAt?: boolean
-  updatedAt?: boolean
-}, ExtArgs["result"]["ejentoConfig"]>
 
-export type EjentoConfigSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
-  id?: boolean
-  userId?: boolean
-  baseUrl?: boolean
-  apiKey?: boolean
-  accessToken?: boolean
-  agentId?: boolean
-  createdAt?: boolean
-  updatedAt?: boolean
-}, ExtArgs["result"]["ejentoConfig"]>
 
 export type EjentoConfigSelectScalar = {
   id?: boolean
   userId?: boolean
   baseUrl?: boolean
   apiKey?: boolean
-  accessToken?: boolean
+  ejentoAccessToken?: boolean
   agentId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type EjentoConfigOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "baseUrl" | "apiKey" | "accessToken" | "agentId" | "createdAt" | "updatedAt", ExtArgs["result"]["ejentoConfig"]>
+export type EjentoConfigOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "baseUrl" | "apiKey" | "ejentoAccessToken" | "agentId" | "createdAt" | "updatedAt", ExtArgs["result"]["ejentoConfig"]>
 
 export type $EjentoConfigPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "EjentoConfig"
@@ -488,7 +475,7 @@ export type $EjentoConfigPayload<ExtArgs extends runtime.Types.Extensions.Intern
     userId: number
     baseUrl: string
     apiKey: string
-    accessToken: string | null
+    ejentoAccessToken: string | null
     agentId: number
     createdAt: Date
     updatedAt: Date
@@ -610,30 +597,6 @@ export interface EjentoConfigDelegate<ExtArgs extends runtime.Types.Extensions.I
   createMany<T extends EjentoConfigCreateManyArgs>(args?: Prisma.SelectSubset<T, EjentoConfigCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<Prisma.BatchPayload>
 
   /**
-   * Create many EjentoConfigs and returns the data saved in the database.
-   * @param {EjentoConfigCreateManyAndReturnArgs} args - Arguments to create many EjentoConfigs.
-   * @example
-   * // Create many EjentoConfigs
-   * const ejentoConfig = await prisma.ejentoConfig.createManyAndReturn({
-   *   data: [
-   *     // ... provide data here
-   *   ]
-   * })
-   * 
-   * // Create many EjentoConfigs and only return the `id`
-   * const ejentoConfigWithIdOnly = await prisma.ejentoConfig.createManyAndReturn({
-   *   select: { id: true },
-   *   data: [
-   *     // ... provide data here
-   *   ]
-   * })
-   * Note, that providing `undefined` is treated as the value not being there.
-   * Read more here: https://pris.ly/d/null-undefined
-   * 
-   */
-  createManyAndReturn<T extends EjentoConfigCreateManyAndReturnArgs>(args?: Prisma.SelectSubset<T, EjentoConfigCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$EjentoConfigPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
-
-  /**
    * Delete a EjentoConfig.
    * @param {EjentoConfigDeleteArgs} args - Arguments to delete one EjentoConfig.
    * @example
@@ -696,36 +659,6 @@ export interface EjentoConfigDelegate<ExtArgs extends runtime.Types.Extensions.I
    * 
    */
   updateMany<T extends EjentoConfigUpdateManyArgs>(args: Prisma.SelectSubset<T, EjentoConfigUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<Prisma.BatchPayload>
-
-  /**
-   * Update zero or more EjentoConfigs and returns the data updated in the database.
-   * @param {EjentoConfigUpdateManyAndReturnArgs} args - Arguments to update many EjentoConfigs.
-   * @example
-   * // Update many EjentoConfigs
-   * const ejentoConfig = await prisma.ejentoConfig.updateManyAndReturn({
-   *   where: {
-   *     // ... provide filter here
-   *   },
-   *   data: [
-   *     // ... provide data here
-   *   ]
-   * })
-   * 
-   * // Update zero or more EjentoConfigs and only return the `id`
-   * const ejentoConfigWithIdOnly = await prisma.ejentoConfig.updateManyAndReturn({
-   *   select: { id: true },
-   *   where: {
-   *     // ... provide filter here
-   *   },
-   *   data: [
-   *     // ... provide data here
-   *   ]
-   * })
-   * Note, that providing `undefined` is treated as the value not being there.
-   * Read more here: https://pris.ly/d/null-undefined
-   * 
-   */
-  updateManyAndReturn<T extends EjentoConfigUpdateManyAndReturnArgs>(args: Prisma.SelectSubset<T, EjentoConfigUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$EjentoConfigPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
 
   /**
    * Create or update one EjentoConfig.
@@ -919,7 +852,7 @@ export interface EjentoConfigFieldRefs {
   readonly userId: Prisma.FieldRef<"EjentoConfig", 'Int'>
   readonly baseUrl: Prisma.FieldRef<"EjentoConfig", 'String'>
   readonly apiKey: Prisma.FieldRef<"EjentoConfig", 'String'>
-  readonly accessToken: Prisma.FieldRef<"EjentoConfig", 'String'>
+  readonly ejentoAccessToken: Prisma.FieldRef<"EjentoConfig", 'String'>
   readonly agentId: Prisma.FieldRef<"EjentoConfig", 'Int'>
   readonly createdAt: Prisma.FieldRef<"EjentoConfig", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"EjentoConfig", 'DateTime'>
@@ -1132,25 +1065,6 @@ export type EjentoConfigCreateManyArgs<ExtArgs extends runtime.Types.Extensions.
 }
 
 /**
- * EjentoConfig createManyAndReturn
- */
-export type EjentoConfigCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the EjentoConfig
-   */
-  select?: Prisma.EjentoConfigSelectCreateManyAndReturn<ExtArgs> | null
-  /**
-   * Omit specific fields from the EjentoConfig
-   */
-  omit?: Prisma.EjentoConfigOmit<ExtArgs> | null
-  /**
-   * The data used to create many EjentoConfigs.
-   */
-  data: Prisma.EjentoConfigCreateManyInput | Prisma.EjentoConfigCreateManyInput[]
-  skipDuplicates?: boolean
-}
-
-/**
  * EjentoConfig update
  */
 export type EjentoConfigUpdateArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1176,32 +1090,6 @@ export type EjentoConfigUpdateArgs<ExtArgs extends runtime.Types.Extensions.Inte
  * EjentoConfig updateMany
  */
 export type EjentoConfigUpdateManyArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * The data used to update EjentoConfigs.
-   */
-  data: Prisma.XOR<Prisma.EjentoConfigUpdateManyMutationInput, Prisma.EjentoConfigUncheckedUpdateManyInput>
-  /**
-   * Filter which EjentoConfigs to update
-   */
-  where?: Prisma.EjentoConfigWhereInput
-  /**
-   * Limit how many EjentoConfigs to update.
-   */
-  limit?: number
-}
-
-/**
- * EjentoConfig updateManyAndReturn
- */
-export type EjentoConfigUpdateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the EjentoConfig
-   */
-  select?: Prisma.EjentoConfigSelectUpdateManyAndReturn<ExtArgs> | null
-  /**
-   * Omit specific fields from the EjentoConfig
-   */
-  omit?: Prisma.EjentoConfigOmit<ExtArgs> | null
   /**
    * The data used to update EjentoConfigs.
    */

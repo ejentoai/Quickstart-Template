@@ -250,6 +250,19 @@ export function AppSidebar() {
     }
   };
 
+  
+  /**
+   * Fetches all chat threads for the current user
+   * 
+   * This function:
+   * - In PUBLIC_AGENT mode: Retrieves threads from Prisma DataBase
+   * - In normal mode: Retrieves chat threads from the API
+   * - Groups them by date for better organization
+   * - Handles navigation to the most recent thread if no ID is present
+   * - Creates a new local thread if no threads exist
+   * - Manages loading states and error handling
+   */
+
   const fetchThreads = async () => {
     if (initializationInProgressRef.current) {
       return;

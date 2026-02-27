@@ -88,7 +88,7 @@ export const EjentoConfigScalarFieldEnum = {
   userId: 'userId',
   baseUrl: 'baseUrl',
   apiKey: 'apiKey',
-  accessToken: 'accessToken',
+  ejentoAccessToken: 'ejentoAccessToken',
   agentId: 'agentId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -128,6 +128,7 @@ export const MessageScalarFieldEnum = {
   role: 'role',
   content: 'content',
   createdAt: 'createdAt',
+  agent_response_id: 'agent_response_id',
   metadata: 'metadata'
 } as const
 
@@ -150,20 +151,28 @@ export const NullableJsonNullValueInput = {
 export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
 
 
-export const QueryMode = {
-  default: 'default',
-  insensitive: 'insensitive'
-} as const
-
-export type QueryMode = (typeof QueryMode)[keyof typeof QueryMode]
-
-
 export const NullsOrder = {
   first: 'first',
   last: 'last'
 } as const
 
 export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
+
+
+export const EjentoConfigOrderByRelevanceFieldEnum = {
+  baseUrl: 'baseUrl',
+  apiKey: 'apiKey',
+  ejentoAccessToken: 'ejentoAccessToken'
+} as const
+
+export type EjentoConfigOrderByRelevanceFieldEnum = (typeof EjentoConfigOrderByRelevanceFieldEnum)[keyof typeof EjentoConfigOrderByRelevanceFieldEnum]
+
+
+export const SessionOrderByRelevanceFieldEnum = {
+  sessionId: 'sessionId'
+} as const
+
+export type SessionOrderByRelevanceFieldEnum = (typeof SessionOrderByRelevanceFieldEnum)[keyof typeof SessionOrderByRelevanceFieldEnum]
 
 
 export const JsonNullValueFilter = {
@@ -173,4 +182,26 @@ export const JsonNullValueFilter = {
 } as const
 
 export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
+
+
+export const QueryMode = {
+  default: 'default',
+  insensitive: 'insensitive'
+} as const
+
+export type QueryMode = (typeof QueryMode)[keyof typeof QueryMode]
+
+
+export const ThreadOrderByRelevanceFieldEnum = {
+  title: 'title'
+} as const
+
+export type ThreadOrderByRelevanceFieldEnum = (typeof ThreadOrderByRelevanceFieldEnum)[keyof typeof ThreadOrderByRelevanceFieldEnum]
+
+
+export const MessageOrderByRelevanceFieldEnum = {
+  content: 'content'
+} as const
+
+export type MessageOrderByRelevanceFieldEnum = (typeof MessageOrderByRelevanceFieldEnum)[keyof typeof MessageOrderByRelevanceFieldEnum]
 

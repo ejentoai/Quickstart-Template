@@ -274,6 +274,7 @@ export type ThreadOrderByWithRelationInput = {
   messages?: Prisma.MessageOrderByRelationAggregateInput
   ownerUser?: Prisma.UserOrderByWithRelationInput
   ownerSession?: Prisma.SessionOrderByWithRelationInput
+  _relevance?: Prisma.ThreadOrderByRelevanceInput
 }
 
 export type ThreadWhereUniqueInput = Prisma.AtLeast<{
@@ -417,6 +418,12 @@ export type ThreadListRelationFilter = {
 
 export type ThreadOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
+}
+
+export type ThreadOrderByRelevanceInput = {
+  fields: Prisma.ThreadOrderByRelevanceFieldEnum | Prisma.ThreadOrderByRelevanceFieldEnum[]
+  sort: Prisma.SortOrder
+  search: string
 }
 
 export type ThreadCountOrderByAggregateInput = {
@@ -894,33 +901,7 @@ export type ThreadSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   _count?: boolean | Prisma.ThreadCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["thread"]>
 
-export type ThreadSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
-  id?: boolean
-  title?: boolean
-  ownerType?: boolean
-  ownerUserId?: boolean
-  ownerSessionId?: boolean
-  createdAt?: boolean
-  updatedAt?: boolean
-  metaData?: boolean
-  externalApiId?: boolean
-  ownerUser?: boolean | Prisma.Thread$ownerUserArgs<ExtArgs>
-  ownerSession?: boolean | Prisma.Thread$ownerSessionArgs<ExtArgs>
-}, ExtArgs["result"]["thread"]>
 
-export type ThreadSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
-  id?: boolean
-  title?: boolean
-  ownerType?: boolean
-  ownerUserId?: boolean
-  ownerSessionId?: boolean
-  createdAt?: boolean
-  updatedAt?: boolean
-  metaData?: boolean
-  externalApiId?: boolean
-  ownerUser?: boolean | Prisma.Thread$ownerUserArgs<ExtArgs>
-  ownerSession?: boolean | Prisma.Thread$ownerSessionArgs<ExtArgs>
-}, ExtArgs["result"]["thread"]>
 
 export type ThreadSelectScalar = {
   id?: boolean
@@ -940,14 +921,6 @@ export type ThreadInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   ownerUser?: boolean | Prisma.Thread$ownerUserArgs<ExtArgs>
   ownerSession?: boolean | Prisma.Thread$ownerSessionArgs<ExtArgs>
   _count?: boolean | Prisma.ThreadCountOutputTypeDefaultArgs<ExtArgs>
-}
-export type ThreadIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  ownerUser?: boolean | Prisma.Thread$ownerUserArgs<ExtArgs>
-  ownerSession?: boolean | Prisma.Thread$ownerSessionArgs<ExtArgs>
-}
-export type ThreadIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  ownerUser?: boolean | Prisma.Thread$ownerUserArgs<ExtArgs>
-  ownerSession?: boolean | Prisma.Thread$ownerSessionArgs<ExtArgs>
 }
 
 export type $ThreadPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1085,30 +1058,6 @@ export interface ThreadDelegate<ExtArgs extends runtime.Types.Extensions.Interna
   createMany<T extends ThreadCreateManyArgs>(args?: Prisma.SelectSubset<T, ThreadCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<Prisma.BatchPayload>
 
   /**
-   * Create many Threads and returns the data saved in the database.
-   * @param {ThreadCreateManyAndReturnArgs} args - Arguments to create many Threads.
-   * @example
-   * // Create many Threads
-   * const thread = await prisma.thread.createManyAndReturn({
-   *   data: [
-   *     // ... provide data here
-   *   ]
-   * })
-   * 
-   * // Create many Threads and only return the `id`
-   * const threadWithIdOnly = await prisma.thread.createManyAndReturn({
-   *   select: { id: true },
-   *   data: [
-   *     // ... provide data here
-   *   ]
-   * })
-   * Note, that providing `undefined` is treated as the value not being there.
-   * Read more here: https://pris.ly/d/null-undefined
-   * 
-   */
-  createManyAndReturn<T extends ThreadCreateManyAndReturnArgs>(args?: Prisma.SelectSubset<T, ThreadCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ThreadPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
-
-  /**
    * Delete a Thread.
    * @param {ThreadDeleteArgs} args - Arguments to delete one Thread.
    * @example
@@ -1171,36 +1120,6 @@ export interface ThreadDelegate<ExtArgs extends runtime.Types.Extensions.Interna
    * 
    */
   updateMany<T extends ThreadUpdateManyArgs>(args: Prisma.SelectSubset<T, ThreadUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<Prisma.BatchPayload>
-
-  /**
-   * Update zero or more Threads and returns the data updated in the database.
-   * @param {ThreadUpdateManyAndReturnArgs} args - Arguments to update many Threads.
-   * @example
-   * // Update many Threads
-   * const thread = await prisma.thread.updateManyAndReturn({
-   *   where: {
-   *     // ... provide filter here
-   *   },
-   *   data: [
-   *     // ... provide data here
-   *   ]
-   * })
-   * 
-   * // Update zero or more Threads and only return the `id`
-   * const threadWithIdOnly = await prisma.thread.updateManyAndReturn({
-   *   select: { id: true },
-   *   where: {
-   *     // ... provide filter here
-   *   },
-   *   data: [
-   *     // ... provide data here
-   *   ]
-   * })
-   * Note, that providing `undefined` is treated as the value not being there.
-   * Read more here: https://pris.ly/d/null-undefined
-   * 
-   */
-  updateManyAndReturn<T extends ThreadUpdateManyAndReturnArgs>(args: Prisma.SelectSubset<T, ThreadUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ThreadPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
 
   /**
    * Create or update one Thread.
@@ -1635,29 +1554,6 @@ export type ThreadCreateManyArgs<ExtArgs extends runtime.Types.Extensions.Intern
 }
 
 /**
- * Thread createManyAndReturn
- */
-export type ThreadCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the Thread
-   */
-  select?: Prisma.ThreadSelectCreateManyAndReturn<ExtArgs> | null
-  /**
-   * Omit specific fields from the Thread
-   */
-  omit?: Prisma.ThreadOmit<ExtArgs> | null
-  /**
-   * The data used to create many Threads.
-   */
-  data: Prisma.ThreadCreateManyInput | Prisma.ThreadCreateManyInput[]
-  skipDuplicates?: boolean
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.ThreadIncludeCreateManyAndReturn<ExtArgs> | null
-}
-
-/**
  * Thread update
  */
 export type ThreadUpdateArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1699,36 +1595,6 @@ export type ThreadUpdateManyArgs<ExtArgs extends runtime.Types.Extensions.Intern
    * Limit how many Threads to update.
    */
   limit?: number
-}
-
-/**
- * Thread updateManyAndReturn
- */
-export type ThreadUpdateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the Thread
-   */
-  select?: Prisma.ThreadSelectUpdateManyAndReturn<ExtArgs> | null
-  /**
-   * Omit specific fields from the Thread
-   */
-  omit?: Prisma.ThreadOmit<ExtArgs> | null
-  /**
-   * The data used to update Threads.
-   */
-  data: Prisma.XOR<Prisma.ThreadUpdateManyMutationInput, Prisma.ThreadUncheckedUpdateManyInput>
-  /**
-   * Filter which Threads to update
-   */
-  where?: Prisma.ThreadWhereInput
-  /**
-   * Limit how many Threads to update.
-   */
-  limit?: number
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.ThreadIncludeUpdateManyAndReturn<ExtArgs> | null
 }
 
 /**

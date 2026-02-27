@@ -80,12 +80,12 @@ export type PrismaVersion = {
 }
 
 /**
- * Prisma Client JS version: 7.4.0
- * Query Engine version: ab56fe763f921d033a6c195e7ddeb3e255bdbb57
+ * Prisma Client JS version: 7.4.2
+ * Query Engine version: 94a226be1cf2967af2541cca5529f0f7ba866919
  */
 export const prismaVersion: PrismaVersion = {
-  client: "7.4.0",
-  engine: "ab56fe763f921d033a6c195e7ddeb3e255bdbb57"
+  client: "7.4.2",
+  engine: "94a226be1cf2967af2541cca5529f0f7ba866919"
 }
 
 /**
@@ -440,10 +440,6 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
           args: Prisma.UserCreateManyArgs<ExtArgs>
           result: BatchPayload
         }
-        createManyAndReturn: {
-          args: Prisma.UserCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserPayload>[]
-        }
         delete: {
           args: Prisma.UserDeleteArgs<ExtArgs>
           result: runtime.Types.Utils.PayloadToResult<Prisma.$UserPayload>
@@ -459,10 +455,6 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         updateMany: {
           args: Prisma.UserUpdateManyArgs<ExtArgs>
           result: BatchPayload
-        }
-        updateManyAndReturn: {
-          args: Prisma.UserUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserPayload>[]
         }
         upsert: {
           args: Prisma.UserUpsertArgs<ExtArgs>
@@ -514,10 +506,6 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
           args: Prisma.EjentoConfigCreateManyArgs<ExtArgs>
           result: BatchPayload
         }
-        createManyAndReturn: {
-          args: Prisma.EjentoConfigCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$EjentoConfigPayload>[]
-        }
         delete: {
           args: Prisma.EjentoConfigDeleteArgs<ExtArgs>
           result: runtime.Types.Utils.PayloadToResult<Prisma.$EjentoConfigPayload>
@@ -533,10 +521,6 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         updateMany: {
           args: Prisma.EjentoConfigUpdateManyArgs<ExtArgs>
           result: BatchPayload
-        }
-        updateManyAndReturn: {
-          args: Prisma.EjentoConfigUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$EjentoConfigPayload>[]
         }
         upsert: {
           args: Prisma.EjentoConfigUpsertArgs<ExtArgs>
@@ -588,10 +572,6 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
           args: Prisma.SessionCreateManyArgs<ExtArgs>
           result: BatchPayload
         }
-        createManyAndReturn: {
-          args: Prisma.SessionCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SessionPayload>[]
-        }
         delete: {
           args: Prisma.SessionDeleteArgs<ExtArgs>
           result: runtime.Types.Utils.PayloadToResult<Prisma.$SessionPayload>
@@ -607,10 +587,6 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         updateMany: {
           args: Prisma.SessionUpdateManyArgs<ExtArgs>
           result: BatchPayload
-        }
-        updateManyAndReturn: {
-          args: Prisma.SessionUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SessionPayload>[]
         }
         upsert: {
           args: Prisma.SessionUpsertArgs<ExtArgs>
@@ -662,10 +638,6 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
           args: Prisma.ThreadCreateManyArgs<ExtArgs>
           result: BatchPayload
         }
-        createManyAndReturn: {
-          args: Prisma.ThreadCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ThreadPayload>[]
-        }
         delete: {
           args: Prisma.ThreadDeleteArgs<ExtArgs>
           result: runtime.Types.Utils.PayloadToResult<Prisma.$ThreadPayload>
@@ -681,10 +653,6 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         updateMany: {
           args: Prisma.ThreadUpdateManyArgs<ExtArgs>
           result: BatchPayload
-        }
-        updateManyAndReturn: {
-          args: Prisma.ThreadUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ThreadPayload>[]
         }
         upsert: {
           args: Prisma.ThreadUpsertArgs<ExtArgs>
@@ -736,10 +704,6 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
           args: Prisma.MessageCreateManyArgs<ExtArgs>
           result: BatchPayload
         }
-        createManyAndReturn: {
-          args: Prisma.MessageCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$MessagePayload>[]
-        }
         delete: {
           args: Prisma.MessageDeleteArgs<ExtArgs>
           result: runtime.Types.Utils.PayloadToResult<Prisma.$MessagePayload>
@@ -755,10 +719,6 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         updateMany: {
           args: Prisma.MessageUpdateManyArgs<ExtArgs>
           result: BatchPayload
-        }
-        updateManyAndReturn: {
-          args: Prisma.MessageUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$MessagePayload>[]
         }
         upsert: {
           args: Prisma.MessageUpsertArgs<ExtArgs>
@@ -831,7 +791,7 @@ export const EjentoConfigScalarFieldEnum = {
   userId: 'userId',
   baseUrl: 'baseUrl',
   apiKey: 'apiKey',
-  accessToken: 'accessToken',
+  ejentoAccessToken: 'ejentoAccessToken',
   agentId: 'agentId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -871,6 +831,7 @@ export const MessageScalarFieldEnum = {
   role: 'role',
   content: 'content',
   createdAt: 'createdAt',
+  agent_response_id: 'agent_response_id',
   metadata: 'metadata'
 } as const
 
@@ -893,20 +854,28 @@ export const NullableJsonNullValueInput = {
 export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
 
 
-export const QueryMode = {
-  default: 'default',
-  insensitive: 'insensitive'
-} as const
-
-export type QueryMode = (typeof QueryMode)[keyof typeof QueryMode]
-
-
 export const NullsOrder = {
   first: 'first',
   last: 'last'
 } as const
 
 export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
+
+
+export const EjentoConfigOrderByRelevanceFieldEnum = {
+  baseUrl: 'baseUrl',
+  apiKey: 'apiKey',
+  ejentoAccessToken: 'ejentoAccessToken'
+} as const
+
+export type EjentoConfigOrderByRelevanceFieldEnum = (typeof EjentoConfigOrderByRelevanceFieldEnum)[keyof typeof EjentoConfigOrderByRelevanceFieldEnum]
+
+
+export const SessionOrderByRelevanceFieldEnum = {
+  sessionId: 'sessionId'
+} as const
+
+export type SessionOrderByRelevanceFieldEnum = (typeof SessionOrderByRelevanceFieldEnum)[keyof typeof SessionOrderByRelevanceFieldEnum]
 
 
 export const JsonNullValueFilter = {
@@ -916,6 +885,28 @@ export const JsonNullValueFilter = {
 } as const
 
 export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
+
+
+export const QueryMode = {
+  default: 'default',
+  insensitive: 'insensitive'
+} as const
+
+export type QueryMode = (typeof QueryMode)[keyof typeof QueryMode]
+
+
+export const ThreadOrderByRelevanceFieldEnum = {
+  title: 'title'
+} as const
+
+export type ThreadOrderByRelevanceFieldEnum = (typeof ThreadOrderByRelevanceFieldEnum)[keyof typeof ThreadOrderByRelevanceFieldEnum]
+
+
+export const MessageOrderByRelevanceFieldEnum = {
+  content: 'content'
+} as const
+
+export type MessageOrderByRelevanceFieldEnum = (typeof MessageOrderByRelevanceFieldEnum)[keyof typeof MessageOrderByRelevanceFieldEnum]
 
 
 
@@ -932,23 +923,9 @@ export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'In
 
 
 /**
- * Reference to a field of type 'Int[]'
- */
-export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
-    
-
-
-/**
  * Reference to a field of type 'DateTime'
  */
 export type DateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime'>
-    
-
-
-/**
- * Reference to a field of type 'DateTime[]'
- */
-export type ListDateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime[]'>
     
 
 
@@ -960,23 +937,9 @@ export type StringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 
 
 
 /**
- * Reference to a field of type 'String[]'
- */
-export type ListStringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'String[]'>
-    
-
-
-/**
  * Reference to a field of type 'ownerType'
  */
 export type EnumownerTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ownerType'>
-    
-
-
-/**
- * Reference to a field of type 'ownerType[]'
- */
-export type ListEnumownerTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ownerType[]'>
     
 
 
@@ -1002,23 +965,9 @@ export type EnumRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel
 
 
 /**
- * Reference to a field of type 'Role[]'
- */
-export type ListEnumRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Role[]'>
-    
-
-
-/**
  * Reference to a field of type 'Float'
  */
 export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
-    
-
-
-/**
- * Reference to a field of type 'Float[]'
- */
-export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float[]'>
     
 
 /**

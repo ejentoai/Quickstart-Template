@@ -5,9 +5,12 @@ import axios from 'axios';
 import { prisma } from '@/lib/prisma';
 
 /**
- * Validates agent using token from cookie (ejento_access_token)
- * This endpoint is specifically for /auth/userData page where we have the token in cookie
- * and want to validate the agent before proceeding
+ * Server-side validation endpoint for environment-based configuration
+ * Performs the same validations as manual config (credentials + agent)
+ * This ensures env-based config is validated before the app uses it
+ * 
+ * SECURITY: When =false, stores validated credentials in secure httpOnly cookies
+ * so they are not vulnerable to being exposed in the browser network tab
  */
 
  
@@ -210,6 +213,10 @@ export async function POST(request: Request) {
           },
         });
       } catch (dbError) {
+        return errorResponse(
+          `Configuration validated but failed to save in database.`,
+          500
+        );
       }
     }
  

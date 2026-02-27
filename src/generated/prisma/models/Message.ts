@@ -29,11 +29,13 @@ export type AggregateMessage = {
 export type MessageAvgAggregateOutputType = {
   id: number | null
   threadId: number | null
+  agent_response_id: number | null
 }
 
 export type MessageSumAggregateOutputType = {
   id: number | null
   threadId: number | null
+  agent_response_id: number | null
 }
 
 export type MessageMinAggregateOutputType = {
@@ -42,6 +44,7 @@ export type MessageMinAggregateOutputType = {
   role: $Enums.Role | null
   content: string | null
   createdAt: Date | null
+  agent_response_id: number | null
 }
 
 export type MessageMaxAggregateOutputType = {
@@ -50,6 +53,7 @@ export type MessageMaxAggregateOutputType = {
   role: $Enums.Role | null
   content: string | null
   createdAt: Date | null
+  agent_response_id: number | null
 }
 
 export type MessageCountAggregateOutputType = {
@@ -58,6 +62,7 @@ export type MessageCountAggregateOutputType = {
   role: number
   content: number
   createdAt: number
+  agent_response_id: number
   metadata: number
   _all: number
 }
@@ -66,11 +71,13 @@ export type MessageCountAggregateOutputType = {
 export type MessageAvgAggregateInputType = {
   id?: true
   threadId?: true
+  agent_response_id?: true
 }
 
 export type MessageSumAggregateInputType = {
   id?: true
   threadId?: true
+  agent_response_id?: true
 }
 
 export type MessageMinAggregateInputType = {
@@ -79,6 +86,7 @@ export type MessageMinAggregateInputType = {
   role?: true
   content?: true
   createdAt?: true
+  agent_response_id?: true
 }
 
 export type MessageMaxAggregateInputType = {
@@ -87,6 +95,7 @@ export type MessageMaxAggregateInputType = {
   role?: true
   content?: true
   createdAt?: true
+  agent_response_id?: true
 }
 
 export type MessageCountAggregateInputType = {
@@ -95,6 +104,7 @@ export type MessageCountAggregateInputType = {
   role?: true
   content?: true
   createdAt?: true
+  agent_response_id?: true
   metadata?: true
   _all?: true
 }
@@ -191,6 +201,7 @@ export type MessageGroupByOutputType = {
   role: $Enums.Role
   content: string
   createdAt: Date
+  agent_response_id: number | null
   metadata: runtime.JsonValue | null
   _count: MessageCountAggregateOutputType | null
   _avg: MessageAvgAggregateOutputType | null
@@ -223,6 +234,7 @@ export type MessageWhereInput = {
   role?: Prisma.EnumRoleFilter<"Message"> | $Enums.Role
   content?: Prisma.StringFilter<"Message"> | string
   createdAt?: Prisma.DateTimeFilter<"Message"> | Date | string
+  agent_response_id?: Prisma.IntNullableFilter<"Message"> | number | null
   metadata?: Prisma.JsonNullableFilter<"Message">
   thread?: Prisma.XOR<Prisma.ThreadScalarRelationFilter, Prisma.ThreadWhereInput>
 }
@@ -233,12 +245,15 @@ export type MessageOrderByWithRelationInput = {
   role?: Prisma.SortOrder
   content?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  agent_response_id?: Prisma.SortOrderInput | Prisma.SortOrder
   metadata?: Prisma.SortOrderInput | Prisma.SortOrder
   thread?: Prisma.ThreadOrderByWithRelationInput
+  _relevance?: Prisma.MessageOrderByRelevanceInput
 }
 
 export type MessageWhereUniqueInput = Prisma.AtLeast<{
   id?: number
+  agent_response_id?: number
   AND?: Prisma.MessageWhereInput | Prisma.MessageWhereInput[]
   OR?: Prisma.MessageWhereInput[]
   NOT?: Prisma.MessageWhereInput | Prisma.MessageWhereInput[]
@@ -248,7 +263,7 @@ export type MessageWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"Message"> | Date | string
   metadata?: Prisma.JsonNullableFilter<"Message">
   thread?: Prisma.XOR<Prisma.ThreadScalarRelationFilter, Prisma.ThreadWhereInput>
-}, "id">
+}, "id" | "agent_response_id">
 
 export type MessageOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
@@ -256,6 +271,7 @@ export type MessageOrderByWithAggregationInput = {
   role?: Prisma.SortOrder
   content?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  agent_response_id?: Prisma.SortOrderInput | Prisma.SortOrder
   metadata?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.MessageCountOrderByAggregateInput
   _avg?: Prisma.MessageAvgOrderByAggregateInput
@@ -273,6 +289,7 @@ export type MessageScalarWhereWithAggregatesInput = {
   role?: Prisma.EnumRoleWithAggregatesFilter<"Message"> | $Enums.Role
   content?: Prisma.StringWithAggregatesFilter<"Message"> | string
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Message"> | Date | string
+  agent_response_id?: Prisma.IntNullableWithAggregatesFilter<"Message"> | number | null
   metadata?: Prisma.JsonNullableWithAggregatesFilter<"Message">
 }
 
@@ -280,6 +297,7 @@ export type MessageCreateInput = {
   role: $Enums.Role
   content: string
   createdAt?: Date | string
+  agent_response_id?: number | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   thread: Prisma.ThreadCreateNestedOneWithoutMessagesInput
 }
@@ -290,6 +308,7 @@ export type MessageUncheckedCreateInput = {
   role: $Enums.Role
   content: string
   createdAt?: Date | string
+  agent_response_id?: number | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
 }
 
@@ -297,6 +316,7 @@ export type MessageUpdateInput = {
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   content?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  agent_response_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   thread?: Prisma.ThreadUpdateOneRequiredWithoutMessagesNestedInput
 }
@@ -307,6 +327,7 @@ export type MessageUncheckedUpdateInput = {
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   content?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  agent_response_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
 }
 
@@ -316,6 +337,7 @@ export type MessageCreateManyInput = {
   role: $Enums.Role
   content: string
   createdAt?: Date | string
+  agent_response_id?: number | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
 }
 
@@ -323,6 +345,7 @@ export type MessageUpdateManyMutationInput = {
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   content?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  agent_response_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
 }
 
@@ -332,6 +355,7 @@ export type MessageUncheckedUpdateManyInput = {
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   content?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  agent_response_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
 }
 
@@ -345,18 +369,26 @@ export type MessageOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
 }
 
+export type MessageOrderByRelevanceInput = {
+  fields: Prisma.MessageOrderByRelevanceFieldEnum | Prisma.MessageOrderByRelevanceFieldEnum[]
+  sort: Prisma.SortOrder
+  search: string
+}
+
 export type MessageCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   threadId?: Prisma.SortOrder
   role?: Prisma.SortOrder
   content?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  agent_response_id?: Prisma.SortOrder
   metadata?: Prisma.SortOrder
 }
 
 export type MessageAvgOrderByAggregateInput = {
   id?: Prisma.SortOrder
   threadId?: Prisma.SortOrder
+  agent_response_id?: Prisma.SortOrder
 }
 
 export type MessageMaxOrderByAggregateInput = {
@@ -365,6 +397,7 @@ export type MessageMaxOrderByAggregateInput = {
   role?: Prisma.SortOrder
   content?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  agent_response_id?: Prisma.SortOrder
 }
 
 export type MessageMinOrderByAggregateInput = {
@@ -373,11 +406,13 @@ export type MessageMinOrderByAggregateInput = {
   role?: Prisma.SortOrder
   content?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  agent_response_id?: Prisma.SortOrder
 }
 
 export type MessageSumOrderByAggregateInput = {
   id?: Prisma.SortOrder
   threadId?: Prisma.SortOrder
+  agent_response_id?: Prisma.SortOrder
 }
 
 export type MessageCreateNestedManyWithoutThreadInput = {
@@ -430,6 +465,7 @@ export type MessageCreateWithoutThreadInput = {
   role: $Enums.Role
   content: string
   createdAt?: Date | string
+  agent_response_id?: number | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
 }
 
@@ -438,6 +474,7 @@ export type MessageUncheckedCreateWithoutThreadInput = {
   role: $Enums.Role
   content: string
   createdAt?: Date | string
+  agent_response_id?: number | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
 }
 
@@ -476,6 +513,7 @@ export type MessageScalarWhereInput = {
   role?: Prisma.EnumRoleFilter<"Message"> | $Enums.Role
   content?: Prisma.StringFilter<"Message"> | string
   createdAt?: Prisma.DateTimeFilter<"Message"> | Date | string
+  agent_response_id?: Prisma.IntNullableFilter<"Message"> | number | null
   metadata?: Prisma.JsonNullableFilter<"Message">
 }
 
@@ -484,6 +522,7 @@ export type MessageCreateManyThreadInput = {
   role: $Enums.Role
   content: string
   createdAt?: Date | string
+  agent_response_id?: number | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
 }
 
@@ -491,6 +530,7 @@ export type MessageUpdateWithoutThreadInput = {
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   content?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  agent_response_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
 }
 
@@ -499,6 +539,7 @@ export type MessageUncheckedUpdateWithoutThreadInput = {
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   content?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  agent_response_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
 }
 
@@ -507,6 +548,7 @@ export type MessageUncheckedUpdateManyWithoutThreadInput = {
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   content?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  agent_response_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
 }
 
@@ -518,29 +560,12 @@ export type MessageSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   role?: boolean
   content?: boolean
   createdAt?: boolean
+  agent_response_id?: boolean
   metadata?: boolean
   thread?: boolean | Prisma.ThreadDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["message"]>
 
-export type MessageSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
-  id?: boolean
-  threadId?: boolean
-  role?: boolean
-  content?: boolean
-  createdAt?: boolean
-  metadata?: boolean
-  thread?: boolean | Prisma.ThreadDefaultArgs<ExtArgs>
-}, ExtArgs["result"]["message"]>
 
-export type MessageSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
-  id?: boolean
-  threadId?: boolean
-  role?: boolean
-  content?: boolean
-  createdAt?: boolean
-  metadata?: boolean
-  thread?: boolean | Prisma.ThreadDefaultArgs<ExtArgs>
-}, ExtArgs["result"]["message"]>
 
 export type MessageSelectScalar = {
   id?: boolean
@@ -548,17 +573,12 @@ export type MessageSelectScalar = {
   role?: boolean
   content?: boolean
   createdAt?: boolean
+  agent_response_id?: boolean
   metadata?: boolean
 }
 
-export type MessageOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "threadId" | "role" | "content" | "createdAt" | "metadata", ExtArgs["result"]["message"]>
+export type MessageOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "threadId" | "role" | "content" | "createdAt" | "agent_response_id" | "metadata", ExtArgs["result"]["message"]>
 export type MessageInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  thread?: boolean | Prisma.ThreadDefaultArgs<ExtArgs>
-}
-export type MessageIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  thread?: boolean | Prisma.ThreadDefaultArgs<ExtArgs>
-}
-export type MessageIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   thread?: boolean | Prisma.ThreadDefaultArgs<ExtArgs>
 }
 
@@ -573,6 +593,7 @@ export type $MessagePayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     role: $Enums.Role
     content: string
     createdAt: Date
+    agent_response_id: number | null
     metadata: runtime.JsonValue | null
   }, ExtArgs["result"]["message"]>
   composites: {}
@@ -692,30 +713,6 @@ export interface MessageDelegate<ExtArgs extends runtime.Types.Extensions.Intern
   createMany<T extends MessageCreateManyArgs>(args?: Prisma.SelectSubset<T, MessageCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<Prisma.BatchPayload>
 
   /**
-   * Create many Messages and returns the data saved in the database.
-   * @param {MessageCreateManyAndReturnArgs} args - Arguments to create many Messages.
-   * @example
-   * // Create many Messages
-   * const message = await prisma.message.createManyAndReturn({
-   *   data: [
-   *     // ... provide data here
-   *   ]
-   * })
-   * 
-   * // Create many Messages and only return the `id`
-   * const messageWithIdOnly = await prisma.message.createManyAndReturn({
-   *   select: { id: true },
-   *   data: [
-   *     // ... provide data here
-   *   ]
-   * })
-   * Note, that providing `undefined` is treated as the value not being there.
-   * Read more here: https://pris.ly/d/null-undefined
-   * 
-   */
-  createManyAndReturn<T extends MessageCreateManyAndReturnArgs>(args?: Prisma.SelectSubset<T, MessageCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$MessagePayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
-
-  /**
    * Delete a Message.
    * @param {MessageDeleteArgs} args - Arguments to delete one Message.
    * @example
@@ -778,36 +775,6 @@ export interface MessageDelegate<ExtArgs extends runtime.Types.Extensions.Intern
    * 
    */
   updateMany<T extends MessageUpdateManyArgs>(args: Prisma.SelectSubset<T, MessageUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<Prisma.BatchPayload>
-
-  /**
-   * Update zero or more Messages and returns the data updated in the database.
-   * @param {MessageUpdateManyAndReturnArgs} args - Arguments to update many Messages.
-   * @example
-   * // Update many Messages
-   * const message = await prisma.message.updateManyAndReturn({
-   *   where: {
-   *     // ... provide filter here
-   *   },
-   *   data: [
-   *     // ... provide data here
-   *   ]
-   * })
-   * 
-   * // Update zero or more Messages and only return the `id`
-   * const messageWithIdOnly = await prisma.message.updateManyAndReturn({
-   *   select: { id: true },
-   *   where: {
-   *     // ... provide filter here
-   *   },
-   *   data: [
-   *     // ... provide data here
-   *   ]
-   * })
-   * Note, that providing `undefined` is treated as the value not being there.
-   * Read more here: https://pris.ly/d/null-undefined
-   * 
-   */
-  updateManyAndReturn<T extends MessageUpdateManyAndReturnArgs>(args: Prisma.SelectSubset<T, MessageUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$MessagePayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
 
   /**
    * Create or update one Message.
@@ -1003,6 +970,7 @@ export interface MessageFieldRefs {
   readonly role: Prisma.FieldRef<"Message", 'Role'>
   readonly content: Prisma.FieldRef<"Message", 'String'>
   readonly createdAt: Prisma.FieldRef<"Message", 'DateTime'>
+  readonly agent_response_id: Prisma.FieldRef<"Message", 'Int'>
   readonly metadata: Prisma.FieldRef<"Message", 'Json'>
 }
     
@@ -1237,29 +1205,6 @@ export type MessageCreateManyArgs<ExtArgs extends runtime.Types.Extensions.Inter
 }
 
 /**
- * Message createManyAndReturn
- */
-export type MessageCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the Message
-   */
-  select?: Prisma.MessageSelectCreateManyAndReturn<ExtArgs> | null
-  /**
-   * Omit specific fields from the Message
-   */
-  omit?: Prisma.MessageOmit<ExtArgs> | null
-  /**
-   * The data used to create many Messages.
-   */
-  data: Prisma.MessageCreateManyInput | Prisma.MessageCreateManyInput[]
-  skipDuplicates?: boolean
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.MessageIncludeCreateManyAndReturn<ExtArgs> | null
-}
-
-/**
  * Message update
  */
 export type MessageUpdateArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1301,36 +1246,6 @@ export type MessageUpdateManyArgs<ExtArgs extends runtime.Types.Extensions.Inter
    * Limit how many Messages to update.
    */
   limit?: number
-}
-
-/**
- * Message updateManyAndReturn
- */
-export type MessageUpdateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the Message
-   */
-  select?: Prisma.MessageSelectUpdateManyAndReturn<ExtArgs> | null
-  /**
-   * Omit specific fields from the Message
-   */
-  omit?: Prisma.MessageOmit<ExtArgs> | null
-  /**
-   * The data used to update Messages.
-   */
-  data: Prisma.XOR<Prisma.MessageUpdateManyMutationInput, Prisma.MessageUncheckedUpdateManyInput>
-  /**
-   * Filter which Messages to update
-   */
-  where?: Prisma.MessageWhereInput
-  /**
-   * Limit how many Messages to update.
-   */
-  limit?: number
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.MessageIncludeUpdateManyAndReturn<ExtArgs> | null
 }
 
 /**
