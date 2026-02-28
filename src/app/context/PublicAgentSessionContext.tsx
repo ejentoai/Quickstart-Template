@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import {
   isPublicAgentMode,
-} from '@/lib/storage/indexeddb';
+} from '@/lib/utils';
 import type {
   SessionMetadata,
   StoredThread,
