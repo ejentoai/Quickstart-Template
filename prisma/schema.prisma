@@ -16,7 +16,7 @@ generator client {
 
 datasource db {
 
-  provider = "postgresql"  // Change from "mysql" to "postgresql"
+  provider = "sqlite"  // Change from "mysql" to "postgresql"
 
   url      = env("DATABASE_URL")
 
@@ -24,9 +24,9 @@ datasource db {
 
 model User {
  
-  id        BigInt      @id @default(autoincrement())
+  id        Int      @id @default(autoincrement())
  
-  userId    BigInt      @unique
+  userId    Int      @unique
  
   createdAt DateTime @default(now())
 
@@ -34,30 +34,9 @@ model User {
  
 }
 
-model EjentoConfig {
- 
-  id          BigInt      @id @default(autoincrement())
- 
-  userId      BigInt      @unique
- 
-  baseUrl     String
- 
-  apiKey      String
- 
-  ejentoAccessToken String?
- 
-  agentId     BigInt
-
-  createdAt   DateTime @default(now())
- 
-  updatedAt   DateTime @updatedAt
- 
-}
-
-
 model Session{
  
-  id BigInt @id @default(autoincrement())
+  id Int @id @default(autoincrement())
  
   sessionId String @unique
  
@@ -69,17 +48,37 @@ model Session{
  
 }
 
+model EjentoConfig {
+ 
+  id          Int      @id @default(autoincrement())
+ 
+  userId      Int      @unique
+ 
+  baseUrl     String
+ 
+  apiKey      String
+ 
+  ejentoAccessToken String?
+ 
+  agentId     Int
+
+  createdAt   DateTime @default(now())
+ 
+  updatedAt   DateTime @updatedAt
+ 
+}
+
 model Thread{
  
-  id BigInt @id @default(autoincrement()) // Local DB ID
+  id Int @id @default(autoincrement()) // Local DB ID
  
   title String
  
   ownerType ownerType
  
-  ownerUserId BigInt?
+  ownerUserId Int?
  
-  ownerSessionId BigInt?
+  ownerSessionId Int?
  
   createdAt DateTime @default(now())
  
@@ -99,13 +98,13 @@ model Thread{
 
 model Message {
  
-  id BigInt @id @default(autoincrement())
+  id Int @id @default(autoincrement())
  
-  threadId BigInt
+  threadId Int
  
   role Role
  
-  content String
+  content String @db.Text
  
   createdAt DateTime @default(now())
  

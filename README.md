@@ -11,11 +11,11 @@ The [Quick-start Template for Building an App Guide](https://api.ejento.ai/guide
 - **Streaming Responses**: Real-time streaming of AI responses with typewriter effect
 - **Thread Management**: Create, navigate, and organize multiple chat conversations
 - **Public Agent Mode**: Support for public-facing AI agents 
-  - **Multi-Database Support**: Flexible database configuration in Public Agent Mode using Prisma ORM, with support for PostgreSQL, MySQL, SQLite, MongoDB, and other databases.
+  - **Multi-Database Support**: Flexible database configuration in Public Agent Mode using Prisma ORM, with support for different databases.
   - **Flexible user identification:**
    - **Anonymous Users**: Browser session-based chat history stored in Prisma-managed Database when authentication is disabled
    - **Authenticated Users**: User account-based chat history stored in database when authentication is enabled
-- **Intelligent Chat Storage**: Chat history stored in the database—linked to session IDs for anonymous users and to user accounts for authenticated users
+- **Intelligent Chat Storage**: Chat history stored in the database—linked to session IDs for anonymous users and to user accounts for authenticated users in Public agent mode and for normal mode chats are stored in backend.
 - **Persistent Configuration**: API credentials and settings stored securely in the database for manual configuration mode (replaces browser localStorage)
 
 ### Developer Experience
@@ -31,8 +31,10 @@ The [Quick-start Template for Building an App Guide](https://api.ejento.ai/guide
 ### System Requirements
 - **Node.js**: Version 20 or higher
 - **npm**: Version 7 or higher (or yarn/pnpm/bun)
-- **Database**: Any database supported by Prisma (PostgreSQL, MySQL, SQLite, MongoDB, SQL Server, CockroachDB)
+- **Database**: Tested with PostgreSQL (local & Supabase) and MySQL
 - **Modern Browser**: Chrome, Firefox, Safari, or Edge (latest versions)
+
+> **Note:** SQLite is not recommended for this project due to its concurrency limitations, lack of native JSON support, and reduced scalability for multi-user chat applications.
 
 ### API Requirements
 
@@ -90,7 +92,7 @@ NODE_ENV=production
 # PostgreSQL: "postgresql://username:password@localhost:5432/ejento_db"
 # MySQL: "mysql://username:password@localhost:3306/ejento_db"
 # SQLite: "file:./dev.db"
-# MongoDB: "mongodb://username:password@localhost:27017/ejento_db"
+
 DATABASE_URL="postgresql://username:password@localhost:5432/ejento_db"
 
 # Enable environment-driven configuration
@@ -141,6 +143,42 @@ npx prisma migrate dev --name init
 
 # (Optional) View your database with Prisma Studio
 npx prisma studio
+```
+## Switching Between Databases
+
+This project supports multiple Prisma database providers.  
+To switch from one database (e.g., MySQL) to another (e.g., PostgreSQL), follow these steps:
+
+### 1️⃣ Update the Database Provider
+
+Edit the `schema.prisma` file and change the `provider` inside the `datasource` block:
+
+```prisma
+datasource db {
+  provider = "postgresql" // or "mysql"
+  url      = env("DATABASE_URL")
+}
+
+### 2️⃣ Update the Environment Variable
+
+```bash
+DATABASE_URL=your-new-database-connection-string
+```
+
+### 3️⃣ Reset Migrations (Required When Changing Database Engines)
+
+Delete the existing migrations folder inside the prisma directory before running new migrations.
+This ensures compatibility with the new database provider.
+
+### 4️⃣ Regenerate Prisma Client and Apply Migrations
+
+```bash
+# Generate Prisma client
+npx prisma generate
+
+# Run database migrations
+npx prisma migrate dev --name init
+
 ```
 
 ### 5. Start the Development Server
@@ -205,15 +243,9 @@ The application uses Prisma ORM for flexible database persistence across all mod
 2. **Manual Configuration Storage**
    - When `NEXT_PUBLIC_ENV_DRIVEN=false`, API credentials entered in the Settings page are stored in the database
    - Each user/browser session maintains its own configuration record
-   - Configuration is encrypted and securely stored
    - Replaces browser localStorage for more secure and persistent storage
    - Configuration data survives browser cache clears and device changes
 
-3. **Database Flexibility**
-   - Switch between database providers by changing only the `DATABASE_URL`
-   - Prisma handles the database-specific SQL generation
-   - Same codebase works with PostgreSQL, MySQL, SQLite, MongoDB, and more
-   - Ideal for development (SQLite) to production (PostgreSQL) transitions
 
 ### Configuration Flow
 
@@ -250,7 +282,7 @@ Deploy as an internal AI assistant for your organization:
 - Each user sees their own chat history stored in the central database
 - All chat history stored centrally for analytics and compliance
 - Use environment-driven configuration for security
-- Deploy with PostgreSQL for production reliability
+- Deploy with PostgreSQL for production reliability(in Public Agent Mode)
 
 ### 2. Public AI Agent (Anonymous Access)
 Create a public-facing AI agent for anonymous users:
@@ -259,7 +291,6 @@ Create a public-facing AI agent for anonymous users:
 - Users access the agent without login
 - Chat history stored in database with session-based isolation
 - Perfect for demos, landing pages, or public tools
-- Use SQLite for lightweight deployment or PostgreSQL for scale
 
 ### 3. Public AI Agent (Registered Users)
 Create a public-facing AI agent for registered users:
@@ -268,23 +299,20 @@ Create a public-facing AI agent for registered users:
 - Users must register/login to access the agent
 - Chat history follows users across devices via database storage
 - Ideal for SaaS products or subscription services
-- Scale with PostgreSQL or MongoDB as user base grows
 
 ### 4. Development/Testing Environment
 Use for local development and testing:
 - Manual configuration mode for flexibility
-- SQLite database for lightweight development
 - Easy switching between different Agents when `NEXT_PUBLIC_ENV_DRIVEN=false` and `NEXT_PUBLIC_AGENT=false`
 - Full access to settings page with database-stored configurations
-- Seamless transition to production database
 
 ### 5. White-Label Solution
 Customize for clients:
 - Environment-driven configuration per deployment
 - Custom branding and styling
 - Choose between anonymous or authenticated user models
-- Centralized chat history storage per client in their preferred database
-- Deploy with client's existing database infrastructure
+- Centralized chat history storage per client in their preferred database (Public Agent Mode). 
+  Otherwise, chat history is stored in the application's backend database.
 
 ### 6. Hybrid Deployment
 Support both anonymous and authenticated users:
@@ -292,7 +320,6 @@ Support both anonymous and authenticated users:
 - Encourage registration to save chat history permanently
 - Seamless transition from session-based to user-based history
 - All data stored in same database with proper associations
-- Migrate anonymous chats to user accounts upon registration
 
 ## 📁 Project Structure
 
@@ -304,7 +331,7 @@ ejento_template/
 │   └── seeds/           # Database seed data
 ├── src/
 │   ├── app/              # Next.js app router pages
-│   │   ├── api/          # API routes (proxy, config, sso, chat, auth)
+│   │   ├── api/          # API routes (config, ejento-config, message, thread, session, user, proxy, sso, etc.)
 │   │   ├── auth/         # Authentication-related pages (login, register)
 │   │   ├── chat/         # Chat page
 │   │   ├── settings/     # Settings page
@@ -328,16 +355,34 @@ ejento_template/
 The Prisma schema includes the following main models, all of which work with any supported database provider:
 
 - **User**: Stores authenticated user information for registered users
-- **AnonymousSession**: Tracks anonymous browser sessions with unique session IDs
-- **Configuration**: Stores API credentials and settings for manual configuration mode
-- **Chat**: Stores chat conversations linked to either a User (for authenticated users) or AnonymousSession (for anonymous users)
+- **Session**: Tracks anonymous browser sessions with unique session IDs
+- **EjentoConfig**: Stores API credentials and settings for manual configuration mode
+- **Thread**: Stores thread information for chat conversations, linked to either a User (authenticated) or an Session (anonymous users).
 - **Message**: Stores individual messages within chats with proper foreign key relationships
-- **Feedback**: Stores user feedback on messages (upvotes, downvotes, etc.)
 
-Key relationships:
-- Anonymous users: Chat → AnonymousSession (session-based isolation)
-- Authenticated users: Chat → User (cross-device persistence)
-- Configuration: Stored per user/session with encryption
+## Key Relationships
+
+### Authenticated Users (`User`)
+- Each user can own multiple threads.  
+- Each user has a single configuration (`EjentoConfig`) storing API keys, tokens, and agent settings.
+
+### Anonymous Users (`Session`)
+- Threads created by anonymous users are linked to a session, providing session-based isolation.  
+- Each session can have multiple threads.
+
+### Threads (`Thread`)
+- Each thread belongs to either a **User** (authenticated) or a **Session** (anonymous).  
+- Each thread contains multiple messages (`Message`).  
+- Optionally linked to an external API ID (`externalApiId`) for integration with Ejento AI.
+
+### Messages (`Message`)
+- Each message belongs to exactly one thread.  
+- Deleting a thread automatically deletes all its messages (`onDelete: Cascade`).  
+- Each message has a role (**user** or **assistant**) and optional metadata.
+
+### Configuration (`EjentoConfig`)
+- Each user can have one configuration.  
+- Stores API keys, base URLs, agent IDs, and optional access tokens.
 
 ## 🔐 Authentication Modes
 
@@ -347,9 +392,7 @@ NEXT_PUBLIC_AUTH_FLOW=false
 NEXT_PUBLIC_AGENT=true  # or false
 ```
 - Users access chat immediately
-- Chat history stored in database tied to browser session ID
 - No login required
-- Each browser session has isolated chat history
 - Perfect for public kiosks or anonymous demos
 
 ### Mode 2: Authentication Enabled (Registered Users)
@@ -358,9 +401,6 @@ NEXT_PUBLIC_AUTH_FLOW=true
 NEXT_PUBLIC_AGENT=true  # or false
 ```
 - Users redirected to login page
-- Chat history stored in database tied to user account ID
-- Persistent across devices and browser sessions
-- Users can access their history from anywhere
 - Ideal for production applications
 
 ## 🐛 Troubleshooting
@@ -372,7 +412,6 @@ NEXT_PUBLIC_AGENT=true  # or false
 - ✅ Check `DATABASE_URL` connection string format for your provider
 - ✅ Ensure database exists and is accessible
 - ✅ Check network/firewall settings
-- ✅ For SQLite: Verify file permissions
 
 **Problem**: "Prisma migration failed"
 - ✅ Run `npx prisma migrate reset` to reset (development only)
@@ -393,11 +432,13 @@ NEXT_PUBLIC_AGENT=true  # or false
 - ✅ Check API response for chat history endpoint
 - ✅ Confirm foreign key relationships in database
 
-**Problem**: "Switching database providers"
-- ✅ Update `DATABASE_URL` in .env file
-- ✅ Run `npx prisma generate` to regenerate client
-- ✅ Run `npx prisma migrate dev --name init` for new database
-- ✅ Note: Data migration between providers requires manual export/import
+### **Problem**: Switching Database Providers
+
+- ✅ Update the `provider` in the `datasource` block of your `schema.prisma` file (e.g., `"mysql"` → `"postgresql"`)  
+- ✅ Update the `DATABASE_URL` in the `.env` file to match the new database  
+- ✅ Delete the existing `migrations` folder inside the `prisma` directory (required when switching database engines)  
+- ✅ Run `npx prisma generate` to regenerate the Prisma Client  
+- ✅ Run `npx prisma migrate dev --name init` to create fresh migrations for the new database  
 
 ### Authentication Issues
 
@@ -408,17 +449,10 @@ NEXT_PUBLIC_AGENT=true  # or false
 - ✅ Check authentication API endpoints
 - ✅ Verify database connection for User model
 
-**Problem**: "Chat history missing after login"
-- ✅ Implement anonymous to authenticated user chat migration
-- ✅ Verify user ID is properly associated with new chats
-- ✅ Check database for user-chat associations
-- ✅ Consider merging anonymous session chats with user account
-
 **Problem**: "Session expired"
 - ✅ Check session duration configuration in database
-- ✅ Verify refresh token mechanism
 - ✅ Clear browser cookies and retry
-- ✅ Check AnonymousSession table for expired sessions
+- ✅ Check Session table for expired sessions
 
 ### Configuration Issues
 
@@ -457,14 +491,7 @@ NEXT_PUBLIC_AGENT=true  # or false
 - ✅ Check database tables in Prisma Studio to verify messages are being saved
 - ✅ Verify API endpoints for chat history are accessible
 - ✅ Check for errors in browser console when saving messages
-- ✅ Confirm database migrations have been applied successfully
 - ✅ Check foreign key constraints in Message table
-
-**Problem**: "Database connection pool exhausted"
-- ✅ Check Prisma connection limit configuration
-- ✅ Implement connection pooling for production
-- ✅ Monitor database connection usage
-- ✅ Consider upgrading database tier
 
 **Problem**: "Slow query performance"
 - ✅ Add database indexes to frequently queried fields
@@ -503,7 +530,7 @@ This is a template repository. Feel free to:
 For issues related to:
 - **Template/Code**: Open an issue in this repository
 - **Ejento AI APIs**: Contact your Ejento AI provider via `developer.support@ejento.ai`
-- **Database/Deployment**: Refer to your database provider's documentation
+- **Deployment**: Refer to your hosting platform's documentation
 - **Prisma ORM**: Check [Prisma's documentation](https://www.prisma.io/docs) or [GitHub issues](https://github.com/prisma/prisma)
 
 ---
