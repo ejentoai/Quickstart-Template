@@ -11,10 +11,10 @@ The [Quick-start Template for Building an App Guide](https://api.ejento.ai/guide
 - **Streaming Responses**: Real-time streaming of AI responses with typewriter effect
 - **Thread Management**: Create, navigate, and organize multiple chat conversations
 - **Public Agent Mode**: Support for public-facing AI agents 
-  - **Multi-Database Support**: Flexible database configuration in Public Agent Mode using Prisma ORM, with support for different databases.
+  - **Multi-Database Support**: Flexible database configuration in Public Agent Mode using Prisma ORM
   - **Flexible user identification:**
-   - **Anonymous Users**: Browser session-based chat history stored in Prisma-managed Database when authentication is disabled
-   - **Authenticated Users**: User account-based chat history stored in database when authentication is enabled
+      - **Anonymous Users**: Browser session-based chat history stored in Prisma-managed Database when authentication is disabled
+      - **Authenticated Users**: User account-based chat history stored in database when authentication is enabled
 - **Persistent Configuration**: API credentials stored securely in the database for manual configuration mode
 
 ### Developer Experience
@@ -39,6 +39,7 @@ The [Quick-start Template for Building an App Guide](https://api.ejento.ai/guide
 - **Ejento API Access**: Valid Ejento API credentials are required. The credentials required depend on whether authentication is enabled or disabled:
 
   **1. Authentication Enabled**
+
   - The Access Token will be issued automatically after successful user authentication.
   - During configuration, the user only needs:
     - Base URL for your Ejento API instance
@@ -46,6 +47,7 @@ The [Quick-start Template for Building an App Guide](https://api.ejento.ai/guide
     - Agent ID
 
   **2. Authentication Disabled**
+
   - The user must provide all credentials during configuration:
     - Base URL for your Ejento API instance
     - API Key (Ocp-Apim-Subscription-Key)
@@ -88,9 +90,8 @@ NODE_ENV=production
 # Examples:
 # PostgreSQL: "postgresql://username:password@localhost:5432/ejento_db"
 # MySQL: "mysql://username:password@localhost:3306/ejento_db"
-# SQLite: "file:./dev.db"
 
-DATABASE_URL="postgresql://username:password@localhost:5432/ejento_db"
+DATABASE_URL="provider://username:password@localhost:5432/db_name"
 
 # Enable environment-driven configuration
 NEXT_PUBLIC_ENV_DRIVEN=true
@@ -121,7 +122,7 @@ NEXT_PUBLIC_STREAM_CHAT=true
 NEXT_PUBLIC_SECRET_KEY=secret-key-for-encryption
 ```
 
-### 4. Set Up Database
+### 4. Database Setup
 
 The application uses Prisma ORM with configurable database support. You can connect to any online or offline database supported by Prisma, such as MySQL, PostgreSQL, or services like Supabase (which provides a hosted PostgreSQL database), etc. Simply update the `DATABASE_URL` in your `.env` file and ensure that the connection string matches the correct provider specified in the schema.prisma file. The provider defined in schema.prisma and the connection string must correspond to the same database type.
 
@@ -162,7 +163,7 @@ datasource db {
   provider = "postgresql" // or "mysql"
   url      = env("DATABASE_URL")
 }
-
+```
 ### 2️⃣ Update the Environment Variable
 
 ```bash
@@ -197,7 +198,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `DATABASE_URL` | Database connection string (supports PostgreSQL, MySQL, SQLite, MongoDB, etc.) | `postgresql://user:pass@localhost:5432/db` |
+| `DATABASE_URL` | Database connection string (supports PostgreSQL, MySQL, etc.) | `provider://username:password@localhost:5432/db_name` |
 | `NEXT_PUBLIC_ENV_DRIVEN` | Enable environment-driven configuration | `true` |
 | `NEXT_PUBLIC_AUTH_FLOW` | Enable authentication flow | `true` |
 | `EJENTO_BASE_URL` | Base URL for Ejento AI API server | `https://{your-server-name}` |
@@ -212,27 +213,6 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 | `NEXT_PUBLIC_SECRET_KEY` | Secret key for encryption | A JWT Secret Key of your choice|
 
 ## 🎯 Application Behavior
-
-### Public Agent Mode - Dual User Identification
-
-When `NEXT_PUBLIC_AGENT=true` is enabled, the application supports two distinct modes of user identification with all data stored in your configured database:
-
-#### 1. Anonymous Users (Authentication Disabled - `NEXT_PUBLIC_AUTH_FLOW=false`)
-- Anonymous users can access the AI agent without logging in
-- Each browser session maintains its own isolated chat history in the database
-- Chat history is linked to browser session IDs for complete isolation between users
-- Users can only access chats from their current browser session
-- Chat history persists across page reloads within the same session
-- Data is stored in the database with session-based associations
-
-#### 2. Authenticated Users (Authentication Enabled - `NEXT_PUBLIC_AUTH_FLOW=true`)
-- Users must log in before accessing the AI agent
-- Chat history is tied to the authenticated user account in the database
-- Users can access their chat history across multiple devices and sessions
-- Provides persistent chat history that follows the user wherever they log in
-- All conversations are stored in the database with user ID associations
-- Ideal for production applications with registered users
-
 
 ### Configuration Flow
 
@@ -303,7 +283,6 @@ Support both anonymous and authenticated users:
 - Start with anonymous access for trial users
 - Encourage registration to save chat history permanently
 - Seamless transition from session-based to user-based history
-- All data stored in same database with proper associations
 
 ## 📁 Project Structure
 
@@ -324,8 +303,8 @@ ejento_template/
 │   │   ├── chat/         # Chat-related components
 │   │   └── ui/           # UI component library
 │   ├── generated/        #auto-generated code created by Prisma
-│   │   ├── prisma # Prisma Client output directory
-│   │   │   ├── runtime # Internal Prisma engine/runtime files
+│   │   ├── prisma        #Prisma Client output directory
+│   │   │   ├── runtime   #Internal Prisma engine/runtime files
 │   ├── hooks/            # Custom React hooks
 │   ├── lib/              # Utility libraries
 ├── public/               # Static assets
