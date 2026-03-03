@@ -111,7 +111,7 @@ export function useChat(arg0: { selectedCorpus: any | null }): {
     const [promptTemplate, setPromptTemplate] = useState<string>("");
     const [excludeCategory, setExcludeCategory] = useState<string>("");
     const user = getUserFromStorage()
-    // Get email from config first (set in ENV_DRIVEN mode), then fall back to user storage
+    // Get email from config first (set in NEXT_PUBLIC_ENV_DRIVEN mode), then fall back to user storage
     // Always provide a fallback to ensure created_by is never undefined
     const userEmail = config?.userInfo?.email || user?.email || user?.data?.email || 'user';
     const [streaming, setStreaming] = useState(false);

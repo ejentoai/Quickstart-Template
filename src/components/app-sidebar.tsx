@@ -115,7 +115,7 @@ export function AppSidebar() {
   });
 
   const user_info = getUserFromStorage(); // Current user information
-  // Get email from config first (set in  mode), then fall back to user storage
+  // Get email from config first (set in NEXT_PUBLIC_ENV_DRIVEN mode), then fall back to user storage
   // Always provide a fallback to ensure created_by is never undefined
   const userEmail = config?.userInfo?.email || user_info?.email || user_info?.data?.email || 'user';
 

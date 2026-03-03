@@ -24,10 +24,10 @@ export default function Home() {
     }
 
     // PUBLIC_AGENT mode: Still need credentials, but allow routing to chat if config is available
-    // In PUBLIC_AGENT mode, config should come from ENV_DRIVEN mode (EJENTO_* env vars)
+    // In PUBLIC_AGENT mode, config should come from NEXT_PUBLIC_ENV_DRIVEN mode (EJENTO_* env vars)
     if (isPublicAgent) {
       // In PUBLIC_AGENT mode, we still need the author's credentials from env vars
-      // Check if env config is available (via ENV_DRIVEN mode)
+      // Check if env config is available (via NEXT_PUBLIC_ENV_DRIVEN mode)
       if (configSource === 'environment') {
         if (config && !validationError && isConfigured) {
           // Env config validated successfully - route to login page if auth flow is enabled otherwise route to chat page
@@ -42,7 +42,7 @@ export default function Home() {
           return;
         }
       } else {
-        // PUBLIC_AGENT mode but no env config - need to set up ENV_DRIVEN mode
+        // PUBLIC_AGENT mode but no env config - need to set up NEXT_PUBLIC_ENV_DRIVEN mode
         // Show helpful message about required env vars
         return;
       }
@@ -108,7 +108,7 @@ export default function Home() {
                 <p className="text-sm text-blue-800 font-medium mb-2">Required Environment Variables:</p>
                 <ul className="text-xs text-blue-700 space-y-1 list-disc list-inside">
                   <li><code>NEXT_PUBLIC_AGENT=true</code> ✓ (already set)</li>
-                  <li><code>ENV_DRIVEN=true</code> (or auto-detect)</li>
+                  <li><code>NEXT_PUBLIC_ENV_DRIVEN=true</code> (or auto-detect)</li>
                   <li><code>EJENTO_BASE_URL=...</code></li>
                   <li><code>EJENTO_API_KEY=...</code></li>
                   <li><code>EJENTO_ACCESS_TOKEN=...</code></li>
