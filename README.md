@@ -275,8 +275,7 @@ Customize for clients:
 - Environment-driven configuration per deployment
 - Custom branding and styling
 - Choose between anonymous or authenticated user models
-- Centralized chat history storage per client in their preferred database (Public Agent Mode). 
-  Otherwise, chat history is stored in the application's backend database.
+- Centralized chat history storage per client in their preferred database (Public Agent Mode).Otherwise, chat history is stored in the application's backend database.
 
 ### 6. Hybrid Deployment
 Support both anonymous and authenticated users:
@@ -368,32 +367,32 @@ NEXT_PUBLIC_AGENT=true  # or false
 
 ### Database Issues
 
-**Problem**: "Can't reach database server"
+**Problem**: Can't reach database server
 - ✅ Verify your database is running: Check provider-specific commands
 - ✅ Check `DATABASE_URL` connection string format for your provider
 - ✅ Ensure database exists and is accessible
 - ✅ Check network/firewall settings
 
-**Problem**: "Prisma migration failed"
+**Problem**: Prisma migration failed
 - ✅ Run `npx prisma migrate reset` to reset (development only)
 - ✅ Check migration history: `npx prisma migrate status`
 - ✅ Ensure database user has sufficient privileges
 - ✅ Verify your database version is compatible with Prisma
 
-**Problem**: "Configuration not persisting"
+**Problem**: Configuration not persisting
 - ✅ Check database connection in Prisma Studio: `npx prisma studio`
 - ✅ Verify the Configuration model exists in the database
 - ✅ Check browser console for API errors when saving settings
 - ✅ For manual mode: Ensure `NEXT_PUBLIC_ENV_DRIVEN=false`
 
-**Problem**: "Chat history not loading"
+**Problem**: Chat history not loading
 - ✅ For authenticated mode: Verify user is logged in and has user ID
 - ✅ For session mode: Check session cookies are being set properly
 - ✅ Verify database connection for Chat/Message models
 - ✅ Check API response for chat history endpoint
 - ✅ Confirm foreign key relationships in database
 
-### **Problem**: Switching Database Providers
+**Problem**: Switching Database Providers
 
 - ✅ Update the `provider` in the `datasource` block of your `schema.prisma` file (e.g., `"mysql"` → `"postgresql"`)  
 - ✅ Update the `DATABASE_URL` in the `.env` file to match the new database  
@@ -403,21 +402,21 @@ NEXT_PUBLIC_AGENT=true  # or false
 
 ### Authentication Issues
 
-**Problem**: "Cannot login"
+**Problem**: Cannot login
 - ✅ Verify `NEXT_PUBLIC_AUTH_FLOW=true` is set
 - ✅ Check email/OTP entry format
 - ✅ Ensure user exists in database
 - ✅ Check authentication API endpoints
 - ✅ Verify database connection for User model
 
-**Problem**: "Session expired"
+**Problem**: Session expired
 - ✅ Check session duration configuration in database
 - ✅ Clear browser cookies and retry
 - ✅ Check Session table for expired sessions
 
 ### Configuration Issues
 
-**Problem**: "Configuration Validation Failed"
+**Problem**: Configuration Validation Failed
 - ✅ Check that all environment variables are set correctly
 - ✅ Verify your API credentials are valid
 - ✅ If authentication is disabled, ensure Ejento Access Token is set and not expired
@@ -425,11 +424,11 @@ NEXT_PUBLIC_AGENT=true  # or false
 - ✅ Restart the server after updating environment variables
 - ✅ For manual mode: Check Configuration table in database
 
-**Problem**: "Configuration Required"
+**Problem**: Configuration Required
 - ✅ If using env-driven mode: Ensure `NEXT_PUBLIC_ENV_DRIVEN=true` and all `EJENTO_*` vars are set
 - ✅ If using manual mode: Navigate to `/settings` and configure the application
 - ✅ Check browser console for additional error messages
-- ✅ Verify database can store configuration records
+- ✅ Verify database can store configuration records when `NEXT_PUBLIC_ENV_DRIVEN=false`
 
 ### Build Issues
 
@@ -449,12 +448,12 @@ NEXT_PUBLIC_AGENT=true  # or false
 - ✅ Verify database can retrieve chat history
 
 **Problem**: Messages not persisting
-- ✅ Check database tables in Prisma Studio to verify messages are being saved
+- ✅ Check database tables in Prisma Studio to verify messages are being saved(Public Agent Mode)
 - ✅ Verify API endpoints for chat history are accessible
 - ✅ Check for errors in browser console when saving messages
 - ✅ Check foreign key constraints in Message table
 
-**Problem**: "Slow query performance"
+**Problem**: Slow query performance
 - ✅ Add database indexes to frequently queried fields
 - ✅ Optimize Prisma queries with select/include
 - ✅ Consider database-specific optimizations
@@ -491,7 +490,7 @@ For issues related to:
 - **Template/Code**: Open an issue in this repository
 - **Ejento AI APIs**: Contact your Ejento AI provider via `developer.support@ejento.ai`
 - **Deployment**: Refer to your hosting platform's documentation
-- **Prisma ORM**: Check [Prisma's documentation](https://www.prisma.io/docs) or [GitHub issues](https://github.com/prisma/prisma)
+- **Prisma ORM**: Check [Prisma's documentation](https://www.prisma.io/docs) 
 
 ---
 
