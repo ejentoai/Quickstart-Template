@@ -358,6 +358,8 @@ export function MessageActions({
             metadata: {
               ...currentMessage.metadata,
               comment: review,
+              is_upvote: false,
+              is_downvote: true,
               created_by: user?.email,
             },
           }),

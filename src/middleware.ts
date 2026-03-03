@@ -16,6 +16,7 @@ export default function middleware(req: NextRequest) {
   } = process.env;
 
   const isAuthFlowEnabled = NEXT_PUBLIC_AUTH_FLOW === 'true';
+  const isPublicAgent = NEXT_PUBLIC_AGENT === 'true';
 
   const authPages = ['/auth/login'];
   const publicPaths = ['/', '/settings', '/auth/confirmation'];
@@ -34,7 +35,7 @@ export default function middleware(req: NextRequest) {
 
   /* ---------------- COOKIE HANDLING ---------------- */
 
-  if (NEXT_PUBLIC_ENV_DRIVEN !== 'true' && pathname !== '/settings') {
+  if (NEXT_PUBLIC_ENV_DRIVEN !== 'true' && pathname !== '/settings' && !(isPublicAgent)) {
     const credentialsCookie = req.cookies.get('ejento_api_credentials');
 
     if (!credentialsCookie) {
