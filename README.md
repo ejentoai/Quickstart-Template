@@ -15,8 +15,7 @@ The [Quick-start Template for Building an App Guide](https://api.ejento.ai/guide
   - **Flexible user identification:**
    - **Anonymous Users**: Browser session-based chat history stored in Prisma-managed Database when authentication is disabled
    - **Authenticated Users**: User account-based chat history stored in database when authentication is enabled
-- **Intelligent Chat Storage**: Chat history stored in the database—linked to session IDs for anonymous users and to user accounts for authenticated users in Public agent mode and for normal mode chats are stored in backend.
-- **Persistent Configuration**: API credentials and settings stored securely in the database for manual configuration mode (replaces browser localStorage)
+- **Persistent Configuration**: API credentials stored securely in the database for manual configuration mode
 
 ### Developer Experience
 - **TypeScript**: Fully typed codebase for better development experience
@@ -31,10 +30,8 @@ The [Quick-start Template for Building an App Guide](https://api.ejento.ai/guide
 ### System Requirements
 - **Node.js**: Version 20 or higher
 - **npm**: Version 7 or higher (or yarn/pnpm/bun)
-- **Database**: Tested with PostgreSQL (local & Supabase) and MySQL
+- **Database**: Prisma supported databases such as PostgreSQL (local & Supabase), MySQL, etc
 - **Modern Browser**: Chrome, Firefox, Safari, or Edge (latest versions)
-
-> **Note:** SQLite is not recommended for this project due to its concurrency limitations, lack of native JSON support, and reduced scalability for multi-user chat applications.
 
 ### API Requirements
 
@@ -126,7 +123,7 @@ NEXT_PUBLIC_SECRET_KEY=secret-key-for-encryption
 
 ### 4. Set Up Database
 
-The application uses Prisma ORM with configurable database support. You can use any database supported by Prisma including PostgreSQL, MySQL, SQLite, MongoDB, SQL Server, and CockroachDB. Simply update the `DATABASE_URL` in your `.env` file to match your chosen database provider.
+The application uses Prisma ORM with configurable database support. You can connect to any online or offline database supported by Prisma, such as MySQL, PostgreSQL, or services like Supabase (which provides a hosted PostgreSQL database), etc. Simply update the `DATABASE_URL` in your `.env` file and ensure that the connection string matches the correct provider specified in the schema.prisma file. The provider defined in schema.prisma and the connection string must correspond to the same database type.
 
 The database stores:
 - **Public Agent Mode**: Chat history with dual user identification (session-based for anonymous users, user-based for authenticated users)
@@ -144,6 +141,13 @@ npx prisma migrate dev --name init
 # (Optional) View your database with Prisma Studio
 npx prisma studio
 ```
+
+### 5. Start the Development Server
+
+```bash
+npm run dev
+```
+
 ## Switching Between Databases
 
 This project supports multiple Prisma database providers.  
@@ -220,7 +224,6 @@ When `NEXT_PUBLIC_AGENT=true` is enabled, the application supports two distinct 
 - Users can only access chats from their current browser session
 - Chat history persists across page reloads within the same session
 - Data is stored in the database with session-based associations
-- Ideal for quick demonstrations or public kiosks
 
 #### 2. Authenticated Users (Authentication Enabled - `NEXT_PUBLIC_AUTH_FLOW=true`)
 - Users must log in before accessing the AI agent
@@ -229,22 +232,6 @@ When `NEXT_PUBLIC_AGENT=true` is enabled, the application supports two distinct 
 - Provides persistent chat history that follows the user wherever they log in
 - All conversations are stored in the database with user ID associations
 - Ideal for production applications with registered users
-
-### Database Persistence with Prisma
-
-The application uses Prisma ORM for flexible database persistence across all modes. You can choose any database provider that Prisma supports:
-
-1. **Chat History Storage** (Public Agent Mode)
-   - **Anonymous users**: Chat history stored in database tables with foreign key references to anonymous session records
-   - **Authenticated users**: Chat history stored in database tables with foreign key references to user account records
-   - All chat data persists in your chosen database, not in browser storage
-   - Perfect for analytics, compliance, and data retention requirements
-
-2. **Manual Configuration Storage**
-   - When `NEXT_PUBLIC_ENV_DRIVEN=false`, API credentials entered in the Settings page are stored in the database
-   - Each user/browser session maintains its own configuration record
-   - Replaces browser localStorage for more secure and persistent storage
-   - Configuration data survives browser cache clears and device changes
 
 
 ### Configuration Flow
@@ -271,8 +258,6 @@ The application uses Prisma ORM for flexible database persistence across all mod
 - **Message History**: Persistent chat threads with date-based organization stored in your database
 - **Message Actions**: Upvote, downvote, regenerate and provide feedback to responses
 - **Thread Management**: Create new chats, navigate between threads
-- **Cross-Device Sync**: For authenticated users, chat history syncs across devices via the database
-- **Session Isolation**: For anonymous users, chat history remains isolated to their browser session
 
 ## 🎨 Use Cases
 
@@ -298,7 +283,6 @@ Create a public-facing AI agent for registered users:
 - Enable authentication: `NEXT_PUBLIC_AUTH_FLOW=true`
 - Users must register/login to access the agent
 - Chat history follows users across devices via database storage
-- Ideal for SaaS products or subscription services
 
 ### 4. Development/Testing Environment
 Use for local development and testing:
@@ -326,7 +310,6 @@ Support both anonymous and authenticated users:
 ```
 ejento_template/
 ├── prisma/
-│   ├── schema.prisma    # Database schema with User, AnonymousSession, Chat, Configuration models
 │   ├── migrations/      # Database migrations (provider-specific)
 │   └── seeds/           # Database seed data
 ├── src/
@@ -340,11 +323,11 @@ ejento_template/
 │   │   ├── authentication # Login/register components
 │   │   ├── chat/         # Chat-related components
 │   │   └── ui/           # UI component library
+│   ├── generated/        #auto-generated code created by Prisma
+│   │   ├── prisma # Prisma Client output directory
+│   │   │   ├── runtime # Internal Prisma engine/runtime files
 │   ├── hooks/            # Custom React hooks
 │   ├── lib/              # Utility libraries
-│   │   ├── prisma.ts     # Prisma client singleton (database agnostic)
-│   │   └── auth.ts       # Authentication utilities
-│   ├── middleware/       # Next.js middleware (auth protection)
 ├── public/               # Static assets
 ├── Dockerfile           # Docker configuration
 └── package.json         # Dependencies and scripts
@@ -393,7 +376,6 @@ NEXT_PUBLIC_AGENT=true  # or false
 ```
 - Users access chat immediately
 - No login required
-- Perfect for public kiosks or anonymous demos
 
 ### Mode 2: Authentication Enabled (Registered Users)
 ```env

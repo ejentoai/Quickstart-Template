@@ -7,63 +7,47 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
- 
+
   provider = "prisma-client-js"
- 
   output   = "../src/generated/prisma"
- 
+
 }
 
 datasource db {
 
   provider = "mysql"  // Change from "mysql" to "postgresql"
-
   url      = env("DATABASE_URL")
 
 }
 
 model User {
- 
-  id        Int      @id @default(autoincrement())
- 
-  userId    Int      @unique
- 
-  createdAt DateTime @default(now())
 
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
+  createdAt DateTime @default(now())
   threads   Thread[] @relation("userThreads")
- 
+
 }
 
 model Session{
- 
-  id Int @id @default(autoincrement())
- 
-  sessionId String @unique
- 
-  createdAt DateTime @default(now())
- 
-  expiresAt DateTime
 
+  id Int @id @default(autoincrement())
+  sessionId String @unique
+  createdAt DateTime @default(now())
+  expiresAt DateTime
   threads Thread[] @relation("sessionThreads")
- 
+
 }
 
 model EjentoConfig {
  
   id          Int      @id @default(autoincrement())
- 
   userId      Int      @unique
- 
   baseUrl     String
- 
   apiKey      String
- 
   ejentoAccessToken String?
- 
   agentId     Int
-
   createdAt   DateTime @default(now())
- 
   updatedAt   DateTime @updatedAt
  
 }
@@ -71,27 +55,16 @@ model EjentoConfig {
 model Thread{
  
   id Int @id @default(autoincrement()) // Local DB ID
- 
   title String
- 
   ownerType ownerType
- 
   ownerUserId Int?
- 
   ownerSessionId Int?
- 
   createdAt DateTime @default(now())
- 
   updatedAt DateTime @updatedAt
- 
   metaData Json?
- 
   externalApiId Int? @unique // The REAL ID from external API (dev.ejento.ai)
-
   messages Message[]
-
   ownerUser User? @relation("userThreads",fields : [ownerUserId], references : [id])
- 
   ownerSession Session? @relation("sessionThreads",fields : [ownerSessionId], references : [id])
  
 }
@@ -99,19 +72,12 @@ model Thread{
 model Message {
  
   id Int @id @default(autoincrement())
- 
   threadId Int
- 
   role Role
- 
   content String @db.Text
- 
   createdAt DateTime @default(now())
- 
   agent_response_id Int? @unique
- 
   metadata Json?
- 
   thread Thread @relation(fields: [threadId], references: [id],  onDelete: Cascade)
 
 }
@@ -120,7 +86,6 @@ model Message {
 enum ownerType{
  
    user
- 
    session
  
 }
@@ -128,7 +93,6 @@ enum ownerType{
 enum Role{
  
   user
- 
   assistant
  
 }
