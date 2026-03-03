@@ -484,7 +484,6 @@ This is a template repository. Feel free to:
 - [MySQL Documentation](https://dev.mysql.com/doc)
 - [MongoDB Documentation](https://docs.mongodb.com)
 - [SQLite Documentation](https://www.sqlite.org/docs.html)
-- [Authentication Patterns](https://nextjs.org/docs/authentication)
 
 ## 🆘 Support
 
