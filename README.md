@@ -11,15 +11,20 @@ The [Quick-start Template for Building an App Guide](https://api.ejento.ai/guide
 - **Streaming Responses**: Real-time streaming of AI responses with typewriter effect
 - **Thread Management**: Create, navigate, and organize multiple chat conversations
 - **File Upload & Attachments**: Support for uploading documents, images, and various file formats to enable content-based conversations
+
   - **Multi-format Support**: PDF, Word, Excel, CSV, PPTX, RTF, Images, Text, JSON, XML, HTML, and more
   - **Weblink Integration**: Direct URL upload for online documents and webpages
   - **Plain Text Input**: Direct text paste support
   - **Content-based Queries**: Upload content and ask questions based on the content
+
 - **Public Agent Mode**: Support for public-facing AI agents 
+
   - **Multi-Database Support**: Flexible database configuration in Public Agent Mode using Prisma ORM
   - **Flexible user identification:**
+
       - **Anonymous Users**: Browser session-based chat history stored in Prisma-managed Database when authentication is disabled
       - **Authenticated Users**: User account-based chat history stored in database when authentication is enabled
+      
 - **Persistent Configuration**: API credentials stored securely in the database for manual configuration mode
 
 ### Developer Experience
