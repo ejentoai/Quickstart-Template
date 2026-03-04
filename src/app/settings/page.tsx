@@ -140,6 +140,7 @@ export default function SettingsPage() {
           data: filteredUser 
         };
         setUserToCookie(userInfoToStore);
+        setUserToStorage(userInfoToStore)
       }
 
       // Save configuration to localStorage (for UI state, credentials are in cookie)

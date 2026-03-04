@@ -115,64 +115,116 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
    * Validates environment-based configuration by checking credentials and agent
    * This ensures env config is valid before the app uses it
    */
-  //this method is used to validate configuration 
   const validateEnvConfig = async (configToValidate: UserConfig): Promise<boolean> => {
-
-    setIsValidating(true);
-    setValidationError(null);
+ 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000);
-
+ 
+    setIsValidating(true);
+    setValidationError(null);
+ 
     try {
       const response = await fetch('/api/config/validate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ config: configToValidate }),
-        signal: controller.signal,
+        signal : controller.signal
       });
-
+ 
       const result = await response.json();
-      let stored = true;
-      //store user in cookie at this time, if authentication is disable 
-      if(!isAuthEnabled){
-        const userData = result.userData;
-        const userInfo = userData?.data || userData;
-        const isStoredInCookie = setUserToCookie({
-          success: true,
-          message: 'User data loaded',
-          data: userInfo,
-        });
-        const isStoredInStorage = setUserToStorage({
-          success: true,
-          message: 'User data loaded',
-          data: userInfo,
-        });
-        if(isStoredInCookie && isStoredInStorage){
-          stored = true;
+      console.log(result,'result')
+      const user = result.userData?.data ? result.userData.data : result.userData;
+      // console.log('here',user)
+      // setUserToStorage(user)
+      // setUserToCookie(user)
+
+      //if auth flow is enabled then we donot handle userData at this point
+      //because userData will be available after successful login
+      if(isAuthEnabled){
+        if(result.success){
+          // Clear any validation errors
+          setValidationError(null);
+          return true;
         }
-        else{
-          stored = false;
+        else {
+          // Validation failed
+          const errorMessage = result.message || 'Configuration validation failed';
+          setValidationError(errorMessage);
+          return false;
         }
       }
-      if (result.success && stored) {
-        setValidationError(null);
-        return true;
-      } else {
-        setValidationError(result.message || 'Validation failed');
-        return false;
+      else{
+        if (result.success && result.userData) {
+ 
+          const user = result.userData.data ? result.userData.data : result.userData;
+   
+          const filteredUser = {
+            first_name: user.first_name || '',
+            last_name: user.last_name || '',
+            name: user.full_name || '' + ' ' + user.last_name || '',
+            email: user.email || '',
+            is_staff: user.is_staff || false,
+            is_superuser: user.is_superuser || false,
+          };
+ 
+          // Validation successful - store filtered user info
+          // The sidebar expects the user data in a specific format with a 'data' property
+          // Always use filteredUser to ensure only required fields are stored
+          const userInfoToStore = {
+            success: true,
+            message: 'User data loaded',
+            data: filteredUser
+          };
+          const cookieStored = setUserToCookie(userInfoToStore);
+          const storageStored = setUserToStorage(userInfoToStore);
+
+          if (!cookieStored || !storageStored) {
+            setValidationError("Failed to store user data");
+            return false;
+          }
+         
+          // Update config with user info
+          // Ensure config is updated synchronously so isConfigured calculation works
+          //if auth flow is enabled then user info will not store in config
+            //because user data will be available after login
+          setConfig(prev => {
+            if (!prev) {
+              // This shouldn't happen if validation was called with a config, but handle it
+              return prev;
+            }
+              return {
+                ...prev,
+                userInfo: filteredUser
+              };
+          });
+         
+          // Clear any validation errors
+          setValidationError(null);
+          return true;
+        } else {
+          // Validation failed
+          const errorMessage = result.message || 'Configuration validation failed';
+          setValidationError(errorMessage);
+          return false;
+        }
       }
     } catch (error: any) {
-      let errorMessage = 'Failed to validate configuration';
-      if (error.name === 'AbortError') {
-        errorMessage = 'Validation timed out';
-      } else {
-        errorMessage = error.message;
-      }
-      setValidationError(errorMessage);
-      return false;
+        let errorMessage;
+        if(error.name === 'AbortError'){
+          errorMessage = 'Validation timed out. Please check your environment variables or server.'
+          setValidationError(errorMessage);
+        }
+        else{
+          errorMessage = error.message || 'Failed to validate configuration';
+          setValidationError(errorMessage);
+          console.error('Error validating env config:', error);
+        }
+        return false;
     } finally {
       setIsValidating(false);
-      clearTimeout(timeout);
+        clearTimeout(timeout);
     }
   };
  

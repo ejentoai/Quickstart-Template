@@ -33,38 +33,24 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 };
 
 /**
- * Retrieves API credentials from server-side sources
- * SECURITY: Credentials are never sent from client, only retrieved server-side
- * - NEXT_PUBLIC_ENV_DRIVEN=true: Reads from environment variables
- * - NEXT_PUBLIC_ENV_DRIVEN=false: Reads from secure httpOnly cookies (set after validation)
+ * Get server-side credentials (subscription key and base URL)
  */
-async function getServerSideCredentials(): Promise<{
-  baseUrl: string;
-  authorization: string;
-  apiKey: string;
-} | null> {
-  // Check if NEXT_PUBLIC_ENV_DRIVEN mode is enabled
-  const envDriven = process.env.NEXT_PUBLIC_ENV_DRIVEN === 'true' || process.env.NEXT_PUBLIC_ENV_DRIVEN === '1';
-  
+async function getServerSideCredentials() {
+  const envDriven = process.env.NEXT_PUBLIC_ENV_DRIVEN === 'true';
+  const authFlowEnabled = process.env.NEXT_PUBLIC_AUTH_FLOW === 'true';
+  const cookieStore = await cookies();
+
+  let baseUrl: string | undefined;
+  let apiKey: string | undefined;
+  let ejentoAccessToken: string | undefined;
+
   if (envDriven) {
-    // NEXT_PUBLIC_ENV_DRIVEN=true: Get credentials from environment variables
-    const baseUrl = process.env.EJENTO_BASE_URL;
-    const apiKey = process.env.EJENTO_API_KEY;
-    const ejentoAccessToken = process.env.EJENTO_ACCESS_TOKEN;
-    
-    if (baseUrl && apiKey && ejentoAccessToken) {
-      return {
-        baseUrl: baseUrl.trim(),
-        authorization: ejentoAccessToken.trim(),
-        apiKey: apiKey.trim(),
-      };
-    }
+    baseUrl = process.env.EJENTO_BASE_URL?.trim();
+    apiKey = process.env.EJENTO_API_KEY?.trim();
+    ejentoAccessToken = process.env.EJENTO_ACCESS_TOKEN?.trim();
   } else {
-    // NEXT_PUBLIC_ENV_DRIVEN=false: Get credentials from secure httpOnly cookies
-    const cookieStore = await cookies();
-    const credentialsCookie = cookieStore.get('ejento_api_credentials');
-    
-    if (credentialsCookie?.value) {
+    const cookieValue = cookieStore.get('ejento_api_credentials')?.value;
+    if (cookieValue) {
       try {
         const credentials = JSON.parse(cookieValue);
         baseUrl = credentials.baseUrl?.trim();
