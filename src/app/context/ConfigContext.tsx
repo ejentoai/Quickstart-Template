@@ -140,9 +140,6 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
       // setUserToStorage(user)
       // setUserToCookie(user)
 
-      
-
-     
       //if auth flow is enabled then we donot handle userData at this point
       //because userData will be available after successful login
       if(isAuthEnabled){
@@ -181,6 +178,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
             data: filteredUser
           };
           setUserToCookie(userInfoToStore);
+          setUserToStorage(userInfoToStore)
          
           // Update config with user info
           // Ensure config is updated synchronously so isConfigured calculation works
