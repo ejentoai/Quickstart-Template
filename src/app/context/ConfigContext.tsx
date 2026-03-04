@@ -86,9 +86,9 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('app-config');
     }
-    
-    // SECURITY: Clear server-side credentials cookie (for NEXT_PUBLIC_ENV_DRIVEN=false scenario)
-    // This ensures credentials are removed from secure storage when user logs out
+   
+    // SECURITY: Clear server-side credentials cookie (for ENV_DRIVEN=false scenario)
+    // This ensures credentials are removed from secure storage
     try {
       await fetch('/api/config', {
         method: 'DELETE',
@@ -134,13 +134,12 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
       });
  
       const result = await response.json();
+      console.log(result,'result')
       const user = result.userData?.data ? result.userData.data : result.userData;
-      setUserToStorage(user)
-      setUserToCookie(user)
+      // console.log('here',user)
+      // setUserToStorage(user)
+      // setUserToCookie(user)
 
-      
-
-     
       //if auth flow is enabled then we donot handle userData at this point
       //because userData will be available after successful login
       if(isAuthEnabled){
@@ -179,6 +178,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
             data: filteredUser
           };
           setUserToCookie(userInfoToStore);
+          setUserToStorage(userInfoToStore)
          
           // Update config with user info
           // Ensure config is updated synchronously so isConfigured calculation works
@@ -235,16 +235,16 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
  
     try {
       // Step 1: Check for environment-based configuration first
-      // The API endpoint will respect NEXT_PUBLIC_ENV_DRIVEN flag and return appropriate response
+      // The API endpoint will respect ENV_DRIVEN flag and return appropriate response
       try {
         const envConfigResponse = await fetch('/api/config',{signal : controller.signal});
         if (envConfigResponse.ok) {
           const envConfigData = await envConfigResponse.json();
-          
-          // If NEXT_PUBLIC_ENV_DRIVEN is explicitly false, API returns envDrivenEnabled: false
+         
+          // If ENV_DRIVEN is explicitly false, API returns envDrivenEnabled: false
           // In this case, skip env config and go straight to localStorage
           if (envConfigData.envDrivenEnabled === false) {
-            // NEXT_PUBLIC_ENV_DRIVEN is false - skip env config, go straight to localStorage (Step 2)
+            // ENV_DRIVEN is false - skip env config, go straight to localStorage (Step 2)
             // Continue to Step 2 below
           } else if (envConfigData.config && envConfigData.source === 'environment') {
             // Environment config found - validate it before using
@@ -267,11 +267,11 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
             setIsLoading(false);
             return;
           } else if (envConfigData.envDrivenEnabled === true && !envConfigData.config && envConfigData.error) {
-            // NEXT_PUBLIC_ENV_DRIVEN is true but config is invalid/missing - log error but continue to localStorage
+            // ENV_DRIVEN is true but config is invalid/missing - log error but continue to localStorage
             console.error('Environment-driven config error:', envConfigData.error);
           }
         } else if (envConfigResponse.status >= 500) {
-          // Server error - if NEXT_PUBLIC_ENV_DRIVEN was enabled, this is a problem
+          // Server error - if ENV_DRIVEN was enabled, this is a problem
           const errorData = await envConfigResponse.json().catch(() => ({}));
           if (errorData.envDrivenEnabled) {
             console.error('Environment-driven config failed:', errorData.error || 'Server error');
@@ -281,8 +281,8 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
         // If API call fails, fall back to localStorage
         console.warn('Failed to load env config, falling back to localStorage:', error);
       }
-
-      // Step 2: Fall back to localStorage if no env config or NEXT_PUBLIC_ENV_DRIVEN is false
+ 
+      // Step 2: Fall back to localStorage if no env config or ENV_DRIVEN is false
       try {
         const saved = localStorage.getItem('app-config');
         if (saved) {
