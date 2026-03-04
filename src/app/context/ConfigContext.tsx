@@ -136,9 +136,9 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
       const result = await response.json();
       console.log(result,'result')
       const user = result.userData?.data ? result.userData.data : result.userData;
-      console.log('here',user)
-      setUserToStorage(user)
-      setUserToCookie(user)
+      // console.log('here',user)
+      // setUserToStorage(user)
+      // setUserToCookie(user)
 
       
 

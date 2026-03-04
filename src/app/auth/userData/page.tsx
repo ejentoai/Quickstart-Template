@@ -4,7 +4,7 @@
 import { useApiService } from "@/hooks/useApiService";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { setUserToStorage,removeAccessToken,removeEjentoAccessToken } from '@/cookie';
+import { setUserToStorage,removeAccessToken,removeEjentoAccessToken, setUserToCookie } from '@/cookie';
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useConfig } from "@/app/context/ConfigContext";
@@ -62,6 +62,11 @@ const UserData = () => {
             message : 'user data loaded',
             data : userToStore
           }) //to use in sidebar
+          setUserToCookie({
+            success : true,
+            message : 'user data loaded',
+            data : userToStore
+          })
         }
         router.push("/chat");
       } catch (error : unknown) {
