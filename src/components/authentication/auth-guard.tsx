@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getAccessToken, getEjentoAccessToken, getUserFromCookie } from '@/cookie';
+import { getAccessToken, getEjentoAccessToken } from '@/cookie';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -22,7 +22,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
     const token = getAccessToken();
     const ejentoToken = getEjentoAccessToken();
-    const user_info = getUserFromCookie();
+    const user_info = localStorage.getItem('user_info');
 
     if (!token || !ejentoToken) {
       router.push('/auth/login');
