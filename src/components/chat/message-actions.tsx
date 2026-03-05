@@ -188,7 +188,7 @@ export function MessageActions({
         toast.success('Upvoted Response!', { id: toastId });
         setMessages((prevMessages: any[]) =>
           prevMessages.map((msg) =>
-            msg?.id === messageId
+            msg.id === messageId || msg.agent_response_id === messageId
               ? { ...msg, is_upvote: true, is_downvote: false }
               : msg
           )
@@ -215,7 +215,7 @@ export function MessageActions({
           );
           setMessages((prevMessages: any[]) =>
             prevMessages.map((msg) =>
-              msg?.id === messageId
+              msg.id === messageId || msg.agent_response_id === messageId
                 ? { ...msg, is_upvote: true, is_downvote: false }
                 : msg
             )
@@ -273,7 +273,7 @@ export function MessageActions({
         toast.success('Downvoted Response!', { id: toastId });
         setMessages((prevMessages: any[]) =>
           prevMessages.map((msg) =>
-            msg?.id === messageId
+            msg.id === messageId || msg.agent_response_id === messageId
               ? { ...msg, is_downvote: true, is_upvote: false }
               : msg
           )
@@ -300,7 +300,7 @@ export function MessageActions({
           );
           setMessages((prevMessages: any[]) =>
             prevMessages.map((msg) =>
-              msg?.id === messageId
+              msg.id === messageId || msg.agent_response_id === messageId
                 ? { ...msg, is_downvote: true, is_upvote: false }
                 : msg
             )
