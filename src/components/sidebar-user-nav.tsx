@@ -312,73 +312,7 @@ export function SidebarUserNav() {
   
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent>
-          <DialogTitle>Profile Information</DialogTitle>
-          <div className="py-4">
-            <div className="space-y-4">
-              <div>
-                <h2 className="text-lg font-semibold mb-2">Session Information</h2>
-                <p className="text-sm text-muted-foreground">
-                  Based on Ejento Access Token, the current session is under user: <span className="font-medium">
-                    {user_info?.data ? 
-                      `${user_info.data.first_name} ${user_info.data.last_name}`.trim() || user_info.data.email || 'Unknown User' 
-                      : 'Unknown User'
-                    }
-                  </span>
-                </p>
-              </div>
-              
-              {(user_info?.data?.first_name || user_info?.data?.last_name) && (
-                <div>
-                  <h3 className="text-sm font-medium mb-1">User Name</h3>
-                  <p className="text-sm text-muted-foreground">{`${user_info.data?.first_name || ''} ${user_info.data?.last_name || ''}`.trim()}</p>
-                </div>
-              )}
-              
-              {user_info?.data?.email && (
-                <div>
-                  <h3 className="text-sm font-medium mb-1">Email</h3>
-                  <p className="text-sm text-muted-foreground">{user_info.data.email}</p>
-                </div>
-              )}
-              
-              {user_info?.data?.id && (
-                <div>
-                  <h3 className="text-sm font-medium mb-1">User ID</h3>
-                  <p className="text-sm text-muted-foreground font-mono">{user_info.data.id}</p>
-                </div>
-              )}
-              
-              {(user_info?.data?.is_staff || user_info?.data?.is_superuser) && (
-                <div>
-                  <h3 className="text-sm font-medium mb-1">Role</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {user_info.data.is_superuser ? 'Super User' : user_info.data.is_staff ? 'Staff' : 'User'}
-                  </p>
-                </div>
-              )}
-              
-              {user_info?.data?.organization && (
-                <div>
-                  <h3 className="text-sm font-medium mb-1">Organization</h3>
-                  <p className="text-sm text-muted-foreground">{user_info.data.organization.org_name}</p>
-                  {user_info.data.organization.domain && (
-                    <p className="text-xs text-muted-foreground">{user_info.data.organization.domain}</p>
-                  )}
-                </div>
-              )}
-              
-              {/* <div className="pt-2 border-t">
-                <h3 className="text-sm font-medium mb-2">Data Retention Policy</h3>
-                <p className="text-sm text-muted-foreground">
-                  Your chat logs and associated metadata are retained for a period of 90 days, after which they are permanently deleted. This means your interactions from the past 90 days are stored and accessible to you.
-                </p>
-              </div> */}
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      
 
       <Dialog open={isManageConfigOpen} onOpenChange={setIsManageConfigOpen}>
         <DialogContent className="max-w-lg w-full">
@@ -534,52 +468,47 @@ export function SidebarUserNav() {
       <SidebarMenu>
         <SidebarMenuItem>
           {/* Don't render anything for public agent with auth flow */}
-          {(isPublicAgent && publicAgentSession && isAuthFlowEnabled) ? 
-          <SidebarMenuButton
-            onClick={() => {
-              if (userId !== null) {
-                handleLogout(userId);
-              } else {
-                toast.error("User ID not found. Cannot logout properly.");
-              }
-            }}
-            className="h-10 flex items-center gap-2 text-red-500 font-semibold"
-          >
-            Logout
-          </SidebarMenuButton>
         
-          : (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <SidebarMenuButton className="data-[state=open]:bg-sidebar-accent bg-background data-[state=open]:text-sidebar-accent-foreground h-10">
-                  <Image
-                    src={avatar}
-                    alt={user_info?.data?.email ?? 'User Avatar'}
-                    style={{
-                      borderRadius: '100%',
-                      height: '26px',
-                      width: '26px'
-                    }}
-                  />
-                  <span className="truncate">{user_info?.data?.email || 'Not configured'}</span>
-                  <ChevronUp className="ml-auto" />
-                </SidebarMenuButton>
+              <SidebarMenuButton className="data-[state=open]:bg-sidebar-accent bg-background data-[state=open]:text-sidebar-accent-foreground h-10">
+                <Image
+                  src={avatar}
+                  alt={user_info?.data?.email ?? 'User Avatar'}
+                  style={{
+                    borderRadius: '100%',
+                    height: '26px',
+                    width: '26px'
+                  }}
+                />
+                <span className="truncate">
+                  {isPublicAgent && !isAuthFlowEnabled 
+                    ? 'Session User' 
+                    : (user_info?.data?.email || 'Not configured')
+                  }
+                </span>
+                <ChevronUp className="ml-auto" />
+              </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 side="top"
                 className="w-[--radix-popper-anchor-width]"
               >
                 {/* Profile Information */}
-                <DropdownMenuItem asChild>
-                  <button
-                    type="button"
-                    className="w-full cursor-pointer"
-                    onClick={() => setIsOpen(true)}
-                  >
-                    Profile Information
-                  </button>
-                </DropdownMenuItem>
+                {!(isPublicAgent && !isAuthFlowEnabled) && (
+                  <DropdownMenuItem asChild>
+                    <button
+                      type="button"
+                      className="w-full cursor-pointer"
+                      onClick={() => setIsOpen(true)}
+                    >
+                      Profile Information
+                    </button>
+                  </DropdownMenuItem>
+                )}
+
                 <DropdownMenuSeparator />
+                
 
                 {/* Manage Configuration - only for non-environment config */}
                 {configSource !== 'environment' && (
@@ -627,7 +556,6 @@ export function SidebarUserNav() {
                 
               </DropdownMenuContent>
             </DropdownMenu>
-          )}
         </SidebarMenuItem>
       </SidebarMenu>
     </>

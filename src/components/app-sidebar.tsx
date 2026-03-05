@@ -496,9 +496,7 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter>
-        {(isPublicAgent && publicAgentSession && !isAuthFlowEnabled)
-          ? null
-          : <SidebarUserNav />}
+        <SidebarUserNav />
       </SidebarFooter>
     </Sidebar>
   );

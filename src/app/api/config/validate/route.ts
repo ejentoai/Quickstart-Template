@@ -9,7 +9,7 @@ import { prisma } from '@/lib/prisma';
  * Performs the same validations as manual config (credentials + agent)
  * This ensures env-based config is validated before the app uses it
  * 
- * SECURITY: When =false, stores validated credentials in secure httpOnly cookies
+ * SECURITY: When NEXT_PUBLIC_ENV_DRIVEN=false, stores validated credentials in secure httpOnly cookies
  * so they are not vulnerable to being exposed in the browser network tab
  */
 
