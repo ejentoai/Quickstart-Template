@@ -551,10 +551,8 @@ export function AppSidebar() {
       <SidebarContent>
         <SidebarHistory isLoading={isLoading} threads={threads} groupedChats={groupedChats} fetchThreads={fetchThreads} setThreads={setThreads} groupChatsByDate={groupChatsByDate} updateChatTitle={updateChatTitle} />
       </SidebarContent>
-      <SidebarFooter>
-        { (isPublicAgent && publicAgentSession && !isAuthFlowEnabled) ? null : (
+      <SidebarFooter> 
          <SidebarUserNav  />
-        )}
       </SidebarFooter>
     </Sidebar>
   );
