@@ -201,7 +201,7 @@ export async function POST(request: Request) {
       const userUrl = `${baseUrl}/api/v2/users/me`;
       const userResponse = await axios.get(userUrl, {
         headers,
-        timeout: 20000, // 10 second timeout
+        timeout: 10000, // 10 second timeout
       });
 
       userData = userResponse.data;
