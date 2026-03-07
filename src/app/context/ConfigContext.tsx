@@ -139,7 +139,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
       // console.log('here',user)
       // setUserToStorage(user)
       // setUserToCookie(user)
-
+ 
       //if auth flow is enabled then we donot handle userData at this point
       //because userData will be available after successful login
       if(isAuthEnabled){
@@ -177,8 +177,13 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
             message: 'User data loaded',
             data: filteredUser
           };
-          setUserToCookie(userInfoToStore);
-          setUserToStorage(userInfoToStore)
+          const cookieStored = setUserToCookie(userInfoToStore);
+          const storageStored = setUserToStorage(userInfoToStore);
+ 
+          if (!cookieStored || !storageStored) {
+            setValidationError("Failed to store user data");
+            return false;
+          }
          
           // Update config with user info
           // Ensure config is updated synchronously so isConfigured calculation works
@@ -350,5 +355,6 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     </ConfigContext.Provider>
   );
 }
+ 
  
  
