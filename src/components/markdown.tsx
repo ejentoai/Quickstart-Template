@@ -40,7 +40,6 @@ const NonMemoizedMarkdown = ({
 }) => {
   // const { message } = props;
   // useEffect(() => {
-  //   console.log("message123", message);
   // }, [message]);
   const access_token = getEjentoAccessToken();
   function extractNumberFromUrl(url: string) {
