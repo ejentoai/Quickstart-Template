@@ -2,7 +2,10 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import path from 'path';
 
+
 export default function middleware(req: NextRequest) {
+ 
+  const isPublicAgent = process.env.NEXT_PUBLIC_AGENT === 'true';
   const url = req.nextUrl;
   const pathname = url.pathname;
 
@@ -31,6 +34,33 @@ export default function middleware(req: NextRequest) {
       token !== 'undefined' &&
       token !== 'null'
     );
+  }
+
+  /* ---------------- configuration in cookie ---------------- */
+
+  if (NEXT_PUBLIC_ENV_DRIVEN !== 'true' && pathname !== '/settings' && !(isPublicAgent) && (!isAuthFlowEnabled)) {
+    const credentialsCookie = req.cookies.get('ejento_api_credentials');
+
+    if (!credentialsCookie) {
+      return NextResponse.redirect(new URL('/settings', req.url));
+    }
+
+    try {
+      const parsed = JSON.parse(credentialsCookie.value);
+
+      const valid = isAuthFlowEnabled
+        ? parsed.agentId && parsed.apiKey && parsed.baseUrl
+        : parsed.agentId &&
+          parsed.apiKey &&
+          parsed.baseUrl &&
+          parsed.ejentoAccessToken;
+
+      if (!valid) {
+        return NextResponse.redirect(new URL('/settings', req.url));
+      }
+    } catch {
+      return NextResponse.redirect(new URL('/settings', req.url));
+    }
   }
 
   /* ---------------- ENV-DRIVEN RESTRICTION ---------------- */
