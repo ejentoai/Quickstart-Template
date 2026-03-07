@@ -5,7 +5,6 @@ import './globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
 import { ConfigProvider } from './context/ConfigContext';
 import { PublicAgentSessionProvider } from './context/PublicAgentSessionContext';
-import { TokenRefreshProvider } from '@/components/token-refresh-provider';
 import { AuthProvider } from './context/AuthContext';
 import { Toaster } from 'sonner';
 
@@ -38,7 +37,6 @@ export default function RootLayout({
       >
         <ConfigProvider>
           <PublicAgentSessionProvider>
-            <TokenRefreshProvider>
               <ThemeProvider
                 attribute="class"
                 defaultTheme="light"
@@ -50,7 +48,6 @@ export default function RootLayout({
                   {children}
                 </AuthProvider>
               </ThemeProvider>
-            </TokenRefreshProvider>
           </PublicAgentSessionProvider>
         </ConfigProvider>
       </body>
