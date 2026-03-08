@@ -201,6 +201,7 @@ export function SidebarUserNav() {
       if (process.env.NEXT_PUBLIC_AUTH_FLOW !== 'true' && validationResult.userData) {
         const userData = validationResult.userData;
         setUserToCookie(userData);
+        setUserToStorage(userData)
         
         // Update the config with the fetched user info
         const updatedConfig = {
