@@ -99,9 +99,9 @@ const SvgTransition = ({
             }}
             animate={{
               maskSize: `${revealPercentage}% ${revealPercentage}%`,
-              WebkitMaskSize: `${revealPercentage}% ${revealPercentage}%`,
+             WebkitMaskSize: `${revealPercentage}% ${revealPercentage}%`,
               opacity: revealPercentage / 100, // Fade in as the reveal percentage increases
-            }}
+            } as any}
             transition={{
               duration: 0.5, // Smooth transition duration
               ease: "easeInOut", // Easing function for smooth fading
