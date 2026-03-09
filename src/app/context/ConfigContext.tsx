@@ -134,12 +134,10 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
       });
  
       const result = await response.json();
-      console.log(result,'result')
       const user = result.userData?.data ? result.userData.data : result.userData;
-      // console.log('here',user)
       // setUserToStorage(user)
       // setUserToCookie(user)
-
+ 
       //if auth flow is enabled then we donot handle userData at this point
       //because userData will be available after successful login
       if(isAuthEnabled){
@@ -179,7 +177,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
           };
           const cookieStored = setUserToCookie(userInfoToStore);
           const storageStored = setUserToStorage(userInfoToStore);
-
+ 
           if (!cookieStored || !storageStored) {
             setValidationError("Failed to store user data");
             return false;
@@ -355,5 +353,6 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     </ConfigContext.Provider>
   );
 }
+ 
  
  

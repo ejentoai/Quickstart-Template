@@ -5,7 +5,6 @@ import './globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
 import { ConfigProvider } from './context/ConfigContext';
 import { PublicAgentSessionProvider } from './context/PublicAgentSessionContext';
-import { TokenRefreshProvider } from '@/components/token-refresh-provider';
 import { AuthProvider } from './context/AuthContext';
 import { Toaster } from 'sonner';
 
@@ -33,24 +32,20 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <ConfigProvider>
           <PublicAgentSessionProvider>
-            <TokenRefreshProvider>
-              <ThemeProvider
-                attribute="class"
-                defaultTheme="light"
-                enableSystem={false}
-                forcedTheme="light"
-              >
-                <AuthProvider>
-                  <Toaster position="top-center" richColors />
-                  {children}
-                </AuthProvider>
-              </ThemeProvider>
-            </TokenRefreshProvider>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="light"
+              enableSystem={false}
+              forcedTheme="light"
+            >
+              <AuthProvider>
+                <Toaster position="top-center" richColors />
+                {children}
+              </AuthProvider>
+            </ThemeProvider>
           </PublicAgentSessionProvider>
         </ConfigProvider>
       </body>

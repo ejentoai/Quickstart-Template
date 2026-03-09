@@ -114,10 +114,15 @@ export function AppSidebar() {
     older: [],
   });
 
-  const user_info = getUserFromStorage(); // Current user information
+  const [userInfo, setUserInfo] = useState<any>(null);
+
+  useEffect(() => {
+    const storedUser = getUserFromStorage();
+    setUserInfo(storedUser);
+  }, []);
   // Get email from config first (set in  mode), then fall back to user storage
   // Always provide a fallback to ensure created_by is never undefined
-  const userEmail = config?.userInfo?.email || user_info?.email || user_info?.data?.email || 'user';
+  const userEmail = config?.userInfo?.email || userInfo?.email || userInfo?.data?.email || 'user';
 
   /**
    * Updates the title of a chat thread
@@ -546,10 +551,8 @@ export function AppSidebar() {
       <SidebarContent>
         <SidebarHistory isLoading={isLoading} threads={threads} groupedChats={groupedChats} fetchThreads={fetchThreads} setThreads={setThreads} groupChatsByDate={groupChatsByDate} updateChatTitle={updateChatTitle} />
       </SidebarContent>
-      <SidebarFooter>
-        { (isPublicAgent && publicAgentSession && !isAuthFlowEnabled) ? null : (
+      <SidebarFooter> 
          <SidebarUserNav  />
-        )}
       </SidebarFooter>
     </Sidebar>
   );

@@ -400,7 +400,6 @@ export class ApiService {
         const response = await axios.post(url, payload, {
           headers: this.getHeaders(),
         });
-        console.log('Response at line 401:', response); 
         return {
           success: true,
           message: "Email sent successfully.",

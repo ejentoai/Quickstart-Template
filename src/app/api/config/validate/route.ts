@@ -8,7 +8,7 @@ import axios from 'axios';
  * Performs the same validations as manual config (credentials + agent)
  * This ensures env-based config is validated before the app uses it
  * 
- * SECURITY: When NEXT_PUBLIC_ENV_DRIVEN=false, stores validated credentials in secure httpOnly cookies
+ * SECURITY: When =false, stores validated credentials in secure httpOnly cookies
  * so they are not vulnerable to being exposed in the browser network tab
  */
 
@@ -61,29 +61,36 @@ async function validateAgent(
  * These cookies are only accessible server-side and never exposed to JavaScript
  */
 async function storeCredentialsCookie(payload: Record<string, string>) {
-  const cookieStore = await cookies();
 
-  cookieStore.set(
-    'ejento_api_credentials',
-    JSON.stringify(payload),
-    {
-      httpOnly: true, // Prevents JavaScript access
-      secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 60 * 60 * 24 * 7, // 7 days
-    }
-  );
+  const cookieStore = await cookies();
+  const isAuthEnabled = process.env.NEXT_PUBLIC_AUTH_FLOW === 'true'
+  const cookieOptions: {
+    httpOnly: boolean;
+    secure: boolean;
+    sameSite: 'lax';
+    path: string;
+    maxAge?: number; // Make maxAge optional
+  } = {
+    httpOnly: true, // Prevents JavaScript access
+    secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+    sameSite: 'lax',
+    path: '/',
+  };
+
+  // Only add maxAge if auth is disabled (7 days expiry)
+  if (!isAuthEnabled) {
+    cookieOptions.maxAge = 60 * 60 * 24 * 7; // 7 days
+  }
+
+  cookieStore.set('ejento_api_credentials', JSON.stringify(payload), cookieOptions);
 }
+
 
 export async function POST(request: Request) {
   const requestId = Math.random().toString(36).substring(7); // Generate unique ID for this request
-  console.log(`[${requestId}] === Config Validation Request Started ===`);
   
   try {
-    // Log request body
     const body = await request.json();
-    console.log(`[${requestId}] Request body received:`, JSON.stringify(body, null, 2));
     
     const config: UserConfig = body.config;
 
@@ -101,25 +108,14 @@ export async function POST(request: Request) {
 
     if (envDriven) {
       // For environment-driven config, read credentials from server-side environment variables
-      console.log(`[${requestId}] Reading credentials from environment variables`);
       
       baseUrl = process.env.EJENTO_BASE_URL?.trim() || '';
       apiKey = process.env.EJENTO_API_KEY?.trim() || '';
       ejentoAccessToken = process.env.EJENTO_ACCESS_TOKEN?.trim() || '';
       agentId = process.env.EJENTO_AGENT_ID?.trim() || '';
       
-      console.log(`[${requestId}] Environment variables loaded:`, {
-        baseUrl: baseUrl ? `${baseUrl.substring(0, 20)}...` : 'missing',
-        apiKey: apiKey ? 'present' : 'missing',
-        apiKeyLength: apiKey?.length,
-        ejentoAccessToken: ejentoAccessToken ? 'present' : 'missing',
-        tokenLength: ejentoAccessToken?.length,
-        agentId: agentId || 'missing',
-      });
     } else {
       // For manual config, use values from request body
-      console.log(`[${requestId}] Reading credentials from request body`);
-      
       baseUrl = config?.baseUrl?.trim() || '';
       apiKey = config?.apiKey?.trim() || '';
       ejentoAccessToken = config?.ejentoAccessToken?.trim() || '';
@@ -140,8 +136,6 @@ export async function POST(request: Request) {
     400
     );
     }
-
-    console.log(`[${requestId}] All credentials present, proceeding with validation`);
 
     // For server-side validation, always use direct API calls (no proxy)
     // Build headers directly with credentials for server-side validation
@@ -187,12 +181,6 @@ export async function POST(request: Request) {
       'Authorization': ejentoAccessToken,
       'Ocp-Apim-Subscription-Key': apiKey,
     };
-    
-    console.log(`[${requestId}] Request headers prepared:`, {
-      contentType: headers['Content-Type'],
-      authorization: headers['Authorization'] ? 'present' : 'missing',
-      ocpKey: headers['Ocp-Apim-Subscription-Key'] ? 'present' : 'missing',
-    });
 
     // 1. Validate credentials by fetching current user
     let userData = null;
@@ -201,7 +189,7 @@ export async function POST(request: Request) {
       const userUrl = `${baseUrl}/api/v2/users/me`;
       const userResponse = await axios.get(userUrl, {
         headers,
-        timeout: 10000, // 10 second timeout
+        timeout: 20000, // 10 second timeout
       });
 
       userData = userResponse.data;
@@ -214,34 +202,14 @@ export async function POST(request: Request) {
       }
     } catch (error: any) {
       const statusCode = error.response?.status || 500;
-      console.log(`[${requestId}] Step 1 ERROR: Credential validation failed`);
-      
-      // Enhanced error logging
-      if (axios.isAxiosError(error)) {
-        console.log(`[${requestId}] Axios error details:`, {
-          message: error.message,
-          code: error.code,
-          status: error.response?.status,
-          statusText: error.response?.statusText,
-          url: error.config?.url,
-          method: error.config?.method,
-          responseData: error.response?.data,
-          responseHeaders: error.response?.headers,
-          requestHeaders: error.config?.headers,
-        });
-      } else {
-        console.log(`[${requestId}] Non-axios error:`, error);
-      }
-      
+
       let errorMessage = 'Failed to verify credentials';
       
       // Provide more detailed error messages
       if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
         errorMessage = `Cannot connect to server. Please check that the server is reachable.`;
-        console.log(`[${requestId}] Connection error: Unable to reach server at ${baseUrl}`);
       } else if (error.code === 'ETIMEDOUT' || error.message?.includes('timeout')) {
         errorMessage = `Request timed out while connecting to server. Please check your network connection.`;
-        console.log(`[${requestId}] Timeout error: Request to ${baseUrl} timed out`);
       } else if (error.response) {
         // HTTP error response
         errorMessage = error.response.data?.message || error.response.data?.error || error.response.statusText || 'Failed to verify credentials';
@@ -249,13 +217,10 @@ export async function POST(request: Request) {
         // Add specific guidance based on status code
         if (statusCode === 401) {
           errorMessage = 'Invalid credentials. Please verify your API key and access token are correct.';
-          console.log(`[${requestId}] 401 Unauthorized: Invalid API key or access token`);
         } else if (statusCode === 403) {
           errorMessage = 'Access forbidden. Your credentials may not have permission to access this resource.';
-          console.log(`[${requestId}] 403 Forbidden: Credentials lack required permissions`);
         } else if (statusCode === 404) {
           errorMessage = `API endpoint not found. Please verify server is reachable. Attempted: /api/v2/users/me`;
-          console.log(`[${requestId}] 404 Not Found: Endpoint /api/v2/users/me does not exist at ${baseUrl}`);
         }
       } else if (error.message) {
         errorMessage = error.message;

@@ -40,7 +40,6 @@ const NonMemoizedMarkdown = ({
 }) => {
   // const { message } = props;
   // useEffect(() => {
-  //   console.log("message123", message);
   // }, [message]);
   const access_token = getEjentoAccessToken();
   function extractNumberFromUrl(url: string) {
@@ -104,16 +103,6 @@ const NonMemoizedMarkdown = ({
       );
     },
     sup: ({ node, children, ...props }) => {
-      // console.log("nodep", node);
-      // if (props.href?.includes('-fnref-')) {
-      //   return (
-      //     <sup className="hidden" {...props}>
-      //       {children}
-      //     </sup>
-      //   );
-      // } else {
-
-      // console.log("numberUrl", node)
       let number = extractNumberFromUrl(
         node?.children?.at(0)?.properties?.href
       );
@@ -134,17 +123,6 @@ const NonMemoizedMarkdown = ({
     },
     a: (props) => {
       const { node, children, ...rest } = props;
-      // if(node?.children[0]?.value?.length === 1 && node?.children[0]?.value?.match(/\d/)) {
-      //   console.log("sad", node)
-      //   return <a {...props}>{children}</a>
-      // }
-
-      // return (
-      //   <a href={`${process.env.NEXT_PUBLIC_CITATION_URL}${message?.references?.find((x:any) => number == x.number)?.url}`} target="_blank" className="text-white hover:underline">
-      //     <sup {...props}>{number}</sup>
-      //   </a>
-      // )
-      // }
       let number = extractNumberFromUrl(props?.href);
       if (number) {
         let numberUrl = message?.references?.find(
@@ -220,7 +198,6 @@ const NonMemoizedMarkdown = ({
 
         if (childChildren?.length > 0 && childChildren[0]?.type === "text") {
           const value = childChildren[0]?.value;
-          // console.log("value", value, childChildren);
           if (props?.href) {
             return (
               <a href={props?.href} target="_blank">
@@ -321,7 +298,6 @@ const NonMemoizedMarkdown = ({
         }
       } else {
         // return <a target="_blank" className={"underline"} {...rest}>{children}</a>;
-        // console.log(props?.href)
         return (
           <a
             className="text-blue-500 hover:underline"

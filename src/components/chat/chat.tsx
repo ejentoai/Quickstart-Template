@@ -215,7 +215,6 @@ export default function Chat({
             a.name.toLowerCase().localeCompare(b.name.toLowerCase())
           );
           setCorpus(sortedResult);
-          // console.log(sortedResult);
         }
         else {
           setCorpus([])

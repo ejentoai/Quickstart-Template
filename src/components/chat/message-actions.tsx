@@ -379,7 +379,6 @@ export function MessageActions({
             }),
         ]);
 
-        console.log("Formatted HTML copied to clipboard!");
     }
   }
 
