@@ -15,7 +15,7 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "react-jsx",
+    "jsx": "preserve",
     "incremental": true,
     "plugins": [
       {
@@ -36,8 +36,9 @@
     "C:\\NextBuilds\\Quickstart-Template\\.next/types/**/*.ts",
     "next-env.d.ts",
     "src/components/authentication/login-form.tsx",
-    "../../NextBuilds/Quickstart-Template/.next/types/**/*.ts"
-, "src/app/api/env-from-cookies"  ],
+    "../../NextBuilds/Quickstart-Template/.next/types/**/*.ts",
+    "src/app/api/env-from-cookies"
+  ],
   "exclude": [
     "node_modules"
   ]

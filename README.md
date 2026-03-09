@@ -124,7 +124,23 @@ NEXT_PUBLIC_SECRET_KEY=secret-key-for-encryption
 
 ### 4. Database Setup
 
-The application uses Prisma ORM with configurable database support. You can connect to any online or offline database supported by Prisma, such as MySQL, PostgreSQL, or services like Supabase (which provides a hosted PostgreSQL database), etc. Simply update the `DATABASE_URL` in your `.env` file and ensure that the connection string matches the correct provider specified in the schema.prisma file. The provider defined in schema.prisma and the connection string must correspond to the same database type.
+The application uses Prisma ORM with configurable database support. You can connect to any online or offline database supported by Prisma, such as MySQL, PostgreSQL, or services like Supabase (which provides a hosted PostgreSQL database), etc. 
+
+### 1️⃣ Set the Database Provider
+
+Edit the `schema.prisma` file and set the `provider` inside the `datasource` block:
+
+```prisma
+datasource db {
+  provider = "postgresql" // or "mysql"
+  url      = env("DATABASE_URL")
+}
+```
+### 2️⃣ Set the Environment Variable
+
+```bash
+DATABASE_URL=your-new-database-connection-string
+```
 
 The database stores:
 - **Public Agent Mode**: Chat history with dual user identification (session-based for anonymous users, user-based for authenticated users)
@@ -136,8 +152,8 @@ Run the following commands to set up your database:
 # Generate Prisma client
 npx prisma generate
 
-# Run database migrations
-npx prisma migrate dev --name init
+# Push schema to database
+npx prisma db push
 
 # (Optional) View your database with Prisma Studio
 npx prisma studio
@@ -170,19 +186,14 @@ datasource db {
 DATABASE_URL=your-new-database-connection-string
 ```
 
-### 3️⃣ Reset Migrations (Required When Changing Database Engines)
-
-Delete the existing migrations folder inside the prisma directory before running new migrations.
-This ensures compatibility with the new database provider.
-
-### 4️⃣ Regenerate Prisma Client and Apply Migrations
+### 4️⃣ Regenerate Prisma Client
 
 ```bash
 # Generate Prisma client
 npx prisma generate
 
-# Run database migrations
-npx prisma migrate dev --name init
+# Push schema to database
+npx prisma db push
 
 ```
 

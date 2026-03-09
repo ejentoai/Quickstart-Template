@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { getUserId } from './lib/getUserId';
 
 export default function middleware(req: NextRequest) {
   const url = req.nextUrl;
@@ -8,6 +9,8 @@ export default function middleware(req: NextRequest) {
   const url_access_token = url.searchParams.get('token');
   const url_ejento_access_token = url.searchParams.get('ejento_access_token');
   const x = url.searchParams.get('x');
+
+  const userId = getUserId()
 
   const {
     NEXT_PUBLIC_AGENT,
@@ -96,6 +99,15 @@ export default function middleware(req: NextRequest) {
 
   const accessToken = req.cookies.get('token')?.value;
   const ejentoToken = req.cookies.get('ejento_access_token')?.value;
+
+  if(isPublicAgent && isAuthFlowEnabled){
+        try{
+           
+        }
+        catch(error){
+
+        }
+  }
 
   const isAuthenticated =
     isValidToken(accessToken) && isValidToken(ejentoToken);
