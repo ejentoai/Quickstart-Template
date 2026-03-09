@@ -88,11 +88,9 @@ async function storeCredentialsCookie(payload: Record<string, string>) {
 
 export async function POST(request: Request) {
   const requestId = Math.random().toString(36).substring(7); // Generate unique ID for this request
-  console.log(`[${requestId}] === Config Validation Request Started ===`);
   
   try {
     const body = await request.json();
-    console.log(`[${requestId}] Request body received:`, JSON.stringify(body, null, 2));
     
     const config: UserConfig = body.config;
 
@@ -110,21 +108,12 @@ export async function POST(request: Request) {
 
     if (envDriven) {
       // For environment-driven config, read credentials from server-side environment variables
-      console.log(`[${requestId}] Reading credentials from environment variables`);
       
       baseUrl = process.env.EJENTO_BASE_URL?.trim() || '';
       apiKey = process.env.EJENTO_API_KEY?.trim() || '';
       ejentoAccessToken = process.env.EJENTO_ACCESS_TOKEN?.trim() || '';
       agentId = process.env.EJENTO_AGENT_ID?.trim() || '';
       
-      console.log(`[${requestId}] Environment variables loaded:`, {
-        baseUrl: baseUrl ? `${baseUrl.substring(0, 20)}...` : 'missing',
-        apiKey: apiKey ? 'present' : 'missing',
-        apiKeyLength: apiKey?.length,
-        ejentoAccessToken: ejentoAccessToken ? 'present' : 'missing',
-        tokenLength: ejentoAccessToken?.length,
-        agentId: agentId || 'missing',
-      });
     } else {
       // For manual config, use values from request body
       baseUrl = config?.baseUrl?.trim() || '';
@@ -192,12 +181,6 @@ export async function POST(request: Request) {
       'Authorization': ejentoAccessToken,
       'Ocp-Apim-Subscription-Key': apiKey,
     };
-    
-    console.log(`[${requestId}] Request headers prepared:`, {
-      contentType: headers['Content-Type'],
-      authorization: headers['Authorization'] ? 'present' : 'missing',
-      ocpKey: headers['Ocp-Apim-Subscription-Key'] ? 'present' : 'missing',
-    });
 
     // 1. Validate credentials by fetching current user
     let userData = null;
@@ -219,25 +202,7 @@ export async function POST(request: Request) {
       }
     } catch (error: any) {
       const statusCode = error.response?.status || 500;
-      console.log(`[${requestId}] Step 1 ERROR: Credential validation failed`);
-      
-      // Enhanced error logging
-      if (axios.isAxiosError(error)) {
-        console.log(`[${requestId}] Axios error details:`, {
-          message: error.message,
-          code: error.code,
-          status: error.response?.status,
-          statusText: error.response?.statusText,
-          url: error.config?.url,
-          method: error.config?.method,
-          responseData: error.response?.data,
-          responseHeaders: error.response?.headers,
-          requestHeaders: error.config?.headers,
-        });
-      } else {
-        console.log(`[${requestId}] Non-axios error:`, error);
-      }
-      
+
       let errorMessage = 'Failed to verify credentials';
       
       // Provide more detailed error messages

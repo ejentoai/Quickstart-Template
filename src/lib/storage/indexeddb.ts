@@ -626,15 +626,6 @@ export function isPublicAgentMode(): boolean {
   const publicAgent = process.env.NEXT_PUBLIC_AGENT;
   const result = publicAgent === 'true' || publicAgent === '1';
   
-  // Debug logging (remove in production if desired)
-//   if (process.env.NODE_ENV === 'development') {
-//     console.log('[PUBLIC_AGENT Mode]', {
-//       NEXT_PUBLIC_AGENT: publicAgent,
-//       isEnabled: result,
-//       note: 'Set NEXT_PUBLIC_AGENT=true in .env.local for client-side access'
-//     });
-//   }
-  
   return result;
 }
 
