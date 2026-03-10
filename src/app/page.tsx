@@ -23,10 +23,10 @@ export default function Home() {
     }
 
     // PUBLIC_AGENT mode: Still need credentials, but allow routing to chat if config is available
-    // In PUBLIC_AGENT mode, config should come from ENV_DRIVEN mode (EJENTO_* env vars)
+    // In PUBLIC_AGENT mode, config should come from NEXT_PUBLIC_ENV_DRIVEN mode (EJENTO_* env vars)
     if (isPublicAgent) {
       // In PUBLIC_AGENT mode, we still need the author's credentials from env vars
-      // Check if env config is available (via ENV_DRIVEN mode)
+      // Check if env config is available (via NEXT_PUBLIC_ENV_DRIVEN mode)
       if (configSource === 'environment') {
         if (config && !validationError && isConfigured) {
           // Env config validated successfully - route to chat
@@ -40,7 +40,7 @@ export default function Home() {
           return;
         }
       } else {
-        // PUBLIC_AGENT mode but no env config - need to set up ENV_DRIVEN mode
+        // PUBLIC_AGENT mode but no env config - need to set up NEXT_PUBLIC_ENV_DRIVEN mode
         // Show helpful message about required env vars
         return;
       }

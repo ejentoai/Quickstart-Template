@@ -210,6 +210,7 @@ export function SidebarUserNav() {
       if (process.env.NEXT_PUBLIC_AUTH_FLOW !== 'true' && validationResult.userData) {
         const userData = validationResult.userData;
         setUserToCookie(userData);
+        // setUserToStorage(userData)
         
         // Update the config with the fetched user info
         const updatedConfig = {
@@ -392,40 +393,40 @@ export function SidebarUserNav() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isManageConfigOpen} onOpenChange={setIsManageConfigOpen}>
-        <DialogContent className="max-w-lg w-full">
-          <DialogTitle>Manage Configuration</DialogTitle>
-          <DialogDescription>
-            {configSource === 'environment' 
-              ? 'Configuration is managed via environment variables and cannot be modified here.'
-              : 'Edit your configuration settings or clear them to start fresh.'}
-          </DialogDescription>
-          
-          {configSource === 'environment' && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 my-4">
-              <p className="text-sm text-blue-800 font-medium mb-2">Environment-Driven Configuration</p>
-              <p className="text-xs text-blue-700">
-                This application is using environment-based configuration. Settings are managed server-side 
-                through environment variables and cannot be modified through this interface.
-              </p>
-              <p className="text-xs text-blue-600 mt-2">
-                To modify configuration, update your server environment variables and restart the application.
-              </p>
-            </div>
-          )}
-          
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="baseUrl">Base URL *</Label>
-              <Input
-                id="baseUrl"
-                value={configForm.baseUrl}
-                onChange={(e) => handleConfigChange('baseUrl', e.target.value)}
-                placeholder="https://api.example.com"
-                disabled={configSource === 'environment'}
-                className={configSource === 'environment' ? 'bg-gray-50 cursor-not-allowed' : ''}
-              />
-            </div>
+     <Dialog open={isManageConfigOpen} onOpenChange={setIsManageConfigOpen}>
+       <DialogContent className="max-w-lg w-full">
+         <DialogTitle>Manage Configuration</DialogTitle>
+         <DialogDescription>
+           {configSource === 'environment'
+             ? 'Configuration is managed via environment variables and cannot be modified here.'
+             : 'Edit your configuration settings or clear them to start fresh.'}
+         </DialogDescription>
+        
+         {configSource === 'environment' && (
+           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 my-4">
+             <p className="text-sm text-blue-800 font-medium mb-2">Environment-Driven Configuration</p>
+             <p className="text-xs text-blue-700">
+               This application is using environment-based configuration. Settings are managed server-side
+               through environment variables and cannot be modified through this interface.
+             </p>
+             <p className="text-xs text-blue-600 mt-2">
+               To modify configuration, update your server environment variables and restart the application.
+             </p>
+           </div>
+         )}
+        
+         <div className="space-y-4">
+           <div className="space-y-2">
+             <Label htmlFor="baseUrl">Base URL *</Label>
+             <Input
+               id="baseUrl"
+               value={configForm.baseUrl}
+               onChange={(e) => handleConfigChange('baseUrl', e.target.value)}
+               placeholder="https://api.example.com"
+               disabled={configSource === 'environment'}
+               className={configSource === 'environment' ? 'bg-gray-50 cursor-not-allowed' : ''}
+             />
+           </div>
 
             <div className="space-y-2">
               <Label htmlFor="apiKey">API Key *</Label>

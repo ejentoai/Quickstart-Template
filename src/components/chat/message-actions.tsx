@@ -401,7 +401,6 @@ export function MessageActions({
   }
 
   return (
-    <>
       <TooltipProvider delayDuration={0}>
         <div className="flex flex-row gap-2">
           {!currentMessage?.content?.startsWith('error::') && (
@@ -513,7 +512,6 @@ export function MessageActions({
           )}
         </div>
       </TooltipProvider>
-    </>
   );
 }
  

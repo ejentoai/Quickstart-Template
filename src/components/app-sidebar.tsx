@@ -507,7 +507,6 @@ export function AppSidebar() {
           updateChatTitle={updateChatTitle}
         />
       </SidebarContent>
-
       <SidebarFooter>
         <SidebarUserNav />
       </SidebarFooter>

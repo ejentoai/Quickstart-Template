@@ -2,7 +2,10 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getUserId } from './lib/getUserId';
 
+
 export default function middleware(req: NextRequest) {
+ 
+  const isPublicAgent = process.env.NEXT_PUBLIC_AGENT === 'true';
   const url = req.nextUrl;
   const pathname = url.pathname;
 
@@ -19,7 +22,6 @@ export default function middleware(req: NextRequest) {
   } = process.env;
 
   const isAuthFlowEnabled = NEXT_PUBLIC_AUTH_FLOW === 'true';
-  const isPublicAgent = NEXT_PUBLIC_AGENT === 'true';
 
   const authPages = ['/auth/login'];
   const publicPaths = ['/', '/settings', '/auth/confirmation'];
@@ -36,9 +38,9 @@ export default function middleware(req: NextRequest) {
     );
   }
 
-  /* ---------------- COOKIE HANDLING ---------------- */
+  /* ---------------- configuration in cookie ---------------- */
 
-  if (NEXT_PUBLIC_ENV_DRIVEN !== 'true' && pathname !== '/settings' && !(isPublicAgent)) {
+  if (NEXT_PUBLIC_ENV_DRIVEN !== 'true' && pathname !== '/settings' && !(isPublicAgent) && (!isAuthFlowEnabled)) {
     const credentialsCookie = req.cookies.get('ejento_api_credentials');
 
     if (!credentialsCookie) {

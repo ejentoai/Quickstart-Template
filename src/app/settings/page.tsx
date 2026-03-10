@@ -1,5 +1,5 @@
 'use client';
-
+ 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useConfig } from '@/app/context/ConfigContext';
@@ -24,15 +24,15 @@ export default function SettingsPage() {
     ejentoAccessToken: '',
     agentId: '',
   });
-
+ 
   const [showTokens, setShowTokens] = useState({
     apiKey: false,
     ejentoAccessToken: false,
   });
-
+ 
   const [isSavingConfig, setIsSavingConfig] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
-
+ 
   useEffect(() => {
     if (config) {
       setFormData({
@@ -43,15 +43,15 @@ export default function SettingsPage() {
       });
     }
   }, [config]);
-
+ 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
-
+ 
   const toggleTokenVisibility = (field: keyof typeof showTokens) => {
     setShowTokens(prev => ({ ...prev, [field]: !prev[field] }));
   };
-
+ 
   const handleSaveAndProceed = async () => {
     const isAuthEnabled = process.env.NEXT_PUBLIC_AUTH_FLOW === 'true';
     const isValid = isAuthEnabled
@@ -78,9 +78,9 @@ export default function SettingsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ config: newConfig }),
       });
-
+ 
       const validationResult = await validationResponse.json();
-
+ 
       if (!validationResult.success) {
         toast.error(validationResult.message || 'Configuration validation failed. Please check your credentials.');
         setIsSavingConfig(false);
@@ -140,7 +140,7 @@ export default function SettingsPage() {
       router.replace(redirectPath);
     }
   }, [router, isLoading, isValidating, configSource, isConfigured, validationError]);
-
+ 
   // Show loading state while checking config
   if (isLoading || isValidating) {
     return (
@@ -152,7 +152,7 @@ export default function SettingsPage() {
       </div>
     );
   }
-
+ 
   // If env config is active and valid, show skeleton while redirecting
   if ((isEnvConfigured || configSource === 'environment') && isConfigured && !validationError) {
     return (
@@ -171,7 +171,7 @@ export default function SettingsPage() {
           <h1 className="text-3xl font-bold">Configuration</h1>
           <p className="text-gray-600 mt-2">Application Configuration Status</p>
         </div>
-
+ 
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -188,6 +188,7 @@ export default function SettingsPage() {
               )}
             </CardTitle>
             <CardDescription>
+              {isPublicAgent
               {isPublicAgent
                 ? 'PUBLIC_AGENT mode is enabled. Configuration is managed via environment variables. You will be redirected to chat once validation completes.'
                 : 'This application is using environment‑driven configuration. The settings below are managed server‑side and cannot be modified here.'}
@@ -235,7 +236,7 @@ export default function SettingsPage() {
                 </div>
               </div>
             )}
-
+ 
             <div className="space-y-4 pt-4">
               <div>
                 <Label className="text-sm font-medium text-gray-500">Base URL</Label>
@@ -243,28 +244,28 @@ export default function SettingsPage() {
                   <p className="text-sm text-gray-700 font-mono">{config?.baseUrl || 'Not set'}</p>
                 </div>
               </div>
-
+ 
               <div>
                 <Label className="text-sm font-medium text-gray-500">API Key</Label>
                 <div className="mt-1 p-3 bg-gray-50 rounded-md border border-gray-200">
                   <p className="text-sm text-gray-700 font-mono">••••••••••••</p>
                 </div>
               </div>
-
+ 
               <div>
                 <Label className="text-sm font-medium text-gray-500">Ejento Access Token</Label>
                 <div className="mt-1 p-3 bg-gray-50 rounded-md border border-gray-200">
                   <p className="text-sm text-gray-700 font-mono">••••••••••••</p>
                 </div>
               </div>
-
+ 
               <div>
                 <Label className="text-sm font-medium text-gray-500">Agent ID</Label>
                 <div className="mt-1 p-3 bg-gray-50 rounded-md border border-gray-200">
                   <p className="text-sm text-gray-700 font-mono">{config?.agentId || 'Not set'}</p>
                 </div>
               </div>
-
+ 
               {config?.userInfo && (
                 <div>
                   <Label className="text-sm font-medium text-gray-500">User Information</Label>
@@ -277,7 +278,7 @@ export default function SettingsPage() {
                 </div>
               )}
             </div>
-
+ 
             <div className="pt-4 border-t">
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <p className="text-sm text-blue-800 font-medium mb-1">About Environment‑Driven Configuration</p>
@@ -287,7 +288,7 @@ export default function SettingsPage() {
                 </p>
               </div>
             </div>
-
+ 
             {validationError ? (
               <div className="pt-4 flex gap-3">
                 <Button variant="outline" className="flex-1" onClick={() => window.location.reload()}>
@@ -306,7 +307,7 @@ export default function SettingsPage() {
       </div>
     );
   }
-
+ 
   // Show normal form for manual configuration
   return (
     <div className="container mx-auto p-6 max-w-2xl relative">
@@ -338,7 +339,7 @@ export default function SettingsPage() {
                   disabled={isSavingConfig || isRedirecting}
                 />
               </div>
-
+ 
               <div>
                 <Label htmlFor="apiKey">API Key *</Label>
                 <div className="relative mt-1">
@@ -402,8 +403,10 @@ export default function SettingsPage() {
                   disabled={isSavingConfig || isRedirecting}
                 />
               </div>
-
+ 
               <div className="pt-4">
+                <Button
+                  onClick={handleSaveAndProceed}
                 <Button
                   onClick={handleSaveAndProceed}
                   className="w-full"
@@ -430,3 +433,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+ 
+ 
