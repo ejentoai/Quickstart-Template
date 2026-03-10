@@ -27,6 +27,7 @@ import { Eye, EyeOff,LogOut } from 'lucide-react';
 import { isPublicAgentMode } from '@/lib/utils';
 import { usePublicAgentSession } from '@/hooks/usePublicAgentSession';
 
+
 export function SidebarUserNav() {
   const { config, clearConfig, updateConfig, saveConfig, configSource } = useConfig();
   const router = useRouter();
@@ -81,7 +82,6 @@ export function SidebarUserNav() {
 
   const handleLogout = async (userId: number) => {
     try {
-      // Clear local tokens and storage
       const result = clearTokens();  
       if (result) {
         toast.success('Logout Successfully');
@@ -105,6 +105,7 @@ export function SidebarUserNav() {
   const toggleTokenVisibility = (field: keyof typeof showTokens) => {
     setShowTokens(prev => ({ ...prev, [field]: !prev[field] }));
   };
+  
 
   const handleSaveConfig = async () => {
 
@@ -223,11 +224,13 @@ export function SidebarUserNav() {
         saveConfig(updatedConfig);
         setUserInfo(getUserFromCookie()); // Refresh user info display
         setIsManageConfigOpen(false);
-        localStorage.setItem('configSaved','true')
+        // localStorage.setItem('configSaved','true')
         toast.success('Configuration updated successfully!');
         
         // If critical config changed, reload the page to refresh all components
         if (configChanged) {
+
+          
           setTimeout(() => {
             window.location.reload();
           }, 500); // Small delay to allow toast to show
@@ -239,11 +242,19 @@ export function SidebarUserNav() {
       updateConfig(newConfig as any,configSource);
       saveConfig(newConfig);
       setIsManageConfigOpen(false);
-      localStorage.setItem('configSaved','true')
+      // localStorage.setItem('configSaved','true')
       toast.success('Configuration updated successfully!');
       
       // If critical config changed, reload the page to refresh all components
       if (configChanged) {
+
+        localStorage.removeItem('active_thread_id');
+        localStorage.removeItem('thread_id');
+        localStorage.removeItem('query');
+
+        // Redirect to fresh chat
+        router.push('/');
+
         setTimeout(() => {
           window.location.reload();
         }, 500); // Small delay to allow toast to show
@@ -273,7 +284,7 @@ export function SidebarUserNav() {
   // };
 
   const handleDestroySession = async () => {
-    localStorage.removeItem('configSaved')
+    // localStorage.removeItem('configSaved')
     if (configSource === 'environment') {
       toast.error(
         'Session cannot be destroyed because configuration is managed via environment variables.'

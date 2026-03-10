@@ -4,6 +4,7 @@ import { setUserToCookie } from '@/cookie';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { ConfigError } from '@/components/configError';
+import { isPublicAgentMode } from '@/lib/utils';
 
 export interface UserConfig {
   baseUrl: string;
@@ -53,6 +54,8 @@ export function useConfig() {
 
 export function ConfigProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
+  let configSaved : any ;
+  const isPublicAgent = isPublicAgentMode()
   const [config, setConfig] = useState<UserConfig | null>(null);
   const [configSource, setConfigSource] = useState<ConfigSource>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -107,8 +110,6 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
       if (!response.ok) {
         const error = await response.json();
         console.error('Failed to save config:', error.error);
-      } else {
-        console.log('Config saved to database');
       }
     } catch (error) {
       console.error('Error saving config:', error);
@@ -171,8 +172,23 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
   //2. data base (prisma)
   //3. env variables when env driven is enable
   const loadConfig = async () => {
-    const configSaved = localStorage.getItem('configSaved') 
-    if(configSource !== 'environment' && configSaved){
+
+    const configValidated = localStorage.getItem('config_validated')
+    if(!isPublicAgent && configSource !== 'environment'){
+      try{
+        const response = await fetch('/api/ejento-config')
+        if(response.ok){
+          configSaved = true
+        }
+        else{
+          configSaved = false
+        }
+      }
+      catch(error){
+        configSaved = false
+      }
+    }
+    if(configSource !== 'environment' && ( configSaved || configValidated)){
       setIsConfigured(true)
     }
     if (typeof window === 'undefined') {

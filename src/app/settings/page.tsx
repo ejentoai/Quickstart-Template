@@ -91,7 +91,7 @@ export default function SettingsPage() {
         // Auth enabled: store only a flag, then go to login
         //because user id is not available yet so we cannot store in DB for now
         localStorage.setItem('config_validated', 'true'); //it means cookie has now config variables but DB donot contain it, this variable will be removed when DB become source of truth
-        localStorage.setItem('configSaved','true') //keep track that config is validated and saved , it will remain in local storage and not change with change in source of data
+        // localStorage.setItem('configSaved','true') //keep track that config is validated and saved , it will remain in local storage and not change with change in source of data
         updateConfig({ ...newConfig }, 'cookie');
         toast.success('Configuration validated. Please log in to continue.');
         setIsRedirecting(true);
@@ -116,7 +116,7 @@ export default function SettingsPage() {
 
         updateConfig({ ...newConfig, userInfo }, 'database');
         saveConfig(newConfig)
-        localStorage.setItem('configSaved','true') //keep track that config is validated and saved , it will remain in local storage and not change with change in source of data
+        // localStorage.setItem('configSaved','true') //keep track that config is validated and saved , it will remain in local storage and not change with change in source of data
         toast.success('Configuration saved successfully');
         setIsRedirecting(true);
         router.push('/chat');

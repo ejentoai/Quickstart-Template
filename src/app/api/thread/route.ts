@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getIdentity } from "@/lib/getIdentity";
-import { ownerType } from "@/generated/prisma/enums";
+import { ownerType } from "@/generated/prisma";
 
 export async function POST(req: Request) {
     try {

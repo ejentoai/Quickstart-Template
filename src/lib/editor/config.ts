@@ -3,7 +3,7 @@ import { Schema } from 'prosemirror-model';
 import { schema } from 'prosemirror-schema-basic';
 import { addListNodes } from 'prosemirror-schema-list';
 import type { Transaction } from 'prosemirror-state';
-import type { EditorViewc } from 'prosemirror-view';
+import type { EditorView } from 'prosemirror-view';
 import type { MutableRefObject } from 'react';
 
 import { buildContentFromDocument } from './functions';

@@ -131,19 +131,32 @@ export function AppSidebar() {
   }, [threads]);
 
   const isThreadEmpty = (thread: ChatThreadResponse): boolean => {
-    const isRecentlyCreated =
-      new Date().getTime() - new Date(thread.created_on).getTime() <
-      5 * 60 * 1000;
-
     return (
-      (thread.title === 'New Chat' || thread.title === 'New Thread') &&
-      isRecentlyCreated
+      (thread.title === 'New Chat') 
     );
   };
 
   const addNewThread = async () => {
     if (isPublicAgent) {
       try {
+        if (threads.length > 0) {
+          const latestThread = threads[0];
+          if (isThreadEmpty(latestThread)) {
+            handleSetQueryParams(
+              latestThread.id.toString(),
+              latestThread.title
+            );
+  
+            localStorage.setItem(
+              'active_thread_id',
+              latestThread.id.toString()
+            );
+  
+            toast.success('Switched to existing new chat');
+            return;
+          }
+        }
+
         const res = await fetch("/api/thread", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -218,6 +231,7 @@ export function AppSidebar() {
         id: tempThreadId,
         title: 'New Chat',
         created_on: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
         created_by: userEmail,
         agent: parseInt(config?.agentId || '0'),
         corpus_id: null,
@@ -274,7 +288,6 @@ export function AppSidebar() {
         try {
           const res = await fetch("/api/thread");
           const fetchedThreads = await res.json();
-
           setThreads(fetchedThreads);
           groupChatsByDate(fetchedThreads);
 

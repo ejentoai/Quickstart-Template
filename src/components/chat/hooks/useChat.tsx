@@ -396,9 +396,7 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
             requestBody,
             {
               onopen: async (res: any) => {
-                if (res.ok && res.status === 200) {
-                  console.log("Connection successful");
-                } else if (res.status >= 400 && res.status < 500 && res.status !== 429) {
+                if (res.status >= 400 && res.status < 500 && res.status !== 429) {
                   console.error("Client-side error. Response:", res);
                 } else if (res.status === 429) {
                   console.error("Rate limited. Please try again later.");

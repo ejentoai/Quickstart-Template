@@ -55,9 +55,13 @@ export default function SSOButton({ icon, label, name, className }: SSOButtonPro
       onClick={handleClick}
       disabled = {isLoading}
     >
-      {icon}
-        <div className="absolute left-0 right-0 text-center md:text-[14px] text-xs">{label}</div>
-        { isLoading && <Spinner/> }
+      <div>
+        {icon}
+      </div>
+        <div className="flex gap-2 items-center justify-center absolute left-0 right-0 text-center md:text-[14px] text-xs">
+          <div>{label}</div>
+          { isLoading && <Spinner/> }
+        </div>
     </Button>
   );
 }
