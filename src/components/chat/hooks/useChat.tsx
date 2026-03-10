@@ -94,45 +94,8 @@ export function useChat(arg0: { selectedCorpus: any | null }): {
     const { selectedCorpus } = arg0;
     const [messages, setMessages] = useState<any>([]);
     const { config } = useConfig();
-    
-    // PUBLIC_AGENT mode: Get session context (only if mode is enabled)
     const isPublicAgent = isPublicAgentMode();
-    let publicAgentSession: ReturnType<typeof usePublicAgentSession> | null = null;
-    try {
-      if (isPublicAgent) {
-        publicAgentSession = usePublicAgentSession();
-      }
-    } catch (error) {
-      // Context not available, continue without it
-      console.warn('PublicAgentSessionContext not available, continuing without IndexedDB persistence');
-    }
-    
-    // Handle null apiService
-    if (!apiService) {
-      return {
-        streaming: false,
-        streamContent: "",
-        streamEvents: [],
-        streamContentRef: { current: "" },
-        messages: [],
-        setMessages: () => {},
-        handleSubmit: () => {},
-        input: "",
-        setInput: () => {},
-        append: () => Promise.resolve(null),
-        isLoading: false,
-        stop: false,
-        reload: false,
-        data: null,
-        chatStarted: false,
-        isCache: false,
-        setIsCache: () => {},
-        reflectionEventsRef: { current: [] },
-        reflectionContentsRef: { current: [] },
-        thoughtProcessRef: { current: "" },
-        isReflectingRef: { current: false }
-      };
-    }
+    const publicAgentSession = usePublicAgentSession();
     const [input, setInput] = useState<any>("");
     const [isLoading, setIsLoading] = useState(false);
     const [stop, setStop] = useState(false);
@@ -148,7 +111,7 @@ export function useChat(arg0: { selectedCorpus: any | null }): {
     const [promptTemplate, setPromptTemplate] = useState<string>("");
     const [excludeCategory, setExcludeCategory] = useState<string>("");
     const user = getUserFromStorage()
-    // Get email from config first (set in ENV_DRIVEN mode), then fall back to user storage
+    // Get email from config first (set in NEXT_PUBLIC_ENV_DRIVEN mode), then fall back to user storage
     // Always provide a fallback to ensure created_by is never undefined
     const userEmail = config?.userInfo?.email || user?.email || user?.data?.email || 'user';
     const [streaming, setStreaming] = useState(false);
@@ -183,6 +146,33 @@ export function useChat(arg0: { selectedCorpus: any | null }): {
         setChatStarted(false);
       }
     }, [messages]);
+
+     // Handle null apiService
+     if (!apiService) {
+      return {
+        streaming: false,
+        streamContent: "",
+        streamEvents: [],
+        streamContentRef: { current: "" },
+        messages: [],
+        setMessages: () => {},
+        handleSubmit: () => {},
+        input: "",
+        setInput: () => {},
+        append: () => Promise.resolve(null),
+        isLoading: false,
+        stop: false,
+        reload: false,
+        data: null,
+        chatStarted: false,
+        isCache: false,
+        setIsCache: () => {},
+        reflectionEventsRef: { current: [] },
+        reflectionContentsRef: { current: [] },
+        thoughtProcessRef: { current: "" },
+        isReflectingRef: { current: false }
+      };
+    }
   
     const handleSubmit = async (question?: string, regenerating?: boolean, messageIdToRegenerate?: string) => {
       localStorage.setItem('query', question || input)
@@ -319,7 +309,6 @@ export function useChat(arg0: { selectedCorpus: any | null }): {
             {
               onopen: async (res: any) => {
                 if (res.ok && (res.status === 200)) {
-                  // console.log("Connection successful:");
                 } else if (res.status >= 400 && res.status < 500 && res.status !== 429) {
                   console.error("Client-side error. Response:", res);
                 } else if (res.status === 429) {

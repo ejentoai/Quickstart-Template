@@ -50,7 +50,7 @@ export function getProxiedUrl(url: string, baseUrl: string): string {
 export function getApiHeaders(
   baseUrl: string,
   ejentoAccessToken: string,
-  apiKey: string
+  apiKey: string,
 ): Record<string, string> {
 
   

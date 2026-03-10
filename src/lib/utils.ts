@@ -300,3 +300,8 @@ export const refreshIfEmpty = (value: any) => {
     window.location.reload();
   }
 };
+
+// export function sanitizeInput(input: string | undefined): string | undefined {
+//   if (!input) return input
+//   return DOMPurify.sanitize(input, { ALLOWED_TAGS: [] })?.trim()
+// }

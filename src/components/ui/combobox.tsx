@@ -46,7 +46,7 @@ export function CustomCombobox(props: any) {
     if (selectedCorpus) {
       setValue(selectedCorpus.name == 'all products' ? 'All Products' : selectedCorpus.name)
     }
-  }, [])
+  }, [selectedCorpus])
 
   // Filter frameworks based on query
   let filteredFrameworks = corpus.filter((framework: any) =>

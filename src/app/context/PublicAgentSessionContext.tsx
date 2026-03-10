@@ -67,7 +67,8 @@ const PublicAgentSessionContext = createContext<PublicAgentSessionContextType | 
 export function usePublicAgentSession() {
   const context = useContext(PublicAgentSessionContext);
   if (!context) {
-    throw new Error('usePublicAgentSession must be used within PublicAgentSessionProvider');
+    console.error('usePublicAgentSession must be used within PublicAgentSessionProvider');
+    return null
   }
   return context;
 }

@@ -10,7 +10,7 @@ import {
   TooltipTrigger,
 } from '../ui/tooltip';
 import { useApiService } from '@/hooks/useApiService';
-import { use, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { getAccessToken, getUserFromStorage, getEjentoAccessToken } from '@/cookie';
 import { isPublicAgentMode, updateMessage } from '@/lib/storage/indexeddb';
 import { usePublicAgentSession } from '@/hooks/usePublicAgentSession';
@@ -24,7 +24,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { formatChatData } from '@/components/chat/chat';
 import { Loader2, SquareArrowOutUpRight } from 'lucide-react';
 
 // Export these utility functions for reuse
@@ -61,16 +60,8 @@ export function MessageActions({
   const apiService = useApiService();
   // const { mutate } = useSWRConfig();
   
-  // PUBLIC_AGENT mode: Get session context for IndexedDB updates
+  const publicAgentSession = usePublicAgentSession();
   const isPublicAgent = isPublicAgentMode();
-  let publicAgentSession: ReturnType<typeof usePublicAgentSession> | null = null;
-  try {
-    if (isPublicAgent) {
-      publicAgentSession = usePublicAgentSession();
-    }
-  } catch (error) {
-    // Context not available, continue without it
-  }
   
   const [user, setUser] = useState<{ id: string, email: string, full_name: string, is_super_user: boolean, user_type: string } | null>(null)
   const [additionalComment, setAdditionalComment] = useState('')
@@ -388,7 +379,6 @@ export function MessageActions({
             }),
         ]);
 
-        console.log("Formatted HTML copied to clipboard!");
     }
   }
 

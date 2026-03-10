@@ -176,7 +176,7 @@ const PurePreviewMessage = ({
   // Parse reflection events for thought process display
   const parsedEvents = useMemo(() => {
     return message.reflectionEvents?.map((event: string) => parseText(event, ``)) || [];
-  }, [message.reflectionEvents]);
+  }, [message.reflectionEvents,parseText]);
 
   /**
    * Cleans and processes citations in message text
@@ -512,7 +512,7 @@ export const ThinkingMessage = ({streamEvents, reflectionEvents, isReflecting, t
       events.push(thoughtProcess.current);
     }
     return events;
-  }, [reflectionEvents?.current, isReflecting?.current, thoughtProcess?.current]);
+  }, [reflectionEvents?.current, isReflecting?.current, thoughtProcess?.current,isReflecting,thoughtProcess,reflectionEvents]);
 
   // Re-check heights when thought process is shown
   useEffect(() => {
