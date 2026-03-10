@@ -2,16 +2,18 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { UserConfig } from '@/app/context/ConfigContext';
 import axios from 'axios';
+import { prisma } from '@/lib/prisma';
 
 /**
  * Server-side validation endpoint for environment-based configuration
  * Performs the same validations as manual config (credentials + agent)
  * This ensures env-based config is validated before the app uses it
  * 
- * SECURITY: When =false, stores validated credentials in secure httpOnly cookies
+ * SECURITY: When NEXT_PUBLIC_ENV_DRIVEN=false, stores validated credentials in secure httpOnly cookies
  * so they are not vulnerable to being exposed in the browser network tab
  */
 
+ 
 function errorResponse(message: string, status = 400) {
   return NextResponse.json(
     {
@@ -22,21 +24,7 @@ function errorResponse(message: string, status = 400) {
     { status }
   );
 }
-
-function parseAxiosError(error: any, fallback: string) {
-  return {
-    status: error.response?.status || 500,
-    message:
-      error.response?.data?.message ||
-      error.response?.data?.error ||
-      fallback,
-  };
-}
-
-/**
- * Validate agent existence and accessibility
- * it will be used either authentication is enabled or disabled
- */
+ 
 async function validateAgent(
   baseUrl: string,
   agentId: string,
@@ -45,21 +33,17 @@ async function validateAgent(
   const agentUrl = `${baseUrl}/api/v2/agents/${agentId}`;
   const agentResponse = await axios.get(agentUrl, { headers });
   const agentData = agentResponse.data;
-
+ 
   if (!agentData || !agentData.success || !agentData.data) {
     throw {
       status: 404,
       message: agentData?.message || 'Agent could not be retrieved',
     };
   }
-
+ 
   return agentData;
 }
-
-/**
- * Store credentials securely in httpOnly cookies
- * These cookies are only accessible server-side and never exposed to JavaScript
- */
+ 
 async function storeCredentialsCookie(payload: Record<string, string>) {
 
   const cookieStore = await cookies();
@@ -93,19 +77,14 @@ export async function POST(request: Request) {
     const body = await request.json();
     
     const config: UserConfig = body.config;
-
-    //check if authentication flow is enabled
     const isAuthEnabled = process.env.NEXT_PUBLIC_AUTH_FLOW === 'true';
-
-    // Check if this is environment-driven config (credentials are server-side only)
-    const envDriven =
-      process.env.NEXT_PUBLIC_ENV_DRIVEN === 'true';
-
+    const envDriven = process.env.NEXT_PUBLIC_ENV_DRIVEN === 'true';
+ 
     let baseUrl: string;
     let apiKey: string;
     let ejentoAccessToken: string;
     let agentId: string;
-
+ 
     if (envDriven) {
       // For environment-driven config, read credentials from server-side environment variables
       
@@ -115,52 +94,43 @@ export async function POST(request: Request) {
       agentId = process.env.EJENTO_AGENT_ID?.trim() || '';
       
     } else {
-      // For manual config, use values from request body
       baseUrl = config?.baseUrl?.trim() || '';
       apiKey = config?.apiKey?.trim() || '';
       ejentoAccessToken = config?.ejentoAccessToken?.trim() || '';
       agentId = config?.agentId?.trim() || '';
     }
-
+ 
     const hasMissingConfig =
-    !baseUrl ||
-    !apiKey ||
-    !agentId ||
-    (!isAuthEnabled && !ejentoAccessToken);
-    
+      !baseUrl ||
+      !apiKey ||
+      !agentId ||
+      (!isAuthEnabled && !ejentoAccessToken);
+ 
     if (hasMissingConfig) {
-    return errorResponse(
-    envDriven
-    ? 'Missing required environment variables.'
-    : 'Missing required configuration values.',
-    400
-    );
+      
+      return errorResponse(
+        envDriven
+          ? 'Missing required environment variables.'
+          : 'Missing required configuration values.',
+        400
+      );
     }
-
-    // For server-side validation, always use direct API calls (no proxy)
-    // Build headers directly with credentials for server-side validation
-    // The proxy is only for client-side CORS issues
-
     if (isAuthEnabled) {
-      // if authentication is enabled header will not contain access token
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
         'Ocp-Apim-Subscription-Key': apiKey,
       };
-
-      // validation is done by checking the agent existence
+ 
       try {
-        await validateAgent(baseUrl, agentId, headers);
+        const agentData = await validateAgent(baseUrl, agentId, headers);
       } catch (error: any) {
         return errorResponse(
           `Agent validation failed: ${error.message}`,
           error.status || 500
         );
       }
-      
-      //after successfull validation
-      // If =false, store credentials securely in httpOnly cookies
-      // This prevents credentials from being visible in browser network tab
+ 
+      // Store credentials in httpOnly cookie
       if (!envDriven) {
         await storeCredentialsCookie({
           baseUrl,
@@ -168,33 +138,31 @@ export async function POST(request: Request) {
           agentId,
         });
       }
-
+ 
       return NextResponse.json({
         success: true,
         message: 'Configuration validated successfully',
       });
     }
-
-    // if auth flow is disabled
+ 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'Authorization': ejentoAccessToken,
+      Authorization: ejentoAccessToken,
       'Ocp-Apim-Subscription-Key': apiKey,
     };
-
-    // 1. Validate credentials by fetching current user
+ 
     let userData = null;
-
     try {
       const userUrl = `${baseUrl}/api/v2/users/me`;
       const userResponse = await axios.get(userUrl, {
         headers,
-        timeout: 20000, // 10 second timeout
+        timeout: 20000, // 20 second timeout
       });
 
       userData = userResponse.data;
-
+     
       if (!userData || typeof userData === 'number') {
+        console.error('Invalid user data response');
         return errorResponse(
           'Could not verify credentials. Please check your API key and access token.',
           401
@@ -227,23 +195,22 @@ export async function POST(request: Request) {
       }
 
       return errorResponse(
-        `Credential validation failed: ${errorMessage}`,
-        statusCode
+        `User validation failed: ${error.response?.data?.message || error.message}`,
+        error.response?.status || 500
       );
     }
-
-    // 2. Validate agent exists and is accessible
+ 
     try {
       await validateAgent(baseUrl, agentId, headers);
     } catch (error: any) {
+      console.error('Agent validation failed:', error);
       return errorResponse(
         `Agent validation failed: ${error.message}`,
         error.status || 500
       );
     }
-    
-    //after successful validation
-    // If =false, store credentials securely in httpOnly cookies
+ 
+    // Store credentials in httpOnly cookie
     if (!envDriven) {
       await storeCredentialsCookie({
         baseUrl,
@@ -252,18 +219,45 @@ export async function POST(request: Request) {
         agentId,
       });
     }
-
-    // if auth flow is disabled we return the user data at this point because it will be required by sidebar
+ 
+    // Store config in database
+    const userId = userData?.data?.id || userData?.id;
+    if (userId) {
+      try {
+        await prisma.ejentoConfig.upsert({
+          where: { userId },
+          update: {
+            baseUrl,
+            apiKey,
+            ejentoAccessToken: ejentoAccessToken || null,
+            agentId: parseInt(agentId, 10)
+          },
+          create: {
+            userId,
+            baseUrl,
+            apiKey,
+            ejentoAccessToken: ejentoAccessToken || null,
+            agentId: parseInt(agentId, 10)
+          },
+        });
+      } catch (dbError) {
+        return errorResponse(
+          `Configuration validated but failed to save in database.`,
+          500
+        );
+      }
+    }
+ 
     return NextResponse.json({
       success: true,
       message: 'Configuration validated successfully',
       userData: userData || null,
     });
   } catch (error) {
-    console.error('Config validation error:', error);
     return errorResponse(
-      'An unexpected error occurred during validation',
+      `An unexpected error occurred during validation`,
       500
     );
-  }
+  } 
 }
+ 

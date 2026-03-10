@@ -12,8 +12,8 @@ export interface SessionMetadata {
 }
 
 export interface StoredMessage {
-  messageId: string;
-  threadId: string;
+  messageId: number;
+  threadId: number;
   role: 'user' | 'assistant';
   content: string;
   createdAt: number; // Unix timestamp
@@ -34,7 +34,7 @@ export interface StoredMessage {
 }
 
 export interface StoredThread {
-  threadId: string;
+  id: number;
   title: string;
   createdAt: number; // Unix timestamp
   updatedAt: number; // Unix timestamp

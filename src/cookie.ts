@@ -100,6 +100,16 @@ export const getUserFromCookie = () => {
   }
 };
 
+export const clearUserFromCookie = (): boolean => {
+  try {
+    Cookies.remove('user_info'); // remove the cookie
+    return true; // indicate success
+  } catch (error) {
+    console.error('Failed to clear user cookie:', error);
+    return false; // indicate failure
+  }
+};
+
 // ============ LOCAL STORAGE FUNCTIONS ============
 
 export const setUserToStorage = (userData: any) => {

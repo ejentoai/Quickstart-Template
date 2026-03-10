@@ -21,21 +21,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useRouter } from 'next/navigation';
-import { clearUserFromStorage, getUserFromStorage, removeAccessToken, removeEjentoAccessToken, setUserToStorage, getEjentoAccessToken, setUserToCookie } from '@/cookie';
+import { clearUserFromStorage, getUserFromCookie, removeAccessToken, removeEjentoAccessToken, setUserToCookie, getEjentoAccessToken, clearUserFromCookie } from '@/cookie';
 import { toast } from 'sonner';
 import { Eye, EyeOff,LogOut } from 'lucide-react';
-import { isPublicAgentMode } from '@/lib/storage/indexeddb';
+import { isPublicAgentMode } from '@/lib/utils';
 import { usePublicAgentSession } from '@/hooks/usePublicAgentSession';
+
 
 export function SidebarUserNav() {
   const { config, clearConfig, updateConfig, saveConfig, configSource } = useConfig();
   const router = useRouter();
-  const [user_info, setUserInfo] = useState(() => {
-    const storedUser = getUserFromStorage();
-    if (!storedUser) return null;
-  
-    return storedUser
-  });
   const [isOpen, setIsOpen] = useState(false);
   const [isManageConfigOpen, setIsManageConfigOpen] = useState(false);
   const [configForm, setConfigForm] = useState({
@@ -44,6 +39,12 @@ export function SidebarUserNav() {
     apiKey: '',
     agentId: ''
   });
+  const [user_info, setUserInfo] = useState(() => {
+    const storedUser = getUserFromCookie();
+    if (!storedUser) return null;
+    return storedUser
+  });
+  const userId = user_info?.data?.id
   const [showTokens, setShowTokens] = useState({
     apiKey: false,
     ejentoAccessToken: false,
@@ -52,18 +53,21 @@ export function SidebarUserNav() {
   const isAuthFlowEnabled = process.env.NEXT_PUBLIC_AUTH_FLOW === 'true';
   const publicAgentSession = usePublicAgentSession(); 
   const isPublicAgent = isPublicAgentMode(); 
-  const ejento_access_token = getEjentoAccessToken()
 
   useEffect(() => {
     if (isManageConfigOpen && config) {
       setConfigForm({
         baseUrl: config.baseUrl || '',
-        ejentoAccessToken: config.ejentoAccessToken || '',
+        ejentoAccessToken:
+          process.env.NEXT_PUBLIC_AUTH_FLOW === 'true'
+            ? getEjentoAccessToken() || ''
+            : config?.ejentoAccessToken || '',
         apiKey: config.apiKey || '',
         agentId: config.agentId || ''
       });
     }
   }, [isManageConfigOpen, config]);
+  
 
   const clearTokens = () => {
     const responseOfAccessToken = removeAccessToken()
@@ -76,17 +80,20 @@ export function SidebarUserNav() {
     }
   }
 
-  const handleLogout = () => {
-    const result = clearTokens()
-    const removed = clearUserFromStorage()
-    if(result && removed){
-      toast.success('Logout Successfully')
-      router.push('/');
-    }
-    else{
-      toast.error('Something went wrong while logging out. Please try again.');
+  const handleLogout = async (userId: number) => {
+    try {
+      const result = clearTokens();  
+      if (result) {
+        toast.success('Logout Successfully');
+        router.push('/');
+      } else {
+        toast.error('Something went wrong while logging out. Please try again.');
+      }
+    } catch (error: any) {
+      toast.error('Error during logout');
     }
   };
+  
 
   const handleConfigChange = (field: string, value: string) => {
     setConfigForm(prev => ({
@@ -98,6 +105,7 @@ export function SidebarUserNav() {
   const toggleTokenVisibility = (field: keyof typeof showTokens) => {
     setShowTokens(prev => ({ ...prev, [field]: !prev[field] }));
   };
+  
 
   const handleSaveConfig = async () => {
 
@@ -128,14 +136,14 @@ export function SidebarUserNav() {
         newConfig = {
           baseUrl: configForm.baseUrl.trim(),
           apiKey: configForm.apiKey.trim(),
-          agentId: configForm.agentId.trim(),
+          agentId: String(configForm.agentId).trim(),
         };
       } else {
         newConfig = {
           baseUrl: configForm.baseUrl.trim(),
           ejentoAccessToken: configForm.ejentoAccessToken.trim(),
           apiKey: configForm.apiKey.trim(),
-          agentId: configForm.agentId.trim(),
+          agentId: String(configForm.agentId).trim(),
           // Keep existing user info if available
           userInfo: config?.userInfo || {
             id: 'user-1',
@@ -144,6 +152,7 @@ export function SidebarUserNav() {
           }
         };
       }
+    
 
       if(isAuthFlowEnabled){
         //First, validate agent using token from cookie
@@ -201,7 +210,7 @@ export function SidebarUserNav() {
       if (process.env.NEXT_PUBLIC_AUTH_FLOW !== 'true' && validationResult.userData) {
         const userData = validationResult.userData;
         setUserToCookie(userData);
-        setUserToStorage(userData)
+        // setUserToStorage(userData)
         
         // Update the config with the fetched user info
         const updatedConfig = {
@@ -212,15 +221,17 @@ export function SidebarUserNav() {
             email: userData.email || newConfig?.userInfo?.email,
           }
         };
-        
-        updateConfig(updatedConfig as any);
-        saveConfig();
-        setUserInfo(getUserFromStorage()); // Refresh user info display
+        updateConfig(updatedConfig as any,configSource);
+        saveConfig(updatedConfig);
+        setUserInfo(getUserFromCookie()); // Refresh user info display
         setIsManageConfigOpen(false);
+        // localStorage.setItem('configSaved','true')
         toast.success('Configuration updated successfully!');
         
         // If critical config changed, reload the page to refresh all components
         if (configChanged) {
+
+          
           setTimeout(() => {
             window.location.reload();
           }, 500); // Small delay to allow toast to show
@@ -229,13 +240,22 @@ export function SidebarUserNav() {
       }
       
       // For auth flow mode or when user data is not available
-      updateConfig(newConfig as any);
-      saveConfig();
+      updateConfig(newConfig as any,configSource);
+      saveConfig(newConfig);
       setIsManageConfigOpen(false);
+      // localStorage.setItem('configSaved','true')
       toast.success('Configuration updated successfully!');
       
       // If critical config changed, reload the page to refresh all components
       if (configChanged) {
+
+        localStorage.removeItem('active_thread_id');
+        localStorage.removeItem('thread_id');
+        localStorage.removeItem('query');
+
+        // Redirect to fresh chat
+        router.push('/');
+
         setTimeout(() => {
           window.location.reload();
         }, 500); // Small delay to allow toast to show
@@ -248,7 +268,6 @@ export function SidebarUserNav() {
     }
   };
 
-  // const handleClearConfig = () => {
   //   // Prevent clearing if config is environment-driven
   //   if (configSource === 'environment') {
   //     toast.error('Configuration cannot be cleared. This application uses environment-driven configuration.');
@@ -266,6 +285,7 @@ export function SidebarUserNav() {
   // };
 
   const handleDestroySession = async () => {
+    // localStorage.removeItem('configSaved')
     if (configSource === 'environment') {
       toast.error(
         'Session cannot be destroyed because configuration is managed via environment variables.'
@@ -282,7 +302,7 @@ export function SidebarUserNav() {
         return; 
       }
 
-      const userCleared = clearUserFromStorage();
+      const userCleared = clearUserFromCookie();
       if (!userCleared) {
         toast.error('Failed to clear user data. Session not destroyed.');
         return; 
@@ -303,75 +323,75 @@ export function SidebarUserNav() {
   };
   
   return (
-<>
-     
-     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-       <DialogContent>
-         <DialogTitle>Profile Information</DialogTitle>
-         <div className="py-4">
-           <div className="space-y-4">
-             <div>
-               <h2 className="text-lg font-semibold mb-2">Session Information</h2>
-               <p className="text-sm text-muted-foreground">
-                 Based on Ejento Access Token, the current session is under user: <span className="font-medium">
-                   {user_info?.data ?
-                     `${user_info.data.first_name} ${user_info.data.last_name}`.trim() || user_info.data.email || 'Unknown User'
-                     : 'Unknown User'
-                   }
-                 </span>
-               </p>
-             </div>
-            
-             {(user_info?.data?.first_name || user_info?.data?.last_name) && (
-               <div>
-                 <h3 className="text-sm font-medium mb-1">User Name</h3>
-                 <p className="text-sm text-muted-foreground">{`${user_info.data?.first_name || ''} ${user_info.data?.last_name || ''}`.trim()}</p>
-               </div>
-             )}
-            
-             {user_info?.data?.email && (
-               <div>
-                 <h3 className="text-sm font-medium mb-1">Email</h3>
-                 <p className="text-sm text-muted-foreground">{user_info.data.email}</p>
-               </div>
-             )}
-            
-             {user_info?.data?.id && (
-               <div>
-                 <h3 className="text-sm font-medium mb-1">User ID</h3>
-                 <p className="text-sm text-muted-foreground font-mono">{user_info.data.id}</p>
-               </div>
-             )}
-            
-             {(user_info?.data?.is_staff || user_info?.data?.is_superuser) && (
-               <div>
-                 <h3 className="text-sm font-medium mb-1">Role</h3>
-                 <p className="text-sm text-muted-foreground">
-                   {user_info.data.is_superuser ? 'Super User' : user_info.data.is_staff ? 'Staff' : 'User'}
-                 </p>
-               </div>
-             )}
-            
-             {user_info?.data?.organization && (
-               <div>
-                 <h3 className="text-sm font-medium mb-1">Organization</h3>
-                 <p className="text-sm text-muted-foreground">{user_info.data.organization.org_name}</p>
-                 {user_info.data.organization.domain && (
-                   <p className="text-xs text-muted-foreground">{user_info.data.organization.domain}</p>
-                 )}
-               </div>
-             )}
-            
-             {/* <div className="pt-2 border-t">
-               <h3 className="text-sm font-medium mb-2">Data Retention Policy</h3>
-               <p className="text-sm text-muted-foreground">
-                 Your chat logs and associated metadata are retained for a period of 90 days, after which they are permanently deleted. This means your interactions from the past 90 days are stored and accessible to you.
-               </p>
-             </div> */}
-           </div>
-         </div>
-       </DialogContent>
-     </Dialog>
+    <>
+      
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogContent>
+          <DialogTitle>Profile Information</DialogTitle>
+          <div className="py-4">
+            <div className="space-y-4">
+              <div>
+                <h2 className="text-lg font-semibold mb-2">Session Information</h2>
+                <p className="text-sm text-muted-foreground">
+                  Based on Ejento Access Token, the current session is under user: <span className="font-medium">
+                    {user_info?.data ? 
+                      `${user_info.data.first_name} ${user_info.data.last_name}`.trim() || user_info.data.email || 'Unknown User' 
+                      : 'Unknown User'
+                    }
+                  </span>
+                </p>
+              </div>
+              
+              {(user_info?.data?.first_name || user_info?.data?.last_name) && (
+                <div>
+                  <h3 className="text-sm font-medium mb-1">User Name</h3>
+                  <p className="text-sm text-muted-foreground">{`${user_info.data?.first_name || ''} ${user_info.data?.last_name || ''}`.trim()}</p>
+                </div>
+              )}
+              
+              {user_info?.data?.email && (
+                <div>
+                  <h3 className="text-sm font-medium mb-1">Email</h3>
+                  <p className="text-sm text-muted-foreground">{user_info.data.email}</p>
+                </div>
+              )}
+              
+              {user_info?.data?.id && (
+                <div>
+                  <h3 className="text-sm font-medium mb-1">User ID</h3>
+                  <p className="text-sm text-muted-foreground font-mono">{user_info.data.id}</p>
+                </div>
+              )}
+              
+              {(user_info?.data?.is_staff || user_info?.data?.is_superuser) && (
+                <div>
+                  <h3 className="text-sm font-medium mb-1">Role</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {user_info.data.is_superuser ? 'Super User' : user_info.data.is_staff ? 'Staff' : 'User'}
+                  </p>
+                </div>
+              )}
+              
+              {user_info?.data?.organization && (
+                <div>
+                  <h3 className="text-sm font-medium mb-1">Organization</h3>
+                  <p className="text-sm text-muted-foreground">{user_info.data.organization.org_name}</p>
+                  {user_info.data.organization.domain && (
+                    <p className="text-xs text-muted-foreground">{user_info.data.organization.domain}</p>
+                  )}
+                </div>
+              )}
+              
+              {/* <div className="pt-2 border-t">
+                <h3 className="text-sm font-medium mb-2">Data Retention Policy</h3>
+                <p className="text-sm text-muted-foreground">
+                  Your chat logs and associated metadata are retained for a period of 90 days, after which they are permanently deleted. This means your interactions from the past 90 days are stored and accessible to you.
+                </p>
+              </div> */}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
      <Dialog open={isManageConfigOpen} onOpenChange={setIsManageConfigOpen}>
        <DialogContent className="max-w-lg w-full">
@@ -408,211 +428,216 @@ export function SidebarUserNav() {
              />
            </div>
 
-           <div className="space-y-2">
-             <Label htmlFor="apiKey">API Key *</Label>
-             <div className="relative">
-               <Input
-                 id="apiKey"
-                 type={showTokens.apiKey ? 'text' : 'password'}
-                 value={configForm.apiKey}
-                 onChange={(e) => handleConfigChange('apiKey', e.target.value)}
-                 placeholder="your-api-key"
-                 className={`pr-10 ${configSource === 'environment' ? 'bg-gray-50 cursor-not-allowed' : ''}`}
-                 disabled={configSource === 'environment'}
-               />
-               <Button
-                 type="button"
-                 variant="ghost"
-                 size="sm"
-                 className="absolute right-0 top-0 h-full px-3"
-                 onClick={() => toggleTokenVisibility('apiKey')}
-                 disabled={configSource === 'environment'}
-               >
-                 {showTokens.apiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-               </Button>
-             </div>
-           </div>
-           {
-             process.env.NEXT_PUBLIC_AUTH_FLOW === 'true' ?
-             <div className="space-y-2">
-               <Label htmlFor="ejentoAccessToken">Ejento Access Token</Label>
-               <div className="relative">
-                 <Input
-                   id="ejentoAccessToken"
-                   type={showTokens.ejentoAccessToken ? 'text' : 'password'}
-                   value={configForm.ejentoAccessToken || 'your ejento access token'}
-                   onChange={(e) => handleConfigChange('ejentoAccessToken', e.target.value)}
-                   placeholder="your-access-token"
-                   className={`pr-10 ${configSource === 'environment' ? 'bg-gray-50 cursor-not-allowed' : ''}`}
-                   disabled
-                 />
-                 <Button
-                   type="button"
-                   variant="ghost"
-                   size="sm"
-                   className="absolute right-0 top-0 h-full px-3"
-                   onClick={() => toggleTokenVisibility('ejentoAccessToken')}
-                   disabled={configSource === 'environment'}
-                 >
-                   {showTokens.ejentoAccessToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                 </Button>
-               </div>
-             </div>
-             :
-             <div className="space-y-2">
-               <Label htmlFor="ejentoAccessToken">Ejento Access Token</Label>
-               <div className="relative">
-                 <Input
-                   id="ejentoAccessToken"
-                   type={showTokens.ejentoAccessToken ? 'text' : 'password'}
-                   value={configForm.ejentoAccessToken}
-                   onChange={(e) => handleConfigChange('ejentoAccessToken', e.target.value)}
-                   placeholder="your-access-token"
-                   className={`pr-10 ${configSource === 'environment' ? 'bg-gray-50 cursor-not-allowed' : ''}`}
-                   disabled={configSource === 'environment'}
-                 />
-                 <Button
-                   type="button"
-                   variant="ghost"
-                   size="sm"
-                   className="absolute right-0 top-0 h-full px-3"
-                   onClick={() => toggleTokenVisibility('ejentoAccessToken')}
-                   disabled={configSource === 'environment'}
-                 >
-                   {showTokens.ejentoAccessToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                 </Button>
-               </div>
-             </div>
-           }
-           <div className="space-y-2">
-             <Label htmlFor="agentId">Agent ID *</Label>
-             <Input
-               id="agentId"
-               value={configForm.agentId}
-               onChange={(e) => handleConfigChange('agentId', e.target.value)}
-               placeholder="your-agent-id"
-               disabled={configSource === 'environment'}
-               className={configSource === 'environment' ? 'bg-gray-50 cursor-not-allowed' : ''}
-             />
-           </div>
-         </div>
+            <div className="space-y-2">
+              <Label htmlFor="apiKey">API Key *</Label>
+              <div className="relative">
+                <Input
+                  id="apiKey"
+                  type={showTokens.apiKey ? 'text' : 'password'}
+                  value={configForm.apiKey}
+                  onChange={(e) => handleConfigChange('apiKey', e.target.value)}
+                  placeholder="your-api-key"
+                  className={`pr-10 ${configSource === 'environment' ? 'bg-gray-50 cursor-not-allowed' : ''}`}
+                  disabled={configSource === 'environment'}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3"
+                  onClick={() => toggleTokenVisibility('apiKey')}
+                  disabled={configSource === 'environment'}
+                >
+                  {showTokens.apiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+            {
+              process.env.NEXT_PUBLIC_AUTH_FLOW === 'true' ? 
+              <div className="space-y-2">
+                <Label htmlFor="ejentoAccessToken">Ejento Access Token</Label>
+                <div className="relative">
+                  <Input
+                    id="ejentoAccessToken"
+                    type={showTokens.ejentoAccessToken ? 'text' : 'password'}
+                    value={configForm.ejentoAccessToken || 'your ejento access token'}
+                    onChange={(e) => handleConfigChange('ejentoAccessToken', e.target.value)}
+                    placeholder="your-access-token"
+                    className={`pr-10 ${configSource === 'environment' ? 'bg-gray-50 cursor-not-allowed' : ''}`}
+                    disabled
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3"
+                    onClick={() => toggleTokenVisibility('ejentoAccessToken')}
+                    disabled={configSource === 'environment'}
+                  >
+                    {showTokens.ejentoAccessToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+              : 
+              <div className="space-y-2">
+                <Label htmlFor="ejentoAccessToken">Ejento Access Token</Label>
+                <div className="relative">
+                  <Input
+                    id="ejentoAccessToken"
+                    type={showTokens.ejentoAccessToken ? 'text' : 'password'}
+                    value={configForm.ejentoAccessToken}
+                    onChange={(e) => handleConfigChange('ejentoAccessToken', e.target.value)}
+                    placeholder="your-access-token"
+                    className={`pr-10 ${configSource === 'environment' ? 'bg-gray-50 cursor-not-allowed' : ''}`}
+                    disabled={configSource === 'environment'}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3"
+                    onClick={() => toggleTokenVisibility('ejentoAccessToken')}
+                    disabled={configSource === 'environment'}
+                  >
+                    {showTokens.ejentoAccessToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+            }
+            <div className="space-y-2">
+              <Label htmlFor="agentId">Agent ID *</Label>
+              <Input
+                id="agentId"
+                value={configForm.agentId}
+                onChange={(e) => handleConfigChange('agentId', e.target.value)}
+                placeholder="your-agent-id"
+                disabled={configSource === 'environment'}
+                className={configSource === 'environment' ? 'bg-gray-50 cursor-not-allowed' : ''}
+              />
+            </div>
+          </div>
+          
+          <DialogFooter className="flex justify-between">
+            {configSource !== 'environment' && (
+              <Button
+                variant="destructive"
+                onClick={handleDestroySession}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                Destroy Session
+              </Button>
+            )}
+            <div className="flex gap-2 ml-auto">
+              <Button
+                variant="outline"
+                onClick={() => setIsManageConfigOpen(false)}
+              >
+                Close
+              </Button>
+              {configSource !== 'environment' && (
+                <Button onClick={handleSaveConfig} disabled={isSavingConfig}>
+                  {isSavingConfig ? 'Validating...' : 'Save Configuration'}
+                </Button>
+              )}
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <SidebarMenu>
+        <SidebarMenuItem>
+          {/* Don't render anything for public agent with auth flow */}
         
-         <DialogFooter className="flex justify-between">
-           {configSource !== 'environment' && (
-             <Button
-               variant="destructive"
-               onClick={handleDestroySession}
-               className="bg-red-600 hover:bg-red-700 text-white"
-             >
-               Destroy Session
-             </Button>
-           )}
-           <div className="flex gap-2 ml-auto">
-             <Button
-               variant="outline"
-               onClick={() => setIsManageConfigOpen(false)}
-             >
-               Close
-             </Button>
-             {configSource !== 'environment' && (
-               <Button onClick={handleSaveConfig} disabled={isSavingConfig}>
-                 {isSavingConfig ? 'Validating...' : 'Save Configuration'}
-               </Button>
-             )}
-           </div>
-         </DialogFooter>
-       </DialogContent>
-     </Dialog>
-
-     <SidebarMenu>
-       <SidebarMenuItem>
-         {/* Don't render anything for public agent with auth flow */}
-      
-           <DropdownMenu>
-             <DropdownMenuTrigger asChild>
-             <SidebarMenuButton className="data-[state=open]:bg-sidebar-accent bg-background data-[state=open]:text-sidebar-accent-foreground h-10">
-               <Image
-                 src={avatar}
-                 alt={user_info?.data?.email ?? 'User Avatar'}
-                 style={{
-                   borderRadius: '100%',
-                   height: '26px',
-                   width: '26px'
-                 }}
-               />
-               <span className="truncate">
-                 {isPublicAgent && !isAuthFlowEnabled
-                   ? 'Session User'
-                   : (user_info?.data?.email || 'Not configured')
-                 }
-               </span>
-               <ChevronUp className="ml-auto" />
-             </SidebarMenuButton>
-             </DropdownMenuTrigger>
-             <DropdownMenuContent
-               side="top"
-               className="w-[--radix-popper-anchor-width]"
-             >
-               {/* Profile Information */}
-               {!(isPublicAgent && !isAuthFlowEnabled) && (
-                 <>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+              <SidebarMenuButton className="data-[state=open]:bg-sidebar-accent bg-background data-[state=open]:text-sidebar-accent-foreground h-10">
+                <Image
+                  src={avatar}
+                  alt={user_info?.data?.email ?? 'User Avatar'}
+                  style={{
+                    borderRadius: '100%',
+                    height: '26px',
+                    width: '26px'
+                  }}
+                />
+                <span className="truncate">
+                  {isPublicAgent && !isAuthFlowEnabled 
+                    ? 'Session User' 
+                    : (user_info?.data?.email || 'Not configured')
+                  }
+                </span>
+                <ChevronUp className="ml-auto" />
+              </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                side="top"
+                className="w-[--radix-popper-anchor-width]"
+              >
+                {/* Profile Information */}
+                {!(isPublicAgent && !isAuthFlowEnabled) && (
+                  <>
+                     <DropdownMenuItem asChild>
+                      <button
+                        type="button"
+                        className="w-full cursor-pointer"
+                        onClick={() => setIsOpen(true)}
+                      >
+                        Profile Information
+                      </button>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </>
+                  
+                )}
+                {/* Manage Configuration - only for non-environment config */}
+                {configSource !== 'environment' && (
+                  <DropdownMenuItem asChild>
+                    <button
+                      type="button"
+                      className="w-full cursor-pointer"
+                      onClick={() => setIsManageConfigOpen(true)}
+                    >
+                      Manage Configuration
+                    </button>
+                  </DropdownMenuItem>
+                )}
+                
+                {/* Environment notice */}
+                {configSource === 'environment' && (
+                    <DropdownMenuItem disabled className="opacity-60 cursor-not-allowed">
+                      <span className="text-xs text-muted-foreground">
+                        Configuration managed via environment variables
+                      </span>
+                    </DropdownMenuItem>
+                )}
+                {
+                  isAuthFlowEnabled && 
+                  <>
+                    <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
-                     <button
-                       type="button"
-                       className="w-full cursor-pointer"
-                       onClick={() => setIsOpen(true)}
-                     >
-                       Profile Information
-                     </button>
-                   </DropdownMenuItem>
-                   <DropdownMenuSeparator />
-                 </>
+                    <button
+                      type="button"
+                      className="w-full cursor-pointer text-red-500 flex items-center gap-2 font-semibold"
+                      onClick={() => {
+                        if (userId !== null) {
+                          handleLogout(userId);
+                        } else {
+                          toast.error("User ID not found. Cannot logout properly.");
+                        }
+                      }}
+                    >
+                      <LogOut className='h-5 w-5 text-[#71717B]'/>
+                      Log out
+                    </button>
+                  </DropdownMenuItem>
+                  </>
+                  
+                }
                 
-               )}
-               {/* Manage Configuration - only for non-environment config */}
-               {configSource !== 'environment' && (
-                 <DropdownMenuItem asChild>
-                   <button
-                     type="button"
-                     className="w-full cursor-pointer"
-                     onClick={() => setIsManageConfigOpen(true)}
-                   >
-                     Manage Configuration
-                   </button>
-                 </DropdownMenuItem>
-               )}
-              
-               {/* Environment notice */}
-               {configSource === 'environment' && (
-                   <DropdownMenuItem disabled className="opacity-60 cursor-not-allowed">
-                     <span className="text-xs text-muted-foreground">
-                       Configuration managed via environment variables
-                     </span>
-                   </DropdownMenuItem>
-               )}
-               {
-                 isAuthFlowEnabled &&
-                 <>
-                   <DropdownMenuSeparator />
-                   <DropdownMenuItem asChild>
-                   <button
-                     type="button"
-                     className="w-full cursor-pointer text-red-500 flex items-center gap-2 font-semibold"
-                     onClick={handleLogout}
-                   >
-                     <LogOut className='h-5 w-5 text-[#71717B]'/>
-                     Log out
-                   </button>
-                 </DropdownMenuItem>
-                 </>
-                
-               }
-              
-             </DropdownMenuContent>
-           </DropdownMenu>
-       </SidebarMenuItem>
-     </SidebarMenu>
-   </>
-
+              </DropdownMenuContent>
+            </DropdownMenu>
+        </SidebarMenuItem>
+      </SidebarMenu>
+    </>
   );
 }

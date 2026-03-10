@@ -16,8 +16,7 @@ import { useSearchParams } from "next/navigation";
 import { Skeleton } from "../ui/skeleton";
 import { Item } from "@/model";
 import { useChat } from "./hooks/useChat";
-import { isPublicAgentMode } from "@/lib/storage/indexeddb";
-import { usePublicAgentSession } from "@/hooks/usePublicAgentSession";
+import { isPublicAgentMode } from '@/lib/utils';
  
 /**
  * CHAT COMPONENT - Main chat interface
@@ -112,13 +111,11 @@ export default function Chat({
 }: ChatProps) {
   const { isLoading: configLoading } = useConfig();
   const apiService = useApiService();
-  const { width: windowWidth = 1920, height: windowHeight = 1080 } =useWindowSize();
   const [corpus, setCorpus] = useState<any>([]);
  
   // PUBLIC_AGENT mode: Get session context (must be defined before useChat)
   const isPublicAgent = isPublicAgentMode();
-  const publicAgentSession = usePublicAgentSession();
- 
+  
   const [selectedCorpus, setSelectedCorpus] = useState<any>({ name: 'all products', version: null, corpusId: null });
   const {
     streamContentRef,
@@ -143,7 +140,7 @@ export default function Chat({
     thoughtProcessRef,
     isReflectingRef,
   } = useChat({ selectedCorpus });
-
+ 
  
   /**
    * Processes raw corpus data from API into structured format with versions
@@ -202,13 +199,9 @@ export default function Chat({
  
  
   useEffect(() => {
- 
     const fetchData = async () => {
-      if(!apiService){
-        return null
-      }
       try {
-        const response: any = await apiService.getCorpus();
+        const response: any = await apiService?.getCorpus();
         if (response.data?.items?.agent_corpus?.length > 0) {
           const result = extractCorpusDataWithVersions(response.data.items.agent_corpus);
           const sortedResult = [...result].sort((a, b) =>
@@ -231,7 +224,10 @@ export default function Chat({
       const corpus = JSON.parse(selectedCorpus);
       setSelectedCorpus(corpus);
     }
-  }, [apiService]);
+  }, []);
+ 
+  const { width: windowWidth = 1920, height: windowHeight = 1080 } =
+    useWindowSize();
  
   const [block, setBlock] = useState<UIBlock>({
     documentId: "init",
@@ -253,7 +249,8 @@ export default function Chat({
   const searchParams = useSearchParams();
   const encryptedId = searchParams.get("id");
   const encryptedTitle = searchParams.get("title");
-  const id = decryptData(encryptedId);
+  let id = decryptData(encryptedId);
+  
   const title = decryptData(encryptedTitle);
   const thread_id = typeof window !== 'undefined' ? localStorage.getItem('thread_id') : null;
   const query = typeof window !== 'undefined' ? localStorage.getItem('query') : null;
@@ -261,6 +258,7 @@ export default function Chat({
   const lastFetchedIdRef = useRef<string | null>(null);
   // Track if we're in a local-to-server transition to prevent unnecessary fetches
   const isTransitioningRef = useRef<boolean>(false);
+
  
   useEffect(() => {
     // Only fetch if we have an id and it's different from the last fetched id
@@ -281,30 +279,6 @@ export default function Chat({
       delete (window as any).setTransitioningState;
     };
   }, []);
-
-  // Show loading while config is loading
-  if (configLoading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center">
-          <p className="text-lg">Loading configuration...</p>
-        </div>
-      </div>
-    );
-  }
- 
-  // Show message if no config after loading
-  if (!apiService) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center">
-          <p className="text-lg mb-4">Please configure your API settings</p>
-          <a href="/settings" className="text-blue-500 hover:underline">Go to Settings</a>
-        </div>
-      </div>
-    );
-  }
- 
  
   /**
    * Fetches chat history for the current thread
@@ -322,14 +296,22 @@ export default function Chat({
    * - Handling error responses with retry functionality
    */
   const fetchChat = async () => {
+
     setIsLoadingChat(true);
     let userQuery: { role: string; content: string | null; }[] = []
+    if (!id) {
+      const userQuery = thread_id && query ? [{ role: "user", content: query }] : [];
+      setMessages(userQuery); // <-- initialize messages immediately
+      setIsLoadingChat(false);
+      return;
+    }
     try {
       if (id) {
-        // PUBLIC_AGENT mode: Load messages from IndexedDB
-        if (isPublicAgent && publicAgentSession) {
-          const threadId = id.toString();
-          const storedMessages = await publicAgentSession.getThreadMessages(threadId);
+        if (isPublicAgent) {
+          const res = await fetch(`/api/thread/${id}`);
+          if (!res.ok) throw new Error("Failed to fetch public thread");
+          const data = await res.json();
+          const storedMessages = data?.messages || [];
          
           if (storedMessages.length > 0) {
             // Transform stored messages to chat format
@@ -339,9 +321,8 @@ export default function Chat({
                 role: msg.role,
                 content: msg.content,
                 ...metadata,
-                // Ensure the id field is set from metadata.id (agent_response_id)
-                // This is critical for matching messages when updating votes
-                id: metadata.id || msg.messageId,
+                id: msg.id,
+                agent_response_id : msg.agent_response_id,
                 // Ensure vote fields are always boolean, never undefined
                 is_upvote: metadata.is_upvote === true,
                 is_downvote: metadata.is_downvote === true,
@@ -379,7 +360,7 @@ export default function Chat({
           }
         } else {
           // For server threads, fetch chat history as usual
-          const response = await apiService.getChatlogs(parseInt(id));
+          const response = await apiService?.getChatlogs(parseInt(id));
           if (response && response?.data?.agent_responses?.length > 0) {
             // Transform API response into message format
             const transformedMessages = response.data.agent_responses.flatMap((item: any) => [
@@ -426,6 +407,29 @@ export default function Chat({
       setIsLoadingChat(false);
     }
   };
+
+  // Show loading while config is loading
+  if (configLoading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <p className="text-lg">Loading configuration...</p>
+        </div>
+      </div>
+    );
+  }
+ 
+  // Show message if no config after loading
+  if (!apiService) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <p className="text-lg mb-4">Please configure your API settings</p>
+          <a href="/settings" className="text-blue-500 hover:underline">Go to Settings</a>
+        </div>
+      </div>
+    );
+  }
  
   return isLoadingChat ? (
     <div className="flex justify-center items-center w-full h-screen">
@@ -535,7 +539,7 @@ export default function Chat({
                 setMessages={setMessages}
                 reload={reload}
                 votes={[]}
-                isReadonly={isReadonly}
+                // isReadonly={isReadonly}
               />
             )}
           </AnimatePresence>
@@ -549,3 +553,7 @@ export default function Chat({
     </>
   );
 }
+ 
+ 
+ 
+ 

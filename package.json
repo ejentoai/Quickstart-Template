@@ -13,6 +13,7 @@
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
     "@microsoft/fetch-event-source": "^2.0.1",
+    "@prisma/client": "^6.19.2",
     "@radix-ui/react-alert-dialog": "^1.1.2",
     "@radix-ui/react-avatar": "^1.1.1",
     "@radix-ui/react-checkbox": "^1.1.2",
@@ -82,9 +83,11 @@
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
     "@types/react-speech-recognition": "^3.9.5",
+    "@types/uuid": "^10.0.0",
     "eslint": "^8",
     "eslint-config-next": "15.0.4",
     "postcss": "^8",
+    "prisma": "^6.19.2",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
   }

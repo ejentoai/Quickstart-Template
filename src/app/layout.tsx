@@ -35,17 +35,18 @@ export default function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <ConfigProvider>
           <PublicAgentSessionProvider>
-            <ThemeProvider
-              attribute="class"
-              defaultTheme="light"
-              enableSystem={false}
-              forcedTheme="light"
-            >
-              <AuthProvider>
-                <Toaster position="top-center" richColors />
-                {children}
-              </AuthProvider>
-            </ThemeProvider>
+              <ThemeProvider
+                attribute="class"
+                defaultTheme="light"
+                enableSystem={false}
+                forcedTheme="light"
+              >
+                <AuthProvider>
+                  <Toaster position="top-center" richColors />
+                  {children}
+                </AuthProvider>
+              </ThemeProvider>
+           
           </PublicAgentSessionProvider>
         </ConfigProvider>
       </body>

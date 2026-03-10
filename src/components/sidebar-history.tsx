@@ -36,8 +36,8 @@ import {
 import { useApiService } from '@/hooks/useApiService';
 import { ChatThreadResponse } from '@/model';
 import { decryptData, handleSetQueryParams } from '@/lib/utils';
-import { getAccessToken, getUserFromStorage } from '@/cookie';
-import { isPublicAgentMode } from '@/lib/storage/indexeddb';
+import { getAccessToken, getUserFromCookie } from '@/cookie';
+import { isPublicAgentMode } from '@/lib/utils';
 import { usePublicAgentSession } from '@/hooks/usePublicAgentSession';
 
 interface props {
@@ -238,7 +238,7 @@ export function SidebarHistory({ fetchThreads, threads, groupedChats, setThreads
 
 
   useEffect(() => {
-      const user_info = getUserFromStorage()
+      const user_info = getUserFromCookie()
       if (user_info) {
         fetchThreads();
       }
@@ -275,7 +275,7 @@ export function SidebarHistory({ fetchThreads, threads, groupedChats, setThreads
   const handleDelete = async () => {
     if (!deleteId) return;
     
-    // PUBLIC_AGENT mode: Delete from IndexedDB
+    // PUBLIC_AGENT mode: Delete from DB
     if (isPublicAgent && publicAgentSession) {
       try {
         const threadIdString = deleteId.toString();
@@ -286,7 +286,7 @@ export function SidebarHistory({ fetchThreads, threads, groupedChats, setThreads
           success: 'Chat deleted successfully',
           error: 'Failed to delete chat',
         });
-
+  
         await deletePromise;
         
         // Remove the deleted thread from local state
@@ -319,13 +319,38 @@ export function SidebarHistory({ fetchThreads, threads, groupedChats, setThreads
     if (!apiService) return;
     
     try {
+      // For negative IDs (local threads not on backend)
+      if (deleteId < 0) {
+        // Just remove from local state - no API call needed
+        const updatedThreads = threads.filter(thread => thread.id !== deleteId);
+        setThreads(updatedThreads);
+        groupChatsByDate(updatedThreads);
+        
+        // If the deleted thread was the active one, handle navigation
+        if (id && deleteId === parseInt(id)) {
+          if (updatedThreads.length > 0) {
+            // Navigate to the first remaining thread
+            localStorage.setItem('active_thread_id', updatedThreads[0].id.toString());
+            handleSetQueryParams(updatedThreads[0].id.toString(), updatedThreads[0].title);
+          } else {
+            // No threads remain after deletion; clear active thread context
+            localStorage.removeItem('active_thread_id');
+            handleSetQueryParams('', '');
+          }
+        }
+        
+        toast.success('Chat deleted successfully');
+        setShowDeleteDialog(false);
+        return;
+      }
+      
       const responsePromise = apiService.deleteChatThread(deleteId);
       toast.promise(responsePromise, {
         loading: 'Deleting chat...',
         success: 'Chat deleted successfully',
         error: 'Failed to delete chat',
       });
-
+  
       const response = await responsePromise;
       
       // Remove the deleted thread from local state

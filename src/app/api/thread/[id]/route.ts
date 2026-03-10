@@ -1,0 +1,140 @@
+// app/api/threads/[id]/route.ts
+import { NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
+import { getIdentity } from '@/lib/getIdentity'
+
+
+export async function GET(
+  req: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await context.params
+    const threadId = parseInt(id)
+
+    if (isNaN(threadId)) {
+      return NextResponse.json({ error: "Invalid thread ID" }, { status: 400 })
+    }
+
+    const identity = await getIdentity()
+
+    const thread = await prisma.thread.findFirst({
+      where: {
+        id: threadId,
+        ...(identity.ownerType === "user"
+          ? { ownerUserId: identity.ownerUserId }
+          : { ownerSessionId: identity.ownerSessionId }),
+      },
+      include: {
+        messages: {
+          orderBy: { id: "asc" }, 
+        },
+      },
+    })
+
+    if (!thread) {
+      return NextResponse.json({ error: "Thread not found" }, { status: 404 })
+    }
+
+    return NextResponse.json(thread)
+  } catch (error) {
+    console.error("Error fetching thread by ID:", error)
+    return NextResponse.json(
+      { error: "Unable to fetch thread" },
+      { status: 500 }
+    )
+  }
+}
+
+
+export async function PATCH(
+  req: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await context.params
+    const threadId = Number(id)
+
+    if (!threadId || isNaN(threadId)) {
+      return NextResponse.json({ error: 'Invalid thread id' }, { status: 400 })
+    }
+
+    const body = await req.json()
+    const { title, metaData, externalApiId } = body
+
+    const identity = await getIdentity()
+
+    const existingThread = await prisma.thread.findFirst({
+      where: {
+        id: threadId,
+        ...(identity.ownerType === 'user'
+          ? { ownerUserId: identity.ownerUserId }
+          : { ownerSessionId: identity.ownerSessionId }),
+      },
+    })
+
+    if (!existingThread) {
+      return NextResponse.json({ error: 'Thread not found' }, { status: 404 })
+    }
+
+    const updatedThread = await prisma.thread.update({
+      where: { id: threadId },
+      data: {
+        ...(title && { title }),
+        ...(metaData && { metaData }),
+        ...(externalApiId !== undefined && { externalApiId }),
+      },
+    })
+
+    return NextResponse.json(updatedThread, { status: 200 })
+
+  } catch (error: any) {
+    return NextResponse.json(
+      { error: error.message || 'Something went wrong' },
+      { status: 500 }
+    )
+  }
+}
+
+
+export async function DELETE(
+  req: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await context.params
+    const threadId = Number(id)
+
+    if (!threadId || isNaN(threadId)) {
+      return NextResponse.json({ error: 'Invalid thread id' }, { status: 400 })
+    }
+
+    const identity = await getIdentity()
+
+    const existing = await prisma.thread.findFirst({
+      where: {
+        id: threadId,
+        ...(identity.ownerType === 'user'
+          ? { ownerUserId: identity.ownerUserId }
+          : { ownerSessionId: identity.ownerSessionId }),
+      },
+    })
+
+    if (!existing) {
+      return NextResponse.json({ error: 'Thread not exist' }, { status: 404 })
+    }
+
+    await prisma.thread.delete({
+      where: { id: threadId },
+    })
+
+    return NextResponse.json({ message: 'deleted' })
+
+  } catch (error: any) {
+    console.error("DELETE ERROR:", error)
+    return NextResponse.json(
+      { error: error.message || "Internal error" },
+      { status: 500 }
+    )
+  }
+}
