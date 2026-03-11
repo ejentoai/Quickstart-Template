@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { decryptData,handleSetQueryParams } from "@/lib/utils";
-import { decryptData } from "@/lib/utils";
 import { useApiService } from "@/hooks/useApiService";
 import { useSearchParams} from "next/navigation";
 import { toast } from 'sonner';
