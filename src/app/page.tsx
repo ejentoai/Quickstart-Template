@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useConfig } from './context/ConfigContext';
-import { isPublicAgentMode } from '@/lib/storage/indexeddb';
+import { isPublicAgentMode } from '@/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -13,9 +13,8 @@ export default function Home() {
   const router = useRouter();
   const { isConfigured, isLoading, isValidating, validationError, configSource, config } = useConfig();
   const isPublicAgent = isPublicAgentMode();
-  let path;
   const isAuthEnabled = process.env.NEXT_PUBLIC_AUTH_FLOW === 'true';
-  path = isAuthEnabled ? '/auth/login' : '/chat' 
+  const path = isAuthEnabled ? '/auth/login' : '/chat';
 
   useEffect(() => {
     // Wait for loading and validation to complete before routing
@@ -24,10 +23,10 @@ export default function Home() {
     }
 
     // PUBLIC_AGENT mode: Still need credentials, but allow routing to chat if config is available
-    // In PUBLIC_AGENT mode, config should come from ENV_DRIVEN mode (EJENTO_* env vars)
+    // In PUBLIC_AGENT mode, config should come from NEXT_PUBLIC_ENV_DRIVEN mode (EJENTO_* env vars)
     if (isPublicAgent) {
       // In PUBLIC_AGENT mode, we still need the author's credentials from env vars
-      // Check if env config is available (via ENV_DRIVEN mode)
+      // Check if env config is available (via NEXT_PUBLIC_ENV_DRIVEN mode)
       if (configSource === 'environment') {
         if (config && !validationError && isConfigured) {
           // Env config validated successfully - route to chat
@@ -41,7 +40,7 @@ export default function Home() {
           return;
         }
       } else {
-        // PUBLIC_AGENT mode but no env config - need to set up ENV_DRIVEN mode
+        // PUBLIC_AGENT mode but no env config - need to set up NEXT_PUBLIC_ENV_DRIVEN mode
         // Show helpful message about required env vars
         return;
       }

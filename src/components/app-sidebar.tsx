@@ -42,7 +42,7 @@ import { getUserFromCookie } from '@/cookie';
 import { useApiService } from '@/hooks/useApiService';
 import { ChatThreadResponse } from '@/model';
 import { toast } from 'sonner';
-import { isPublicAgentMode } from '@/lib/storage/indexeddb';
+import { isPublicAgentMode } from '@/lib/utils';
 import { usePublicAgentSession } from '@/hooks/usePublicAgentSession';
 import { handleSetQueryParams } from '@/lib/utils';
 import { useSearchParams } from 'next/navigation';
@@ -131,19 +131,32 @@ export function AppSidebar() {
   }, [threads]);
 
   const isThreadEmpty = (thread: ChatThreadResponse): boolean => {
-    const isRecentlyCreated =
-      new Date().getTime() - new Date(thread.created_on).getTime() <
-      5 * 60 * 1000;
-
     return (
-      (thread.title === 'New Chat' || thread.title === 'New Thread') &&
-      isRecentlyCreated
+      (thread.title === 'New Chat') 
     );
   };
 
   const addNewThread = async () => {
     if (isPublicAgent) {
       try {
+        if (threads.length > 0) {
+          const latestThread = threads[0];
+          if (isThreadEmpty(latestThread)) {
+            handleSetQueryParams(
+              latestThread.id.toString(),
+              latestThread.title
+            );
+  
+            localStorage.setItem(
+              'active_thread_id',
+              latestThread.id.toString()
+            );
+  
+            toast.success('Switched to existing new chat');
+            return;
+          }
+        }
+
         const res = await fetch("/api/thread", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -221,6 +234,7 @@ export function AppSidebar() {
         id: tempThreadId,
         title: 'New Chat',
         created_on: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
         created_by: userEmail,
         agent: parseInt(config?.agentId || '0'),
         corpus_id: null,
@@ -255,11 +269,23 @@ export function AppSidebar() {
     }
   };
 
+  
+  /**
+   * Fetches all chat threads for the current user
+   * 
+   * This function:
+   * - In PUBLIC_AGENT mode: Retrieves threads from Prisma DataBase
+   * - In normal mode: Retrieves chat threads from the API
+   * - Groups them by date for better organization
+   * - Handles navigation to the most recent thread if no ID is present
+   * - Creates a new local thread if no threads exist
+   * - Manages loading states and error handling
+   */
+
   const fetchThreads = async () => {
     if (initializationInProgressRef.current) {
       return;
     }
-
     try {
       initializationInProgressRef.current = true;
 
@@ -267,7 +293,6 @@ export function AppSidebar() {
         try {
           const res = await fetch("/api/thread");
           const fetchedThreads = await res.json();
-
           setThreads(fetchedThreads);
           groupChatsByDate(fetchedThreads);
 
@@ -487,11 +512,8 @@ export function AppSidebar() {
           updateChatTitle={updateChatTitle}
         />
       </SidebarContent>
-
       <SidebarFooter>
-        {(isPublicAgent && publicAgentSession && !isAuthFlowEnabled)
-          ? null
-          : <SidebarUserNav />}
+        <SidebarUserNav />
       </SidebarFooter>
     </Sidebar>
   );

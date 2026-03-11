@@ -1,24 +1,10 @@
-import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient } from "@/generated/prisma/client";
-import { Pool } from "pg";
+import { PrismaClient } from '@/generated/prisma';
 
-const globalForPrisma = global as unknown as { prisma: PrismaClient };
-
-// Create a PostgreSQL connection pool
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL, // Your Supabase connection string (with pgBouncer)
-});
-
-// Create the adapter
-const adapter = new PrismaPg(pool);
+const globalForPrisma = globalThis as typeof globalThis & {
+  prisma?: PrismaClient;
+};
 
 export const prisma =
-  globalForPrisma.prisma ||
-  new PrismaClient({
-    adapter,
-    log: ["query", "info", "warn", "error"], // optional debugging
-  });
+  globalForPrisma.prisma ?? new PrismaClient();
 
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
-}
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;

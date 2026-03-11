@@ -1,5 +1,5 @@
 'use client';
-
+ 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getAccessToken, getEjentoAccessToken, getUserFromCookie } from '@/cookie';
@@ -7,35 +7,41 @@ import { getAccessToken, getEjentoAccessToken, getUserFromCookie } from '@/cooki
 interface AuthGuardProps {
   children: React.ReactNode;
 }
-
+ 
 export function AuthGuard({ children }: AuthGuardProps) {
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-
+ 
   useEffect(() => {
-    const token = getAccessToken();
-    const ejentoToken = getEjentoAccessToken();
-    const user_info = getUserFromCookie()
-
     const isAuthFlowEnabled = process.env.NEXT_PUBLIC_AUTH_FLOW === 'true';
 
-      if (isAuthFlowEnabled && (!token || !ejentoToken)) {
-        router.push('/auth/login');
-        return;
-      }
-
-    if(!user_info){
-      router.push('/auth/userData')
+    if (!isAuthFlowEnabled) {
+      setIsAuthenticated(true);
+      return;
     }
-    
-    // Only set authenticated to true after checking
+
+    const token = getAccessToken();
+    const ejentoToken = getEjentoAccessToken();
+    const user_info = getUserFromCookie();
+
+    if (!token || !ejentoToken) {
+      router.push('/auth/login');
+      return;
+    }
+
+
+    if (!user_info) {
+      router.push('/auth/userData');
+      return;
+    }
+
     setIsAuthenticated(true);
   }, [router]);
 
-  if (isAuthenticated === null) {
-    return null;
-  }
+  if (isAuthenticated === null) return null;
 
-  // Only render children after confirming auth on client
   return <>{children}</>;
 }
+ 
+ 
+ 

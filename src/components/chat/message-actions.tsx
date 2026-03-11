@@ -12,8 +12,7 @@ import {
 import { useApiService } from '@/hooks/useApiService';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { getAccessToken, getUserFromCookie, getEjentoAccessToken } from '@/cookie';
-import { isPublicAgentMode} from '@/lib/storage/indexeddb';
-import { usePublicAgentSession } from '@/hooks/usePublicAgentSession';
+import { isPublicAgentMode } from '@/lib/utils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -44,7 +43,6 @@ export function MessageActions({
   showRetry,
   messages,
   index
-  // hasFinished
 }: {
   chatId: string;
   message: any;
@@ -55,12 +53,10 @@ export function MessageActions({
   showRetry: boolean;
   messages: any[],
   index: number
-  // hasFinished?: boolean
 }) {
   const apiService = useApiService();
- 
   const isPublicAgent = isPublicAgentMode();
- 
+  
   const [user, setUser] = useState<{ id: string, email: string, full_name: string, is_super_user: boolean, user_type: string } | null>(null)
   const [additionalComment, setAdditionalComment] = useState('')
   const [showAdditionalComment, setShowAdditionalComment] = useState(true)
@@ -71,25 +67,20 @@ export function MessageActions({
   const { width } = useWindowSize();
   const [isCreatingTicket, setIsCreatingTicket] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('Analyzing conversation...');
- 
+
   // Get the current message from the messages array to ensure we always have the latest state
-  // This fixes issues where the message prop might be stale
-  // Use useMemo to ensure it updates when messages array or index changes
   const currentMessage = useMemo(() => {
     const msg = messages[index] || message;
-    // console.log(msg,'msg')
-    // Ensure vote properties are always boolean (not undefined)
-    // This handles cases where messages might not have these properties set
     const normalizedMsg = {
       ...msg,
-      id : msg.id,
-      agent_response_id : msg.agent_response_id,
+      id: msg.id,
+      agent_response_id: msg.agent_response_id,
       is_upvote: msg.is_upvote === true,
       is_downvote: msg.is_downvote === true,
     };
     return normalizedMsg;
   }, [messages, index, message]);
- 
+
   async function updateMessageAPI(messageId: string | number, data: { content?: string, metadata?: any }) {
     try {
       const res = await fetch(`/api/message/${messageId}`, {
@@ -97,39 +88,35 @@ export function MessageActions({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
- 
+
       if (!res.ok) throw new Error('Failed to update message');
- 
       return await res.json();
     } catch (error) {
       console.error(error);
       return null;
     }
   }
- 
+
   useEffect(() => {
     if (textareaRef.current && showAdditionalComment) {
-      // Set height to auto to accommodate content
       const height = textareaRef.current.scrollHeight + 10 + 'px';
       setTextareaHeight(height);
     }
   }, [showAdditionalComment, additionalComment]);
- 
+
   useEffect(() => {
     const user_info = getUserFromCookie()
     if (user_info) {
       setUser(user_info)
     }
   }, [])
- 
+
   useEffect(() => {
     if (isCreatingTicket) {
       const messages = ['Analyzing conversation...', 'Summarizing content...'];
       let currentIndex = 0;
-     
-      // Set initial message
       setLoadingMessage(messages[0]);
- 
+
       const interval = setInterval(() => {
         if (currentIndex < messages.length - 1) {
           currentIndex += 1;
@@ -138,39 +125,39 @@ export function MessageActions({
           clearInterval(interval);
         }
       }, 3500);
- 
+
       return () => clearInterval(interval);
     } else {
-      // Reset to initial message when not creating ticket
       setLoadingMessage('Analyzing conversation...');
     }
   }, [isCreatingTicket]);
- 
+
   if (isLoading) return null;
   if (currentMessage.role === 'user') return null;
   if (currentMessage.toolInvocations && currentMessage.toolInvocations.length > 0)
     return null;
- 
+
   const handleRegenerateclick = () => {
-    console.log(currentMessage,'cuu')
-    append(currentMessage, true)
-  }
- 
+    // For regeneration, we need to pass the message with the correct ID
+    // The append function in useChat expects to find the message by either:
+    // - id (local DB ID for public agent mode)
+    // - agent_response_id (external API ID)
+    // Pass the entire currentMessage which contains both identifiers
+    append(currentMessage, true);
+  };
+
   const handleUpvoteclick = async () => {
     if (currentMessage.is_upvote) return;
     if (!user) return;
-    console.log(currentMessage,'curr')
- 
-    try {
-      
-      if (isPublicAgent) {
 
+    try {
+      if (isPublicAgent) {
         const messageId = parseInt(currentMessage?.agent_response_id);
         if (isNaN(messageId)) {
           return;
         }
         const toastId = toast.loading('Upvoting Response...');
- 
+
         const res = await fetch(`/api/message/${messageId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -182,22 +169,22 @@ export function MessageActions({
             },
           }),
         });
- 
+
         if (!res.ok) {
           toast.error('Unable to upvote', { id: toastId });
           console.error('[DEBUG] Upvote failed (Public Agent):', res.statusText);
           return;
         }
- 
+
         toast.success('Upvoted Response!', { id: toastId });
         setMessages((prevMessages: any[]) =>
           prevMessages.map((msg) =>
-            msg?.id === messageId
+            msg.id === messageId || msg.agent_response_id === messageId
               ? { ...msg, is_upvote: true, is_downvote: false }
               : msg
           )
         );
- 
+
       } else {
         const messageId = parseInt(currentMessage?.agent_response_id || currentMessage?.id);
         if (isNaN(messageId)) {
@@ -219,71 +206,66 @@ export function MessageActions({
           );
           setMessages((prevMessages: any[]) =>
             prevMessages.map((msg) =>
-              msg?.id === messageId
+              msg.id === messageId || msg.agent_response_id === messageId
                 ? { ...msg, is_upvote: true, is_downvote: false }
                 : msg
             )
           );
         } catch (err) {
           console.error('[DEBUG] Upvote failed (Backend):', err);
-          return; // Exit early on failure
+          return;
         }
       }
- 
- 
     } catch (error) {
       console.error('[DEBUG] Unexpected error during upvote:', error);
       toast.error('Unable to upvote');
     }
   };
- 
+
   const openDialog = () => {
-    localStorage.setItem('message_id', currentMessage.id)
-    setShowDeleteDialog(true)
- 
-  }
+    localStorage.setItem('message_id', currentMessage.id);
+    setShowDeleteDialog(true);
+  };
+
   const handleDownvoteclick = async () => {
     if (currentMessage.is_downvote || !user) return;
-    console.log(currentMessage,'curr')
- 
-    try {
-      
-      if (isPublicAgent) {
 
+    try {
+      if (isPublicAgent) {
         const messageId = parseInt(currentMessage?.agent_response_id);
         if (isNaN(messageId)) {
           return;
         }
         const toastId = toast.loading('Downvoting Response...');
- 
+
         const res = await fetch(`/api/message/${messageId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             metadata: {
-              id : currentMessage.id,
+              id: currentMessage.id,
               ...currentMessage.metadata,
               is_upvote: false,
               is_downvote: true,
             },
           }),
         });
- 
+
         if (!res.ok) {
           toast.error('Unable to downvote', { id: toastId });
           console.error('[DEBUG] Downvote failed (Public Agent):', res.statusText);
           return;
         }
- 
+
         toast.success('Downvoted Response!', { id: toastId });
         setMessages((prevMessages: any[]) =>
           prevMessages.map((msg) =>
-            msg?.id === messageId
+            msg.id === messageId || msg.agent_response_id === messageId
               ? { ...msg, is_downvote: true, is_upvote: false }
               : msg
           )
         );
- 
+
       } else {
         const messageId = parseInt(currentMessage?.agent_response_id || currentMessage?.id);
         if (isNaN(messageId)) {
@@ -305,57 +287,44 @@ export function MessageActions({
           );
           setMessages((prevMessages: any[]) =>
             prevMessages.map((msg) =>
-              msg?.id === messageId
+              msg.id === messageId || msg.agent_response_id === messageId
                 ? { ...msg, is_downvote: true, is_upvote: false }
                 : msg
             )
           );
         } catch (err) {
           console.error('[DEBUG] Downvote failed (Backend):', err);
-          return; // exit early if downvote failed
+          return;
         }
       }
- 
-      // setMessages((prevMessages: any[]) =>
-      //   prevMessages.map((msg) =>
-      //     msg?.id === messageId
-      //       ? { ...msg, is_downvote: true, is_upvote: false }
-      //       : msg
-      //   )
-      // );
- 
+
       // Open feedback dialog after success
       openDialog();
- 
- 
+
     } catch (error) {
       console.error('[DEBUG] Unexpected error during downvote:', error);
       toast.error('Unable to downvote');
     }
   };
- 
- 
- 
+
   const handleCommentClick = (comment: string) => {
-    setActive(comment)
-  }
- 
+    setActive(comment);
+  };
+
   const submitting = () => {
     const comment = additionalComment.trim() !== '' ? additionalComment : active;
     handleCommentSubmit(comment);
   };
- 
-  const handleCommentSubmit = async (review: string) => {
 
+  const handleCommentSubmit = async (review: string) => {
     const messageId = parseInt(currentMessage?.agent_response_id);
-      if (isNaN(messageId)) {
-        return;
-      }
+    if (isNaN(messageId)) {
+      return;
+    }
     try {
-     
       if (isPublicAgent) {
         const toastId = toast.loading('Submitting Feedback...');
- 
+
         const res = await fetch(`/api/message/${messageId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -363,17 +332,16 @@ export function MessageActions({
             metadata: {
               ...currentMessage.metadata,
               comment: review,
+              is_upvote: false,
+              is_downvote: true,
               created_by: user?.email,
             },
           }),
         });
- 
+
         if (!res.ok) throw new Error('Failed to submit feedback');
- 
-        toast.success('Feedback Submitted!',{ id : toastId});
-      }
- 
-      else {
+        toast.success('Feedback Submitted!', { id: toastId });
+      } else {
         const body = {
           chat_id: messageId,
           comment: review,
@@ -385,18 +353,15 @@ export function MessageActions({
           return;
         }
         const responsePromise = apiService.handleComment(body);
- 
         toast.promise(responsePromise, {
           loading: 'Submitting Feedback...',
           success: 'Feedback Submitted!',
           error: 'Failed to submit feedback',
         });
- 
         await responsePromise;
       }
- 
+
       setShowDeleteDialog(false);
- 
     } catch (error) {
       console.error('Comment submission failed:', error);
       toast.error('Failed to submit feedback');
@@ -405,48 +370,40 @@ export function MessageActions({
       setAdditionalComment('');
     }
   };
- 
+
   const handleCopy = async (index: number) => {
     const chatLogs = document.getElementsByClassName('answer-chat');
     const chatLogText = chatLogs[index];
- 
+
     if (chatLogText) {
-        // Use the Clipboard API to write the HTML content directly
-        const clone = chatLogText.cloneNode(true) as HTMLElement;
- 
-        // Remove unnecessary styles or attributes
-        clone.querySelectorAll("*").forEach((node) => {
-            node.removeAttribute("style"); // Remove inline styles
-            node.removeAttribute("class"); // Remove CSS classes
-        });
- 
-        const tempDiv = document.createElement("div");
-        tempDiv.appendChild(clone);
-        const cleanHtml = tempDiv.innerHTML;
- 
-        // Copy formatted HTML to the clipboard
-        await navigator.clipboard.write([
-            new ClipboardItem({
-                "text/html": new Blob([cleanHtml], { type: "text/html" }),
-                "text/plain": new Blob([clone.innerText], { type: "text/plain" }),
-            }),
-        ]);
- 
+      const clone = chatLogText.cloneNode(true) as HTMLElement;
+      clone.querySelectorAll("*").forEach((node) => {
+        node.removeAttribute("style");
+        node.removeAttribute("class");
+      });
+
+      const tempDiv = document.createElement("div");
+      tempDiv.appendChild(clone);
+      const cleanHtml = tempDiv.innerHTML;
+
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          "text/html": new Blob([cleanHtml], { type: "text/html" }),
+          "text/plain": new Blob([clone.innerText], { type: "text/plain" }),
+        }),
+      ]);
     }
-  }
- 
- 
-  // Don't render if no config is available (check AFTER all hooks)
+  };
+
+  // Don't render if no config is available
   if (!apiService) {
     return null;
   }
- 
+
   return (
-    <>
-      {<TooltipProvider delayDuration={0}>
+      <TooltipProvider delayDuration={0}>
         <div className="flex flex-row gap-2">
-          {
-            !currentMessage?.content?.startsWith('error::') &&
+          {!currentMessage?.content?.startsWith('error::') && (
             <>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -454,8 +411,7 @@ export function MessageActions({
                     className="py-1 px-2 h-fit text-muted-foreground"
                     variant="outline"
                     onClick={async () => {
-                      // await copyToClipboard(message.content as string);
-                      handleCopy(index)
+                      handleCopy(index);
                       toast.success('Copied to clipboard!');
                     }}
                   >
@@ -464,7 +420,7 @@ export function MessageActions({
                 </TooltipTrigger>
                 <TooltipContent>Copy</TooltipContent>
               </Tooltip>
- 
+
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -478,7 +434,7 @@ export function MessageActions({
                 </TooltipTrigger>
                 <TooltipContent>Upvote Response</TooltipContent>
               </Tooltip>
- 
+
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -492,12 +448,28 @@ export function MessageActions({
                 </TooltipTrigger>
                 <TooltipContent>Downvote Response</TooltipContent>
               </Tooltip>
+
+              {/* Add Retry button when showRetry is true */}
+              {showRetry && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      className="py-1 px-2 h-fit text-muted-foreground !pointer-events-auto"
+                      variant="outline"
+                      onClick={handleRegenerateclick}
+                    >
+                      <IconArrowRound />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Regenerate Response</TooltipContent>
+                </Tooltip>
+              )}
+
               <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <div className="flex justify-between items-center">
                       <AlertDialogTitle>Feedback</AlertDialogTitle>
-                     
                     </div>
                     <AlertDialogDescription>
                       What made you downvote this response?
@@ -508,7 +480,7 @@ export function MessageActions({
                       <div id='other' onClick={() => handleCommentClick('other')} style={{ width: 'fit-content', cursor: 'pointer' }} className={`p-2 px-3 rounded-lg m-1 text-sm border border-gray-300 hover:border-gray-400 ${active === 'other' ? 'active' : ''}`}>Other</div>
                     </div>
                     <>
-                      <hr></hr>
+                      <hr />
                       <div
                         style={{
                           height: textareaHeight,
@@ -529,7 +501,6 @@ export function MessageActions({
                     </>
                   </AlertDialogHeader>
                   <AlertDialogFooter className='flex flex-row items-center !justify-between w-full gap-4'>
-                   
                     <div className="ml-auto flex items-center gap-2">
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
                       <AlertDialogAction onClick={() => submitting()} className='button'>Submit</AlertDialogAction>
@@ -538,11 +509,9 @@ export function MessageActions({
                 </AlertDialogContent>
               </AlertDialog>
             </>
-          }
+          )}
         </div>
-      </TooltipProvider>}
-     
-    </>
+      </TooltipProvider>
   );
 }
  

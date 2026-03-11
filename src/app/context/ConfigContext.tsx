@@ -3,6 +3,8 @@
 import { setUserToCookie } from '@/cookie';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { ConfigError } from '@/components/configError';
+import { isPublicAgentMode } from '@/lib/utils';
 
 export interface UserConfig {
   baseUrl: string;
@@ -38,8 +40,6 @@ interface ConfigContextType {
   setConfigSource: (source: ConfigSource) => void;
   setConfig: (config: UserConfig) => void,
   loadConfig: () => Promise<void>
-
-
 }
 
 const ConfigContext = createContext<ConfigContextType | undefined>(undefined);
@@ -54,6 +54,8 @@ export function useConfig() {
 
 export function ConfigProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
+  let configSaved : any ;
+  const isPublicAgent = isPublicAgentMode()
   const [config, setConfig] = useState<UserConfig | null>(null);
   const [configSource, setConfigSource] = useState<ConfigSource>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -62,7 +64,6 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
   const isAuthEnabled = process.env.NEXT_PUBLIC_AUTH_FLOW === 'true';
   const isEnvDriven = process.env.NEXT_PUBLIC_ENV_DRIVEN === 'true'
   const [isConfigured, setIsConfigured] = useState<boolean>(false);
-  let stored : any;
 
   const updateConfig = (newConfig: Partial<UserConfig>, source: ConfigSource) => {
     setConfig(prev => (prev ? { ...prev, ...newConfig } : (newConfig as UserConfig)));
@@ -89,7 +90,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  //this method is used to store configuration to data base basen on next js api
+  //this method is used to store configuration to data base via next js api
   const saveConfig = async (updatedConfig? : any ) => {
     if (!config || typeof window === 'undefined' || configSource !== 'database') {
       return;
@@ -109,8 +110,6 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
       if (!response.ok) {
         const error = await response.json();
         console.error('Failed to save config:', error.error);
-      } else {
-        console.log('Config saved to database');
       }
     } catch (error) {
       console.error('Error saving config:', error);
@@ -173,8 +172,23 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
   //2. data base (prisma)
   //3. env variables when env driven is enable
   const loadConfig = async () => {
-    const configSaved = localStorage.getItem('configSaved')
-    if(configSource !== 'environment' && configSaved){
+
+    const configValidated = localStorage.getItem('config_validated')
+    if(!isPublicAgent && configSource !== 'environment'){
+      try{
+        const response = await fetch('/api/ejento-config')
+        if(response.ok){
+          configSaved = true
+        }
+        else{
+          configSaved = false
+        }
+      }
+      catch(error){
+        configSaved = false
+      }
+    }
+    if(configSource !== 'environment' && ( configSaved || configValidated)){
       setIsConfigured(true)
     }
     if (typeof window === 'undefined') {
@@ -182,11 +196,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const showErrorAndRedirect = () => {
-      setTimeout(() => {
-        router.push('/settings');
-      }, 500);
-    };
+    const showErrorAndRedirect = () => <ConfigError/>
   
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000);
@@ -282,9 +292,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
         cleanup();
         return;
       }
-
       const isAuthFlow = process.env.NEXT_PUBLIC_AUTH_FLOW === "true";
-  
       if (isAuthFlow) {
         //when auth is enable there are 2 cases 
         //1. variables are in cookie and not store to data base yet because user id is not available 
@@ -315,7 +323,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
       }
       //when auth is disable , variables would always be in Data Base because they had stored after validation
       // Auth flow disabled → fetch DB config
-      if(!isEnvDriven){
+      if(!isEnvDriven && configSaved){
         const dbConfig = await fetchDBConfig();
         if (dbConfig) {
           setConfig(dbConfig);

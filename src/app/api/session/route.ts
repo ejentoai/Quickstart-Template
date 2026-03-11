@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
     if (existingSession) {
       return NextResponse.json(
         { message: 'session already exists' },
-        { status: 200 }
+        { status: 200 } 
       );
     }
     

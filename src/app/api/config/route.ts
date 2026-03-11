@@ -24,8 +24,8 @@ export async function GET() {
   const ejentoAccessToken = process.env.EJENTO_ACCESS_TOKEN;
   const agentId = process.env.EJENTO_AGENT_ID;
 
-  // If ENV_DRIVEN is true, require all env vars to be set
-  // If ENV_DRIVEN is not set (auto-detect), check if all vars are present
+  // If NEXT_PUBLIC_ENV_DRIVEN is true, require all env vars to be set
+  // If NEXT_PUBLIC_ENV_DRIVEN is not set (auto-detect), check if all vars are present
   if (envDriven || (baseUrl && apiKey && ejentoAccessToken && agentId)) {
     // Only return config if all required environment variables are set
     if (baseUrl && apiKey && ejentoAccessToken && agentId) {
@@ -52,21 +52,21 @@ export async function GET() {
       });
     }
     
-    // If ENV_DRIVEN is true but vars are missing, return error
+    // If NEXT_PUBLIC_ENV_DRIVEN is true but vars are missing, return error
     if (envDriven) {
       return NextResponse.json(
         {
           config: null,
           source: 'manual' as const,
           envDrivenEnabled: true,
-          error: 'ENV_DRIVEN is enabled but required environment variables are missing',
+          error: 'NEXT_PUBLIC_ENV_DRIVEN is enabled but required environment variables are missing',
         },
         { status: 500 }
       );
     }
   }
 
-  // Return null if environment variables are not set or ENV_DRIVEN is not enabled
+  // Return null if environment variables are not set or NEXT_PUBLIC_ENV_DRIVEN is not enabled
   // Client will fall back to localStorage-based config
   return NextResponse.json({
     config: null,
@@ -78,8 +78,8 @@ export async function GET() {
 /**
  * DELETE endpoint to clear stored credentials
  * Used when user logs out or clears configuration
- * Only clears credentials cookie (ENV_DRIVEN=false scenario)
- * Environment-based credentials (ENV_DRIVEN=true) cannot be cleared via this endpoint
+ * Only clears credentials cookie (NEXT_PUBLIC_ENV_DRIVEN=false scenario)
+ * Environment-based credentials (NEXT_PUBLIC_ENV_DRIVEN=true) cannot be cleared via this endpoint
  */
 export async function DELETE() {
   const { cookies } = await import('next/headers');

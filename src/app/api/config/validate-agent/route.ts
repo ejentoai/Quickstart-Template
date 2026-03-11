@@ -35,23 +35,29 @@ export async function POST(request: Request) {
 
     // Get credentials (baseUrl, apiKey, agentId) from environment or cookie
     const envDriven = process.env.NEXT_PUBLIC_ENV_DRIVEN === 'true';
+
+    const normalize = (value?: unknown): string => {
+      if (value === null || value === undefined) return '';
+      return String(value).trim();
+    };
     
-    let baseUrl: string;
-    let apiKey: string;
-    let agentId: string;
+    let baseUrl = '';
+    let apiKey = '';
+    let agentId = '';
 
-    if (bodyConfig?.baseUrl && bodyConfig?.apiKey && bodyConfig?.agentId) {
-      baseUrl = bodyConfig.baseUrl ? String(bodyConfig.baseUrl).trim() : '';
-      apiKey = bodyConfig.apiKey ? String(bodyConfig.apiKey).trim() : '';
-      agentId = bodyConfig.agentId ? String(bodyConfig.agentId).trim() : '';
+    if (bodyConfig) {
+      baseUrl = normalize(bodyConfig.baseUrl);
+      apiKey = normalize(bodyConfig.apiKey);
+      agentId = normalize(bodyConfig.agentId);
+    }
 
+    if ((!baseUrl || !apiKey || !agentId) && envDriven) {
+      baseUrl = normalize(process.env.EJENTO_BASE_URL);
+      apiKey = normalize(process.env.EJENTO_API_KEY);
+      agentId = normalize(process.env.EJENTO_AGENT_ID);
+    }
 
-    } else if (envDriven) {
-      baseUrl = process.env.EJENTO_BASE_URL?.trim() || '';
-      apiKey = process.env.EJENTO_API_KEY?.trim() || '';
-      agentId = process.env.EJENTO_AGENT_ID?.trim() || '';
-
-    } else {
+    if (!baseUrl || !apiKey || !agentId) {
       const credentialsCookie = cookieStore.get('ejento_api_credentials');
 
       if (!credentialsCookie?.value) {
@@ -63,9 +69,10 @@ export async function POST(request: Request) {
 
       try {
         const credentials = JSON.parse(credentialsCookie.value);
-        baseUrl = credentials.baseUrl?.trim() || '';
-        apiKey = credentials.apiKey?.trim() || '';
-        agentId = credentials.agentId?.trim() || '';
+
+        baseUrl = normalize(credentials.baseUrl);
+        apiKey = normalize(credentials.apiKey);
+        agentId = normalize(credentials.agentId);
       } catch (error) {
         console.error(error);
         return NextResponse.json(
@@ -73,7 +80,7 @@ export async function POST(request: Request) {
           { status: 400 }
         );
       }
-}
+    }
 
     // Validate required fields
     if (!baseUrl || !apiKey || !agentId) {

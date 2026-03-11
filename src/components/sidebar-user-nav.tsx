@@ -24,8 +24,9 @@ import { useRouter } from 'next/navigation';
 import { clearUserFromStorage, getUserFromCookie, removeAccessToken, removeEjentoAccessToken, setUserToCookie, getEjentoAccessToken, clearUserFromCookie } from '@/cookie';
 import { toast } from 'sonner';
 import { Eye, EyeOff,LogOut } from 'lucide-react';
-import { isPublicAgentMode } from '@/lib/storage/indexeddb';
+import { isPublicAgentMode } from '@/lib/utils';
 import { usePublicAgentSession } from '@/hooks/usePublicAgentSession';
+
 
 export function SidebarUserNav() {
   const { config, clearConfig, updateConfig, saveConfig, configSource } = useConfig();
@@ -81,7 +82,6 @@ export function SidebarUserNav() {
 
   const handleLogout = async (userId: number) => {
     try {
-      // Clear local tokens and storage
       const result = clearTokens();  
       if (result) {
         toast.success('Logout Successfully');
@@ -105,6 +105,7 @@ export function SidebarUserNav() {
   const toggleTokenVisibility = (field: keyof typeof showTokens) => {
     setShowTokens(prev => ({ ...prev, [field]: !prev[field] }));
   };
+  
 
   const handleSaveConfig = async () => {
 
@@ -209,6 +210,7 @@ export function SidebarUserNav() {
       if (process.env.NEXT_PUBLIC_AUTH_FLOW !== 'true' && validationResult.userData) {
         const userData = validationResult.userData;
         setUserToCookie(userData);
+        // setUserToStorage(userData)
         
         // Update the config with the fetched user info
         const updatedConfig = {
@@ -219,20 +221,17 @@ export function SidebarUserNav() {
             email: userData.email || newConfig?.userInfo?.email,
           }
         };
-        
-        console.log(updatedConfig,'updatedConfigupdatedConfig')
-        console.log(configSource,'configSource')
-        console.log(configSource,'sourceeeeeee')
         updateConfig(updatedConfig as any,configSource);
-        console.log('goin to save config')
         saveConfig(updatedConfig);
         setUserInfo(getUserFromCookie()); // Refresh user info display
         setIsManageConfigOpen(false);
-        localStorage.setItem('configSaved','true')
+        // localStorage.setItem('configSaved','true')
         toast.success('Configuration updated successfully!');
         
         // If critical config changed, reload the page to refresh all components
         if (configChanged) {
+
+          
           setTimeout(() => {
             window.location.reload();
           }, 500); // Small delay to allow toast to show
@@ -244,11 +243,19 @@ export function SidebarUserNav() {
       updateConfig(newConfig as any,configSource);
       saveConfig(newConfig);
       setIsManageConfigOpen(false);
-      localStorage.setItem('configSaved','true')
+      // localStorage.setItem('configSaved','true')
       toast.success('Configuration updated successfully!');
       
       // If critical config changed, reload the page to refresh all components
       if (configChanged) {
+
+        localStorage.removeItem('active_thread_id');
+        localStorage.removeItem('thread_id');
+        localStorage.removeItem('query');
+
+        // Redirect to fresh chat
+        router.push('/');
+
         setTimeout(() => {
           window.location.reload();
         }, 500); // Small delay to allow toast to show
@@ -278,7 +285,7 @@ export function SidebarUserNav() {
   // };
 
   const handleDestroySession = async () => {
-    localStorage.removeItem('configSaved')
+    // localStorage.removeItem('configSaved')
     if (configSource === 'environment') {
       toast.error(
         'Session cannot be destroyed because configuration is managed via environment variables.'
@@ -317,6 +324,7 @@ export function SidebarUserNav() {
   
   return (
     <>
+      
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent>
           <DialogTitle>Profile Information</DialogTitle>
@@ -385,40 +393,40 @@ export function SidebarUserNav() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isManageConfigOpen} onOpenChange={setIsManageConfigOpen}>
-        <DialogContent className="max-w-lg w-full">
-          <DialogTitle>Manage Configuration</DialogTitle>
-          <DialogDescription>
-            {configSource === 'environment' 
-              ? 'Configuration is managed via environment variables and cannot be modified here.'
-              : 'Edit your configuration settings or clear them to start fresh.'}
-          </DialogDescription>
-          
-          {configSource === 'environment' && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 my-4">
-              <p className="text-sm text-blue-800 font-medium mb-2">Environment-Driven Configuration</p>
-              <p className="text-xs text-blue-700">
-                This application is using environment-based configuration. Settings are managed server-side 
-                through environment variables and cannot be modified through this interface.
-              </p>
-              <p className="text-xs text-blue-600 mt-2">
-                To modify configuration, update your server environment variables and restart the application.
-              </p>
-            </div>
-          )}
-          
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="baseUrl">Base URL *</Label>
-              <Input
-                id="baseUrl"
-                value={configForm.baseUrl}
-                onChange={(e) => handleConfigChange('baseUrl', e.target.value)}
-                placeholder="https://api.example.com"
-                disabled={configSource === 'environment'}
-                className={configSource === 'environment' ? 'bg-gray-50 cursor-not-allowed' : ''}
-              />
-            </div>
+     <Dialog open={isManageConfigOpen} onOpenChange={setIsManageConfigOpen}>
+       <DialogContent className="max-w-lg w-full">
+         <DialogTitle>Manage Configuration</DialogTitle>
+         <DialogDescription>
+           {configSource === 'environment'
+             ? 'Configuration is managed via environment variables and cannot be modified here.'
+             : 'Edit your configuration settings or clear them to start fresh.'}
+         </DialogDescription>
+        
+         {configSource === 'environment' && (
+           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 my-4">
+             <p className="text-sm text-blue-800 font-medium mb-2">Environment-Driven Configuration</p>
+             <p className="text-xs text-blue-700">
+               This application is using environment-based configuration. Settings are managed server-side
+               through environment variables and cannot be modified through this interface.
+             </p>
+             <p className="text-xs text-blue-600 mt-2">
+               To modify configuration, update your server environment variables and restart the application.
+             </p>
+           </div>
+         )}
+        
+         <div className="space-y-4">
+           <div className="space-y-2">
+             <Label htmlFor="baseUrl">Base URL *</Label>
+             <Input
+               id="baseUrl"
+               value={configForm.baseUrl}
+               onChange={(e) => handleConfigChange('baseUrl', e.target.value)}
+               placeholder="https://api.example.com"
+               disabled={configSource === 'environment'}
+               className={configSource === 'environment' ? 'bg-gray-50 cursor-not-allowed' : ''}
+             />
+           </div>
 
             <div className="space-y-2">
               <Label htmlFor="apiKey">API Key *</Label>
@@ -539,53 +547,48 @@ export function SidebarUserNav() {
       <SidebarMenu>
         <SidebarMenuItem>
           {/* Don't render anything for public agent with auth flow */}
-          {(isPublicAgent && publicAgentSession && isAuthFlowEnabled) ? 
-          <SidebarMenuButton
-            onClick={() => {
-              if (userId !== null) {
-                handleLogout(userId);
-              } else {
-                toast.error("User ID not found. Cannot logout properly.");
-              }
-            }}
-            className="h-10 flex items-center gap-2 text-red-500 font-semibold"
-          >
-            Logout
-          </SidebarMenuButton>
         
-          : (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <SidebarMenuButton className="data-[state=open]:bg-sidebar-accent bg-background data-[state=open]:text-sidebar-accent-foreground h-10">
-                  <Image
-                    src={avatar}
-                    alt={user_info?.data?.email ?? 'User Avatar'}
-                    style={{
-                      borderRadius: '100%',
-                      height: '26px',
-                      width: '26px'
-                    }}
-                  />
-                  <span className="truncate">{user_info?.data?.email || 'Not configured'}</span>
-                  <ChevronUp className="ml-auto" />
-                </SidebarMenuButton>
+              <SidebarMenuButton className="data-[state=open]:bg-sidebar-accent bg-background data-[state=open]:text-sidebar-accent-foreground h-10">
+                <Image
+                  src={avatar}
+                  alt={user_info?.data?.email ?? 'User Avatar'}
+                  style={{
+                    borderRadius: '100%',
+                    height: '26px',
+                    width: '26px'
+                  }}
+                />
+                <span className="truncate">
+                  {isPublicAgent && !isAuthFlowEnabled 
+                    ? 'Session User' 
+                    : (user_info?.data?.email || 'Not configured')
+                  }
+                </span>
+                <ChevronUp className="ml-auto" />
+              </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 side="top"
                 className="w-[--radix-popper-anchor-width]"
               >
                 {/* Profile Information */}
-                <DropdownMenuItem asChild>
-                  <button
-                    type="button"
-                    className="w-full cursor-pointer"
-                    onClick={() => setIsOpen(true)}
-                  >
-                    Profile Information
-                  </button>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-
+                {!(isPublicAgent && !isAuthFlowEnabled) && (
+                  <>
+                     <DropdownMenuItem asChild>
+                      <button
+                        type="button"
+                        className="w-full cursor-pointer"
+                        onClick={() => setIsOpen(true)}
+                      >
+                        Profile Information
+                      </button>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </>
+                  
+                )}
                 {/* Manage Configuration - only for non-environment config */}
                 {configSource !== 'environment' && (
                   <DropdownMenuItem asChild>
@@ -601,18 +604,17 @@ export function SidebarUserNav() {
                 
                 {/* Environment notice */}
                 {configSource === 'environment' && (
-                  <>
                     <DropdownMenuItem disabled className="opacity-60 cursor-not-allowed">
                       <span className="text-xs text-muted-foreground">
                         Configuration managed via environment variables
                       </span>
                     </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                  </>
                 )}
                 {
                   isAuthFlowEnabled && 
-                  <DropdownMenuItem asChild>
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
                     <button
                       type="button"
                       className="w-full cursor-pointer text-red-500 flex items-center gap-2 font-semibold"
@@ -628,11 +630,12 @@ export function SidebarUserNav() {
                       Log out
                     </button>
                   </DropdownMenuItem>
+                  </>
+                  
                 }
                 
               </DropdownMenuContent>
             </DropdownMenu>
-          )}
         </SidebarMenuItem>
       </SidebarMenu>
     </>

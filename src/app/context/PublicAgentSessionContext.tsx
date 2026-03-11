@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import {
   isPublicAgentMode,
-} from '@/lib/storage/indexeddb';
+} from '@/lib/utils';
 import type {
   SessionMetadata,
   StoredThread,
@@ -59,14 +59,13 @@ interface PublicAgentSessionProviderProps {
 
 export function PublicAgentSessionProvider({ children }: PublicAgentSessionProviderProps) {
   const [isPublicAgent] = useState(() => isPublicAgentMode());
-  const apiService = useApiService();
-  const { config } = useConfig();
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [metadata, setMetadata] = useState<SessionMetadata | null>(null);
   const [threads, setThreads] = useState<StoredThread[]>([]);
   const [activeThreadId, setActiveThreadIdState] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isInitialized, setIsInitialized] = useState(false);
+  const isAuthFlowEnabled = process.env.NEXT_PUBLIC_AUTH_FLOW === 'true';
   
   // Initialize session on mount
   useEffect(() => {
@@ -117,8 +116,11 @@ export function PublicAgentSessionProvider({ children }: PublicAgentSessionProvi
       setIsInitialized(true);
     }
   };
-
+  
+  if(!isAuthFlowEnabled){
     initializeSession();
+  }
+
   }, [isPublicAgent, activeThreadId]);
 
   // Create new thread
@@ -238,9 +240,6 @@ export function PublicAgentSessionProvider({ children }: PublicAgentSessionProvi
   
         setThreads((prev) => [thread, ...prev]);
       }  
-
-      console.log(metadata,'meer')
-      console.log(metadata?.id,'id')
     
       const messageRes = await fetch('/api/message', {
         method: 'POST',

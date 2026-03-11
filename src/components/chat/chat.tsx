@@ -10,15 +10,13 @@ import { BlockStreamHandler } from "../block-stream-handler";
 import { MultimodalInput } from "../multimodal-input";
 import { Messages } from "./messages";
 import { VisibilityType } from "../visibility-selector";
-import { getAccessToken } from "@/cookie";
 import { useApiService } from "@/hooks/useApiService";
 import { useConfig } from "@/app/context/ConfigContext";
 import { useSearchParams } from "next/navigation";
 import { Skeleton } from "../ui/skeleton";
 import { Item } from "@/model";
 import { useChat } from "./hooks/useChat";
-import { isPublicAgentMode } from "@/lib/storage/indexeddb";
-import { usePublicAgentSession } from "@/hooks/usePublicAgentSession";
+import { isPublicAgentMode } from '@/lib/utils';
  
 /**
  * CHAT COMPONENT - Main chat interface
@@ -310,7 +308,6 @@ export default function Chat({
     try {
       if (id) {
         if (isPublicAgent) {
-          const threadId = id.toString();
           const res = await fetch(`/api/thread/${id}`);
           if (!res.ok) throw new Error("Failed to fetch public thread");
           const data = await res.json();
@@ -324,8 +321,6 @@ export default function Chat({
                 role: msg.role,
                 content: msg.content,
                 ...metadata,
-                // Ensure the id field is set from metadata.id (agent_response_id)
-                // This is critical for matching messages when updating votes
                 id: msg.id,
                 agent_response_id : msg.agent_response_id,
                 // Ensure vote fields are always boolean, never undefined
@@ -415,7 +410,6 @@ export default function Chat({
 
   // Show loading while config is loading
   if (configLoading) {
-    console.log('here on chat')
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
@@ -427,7 +421,6 @@ export default function Chat({
  
   // Show message if no config after loading
   if (!apiService) {
-    console.log('here on chat2')
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">

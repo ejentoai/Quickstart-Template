@@ -11,6 +11,7 @@ export interface ChatThreadResponse {
   created_by: string;
   user: number;
   created_on: string;
+  createdAt : string;
   modified_by: string;
   modified_on: string;
   title: string;

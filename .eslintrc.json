@@ -1,7 +1,7 @@
 {
   "extends": ["next/core-web-vitals", "next/typescript"],
   "rules": { 
-   "ignorePatterns": ["src/generated/prisma/**/*"],
+   "ignorePatterns": ["src/generated/"],
      // Allow unused variables starting with underscores
     "@typescript-eslint/no-unused-vars": "off",
     "@typescript-eslint/no-explicit-any": "off",

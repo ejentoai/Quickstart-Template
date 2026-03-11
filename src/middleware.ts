@@ -1,13 +1,19 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { getUserId } from './lib/getUserId';
+
 
 export default function middleware(req: NextRequest) {
+ 
+  const isPublicAgent = process.env.NEXT_PUBLIC_AGENT === 'true';
   const url = req.nextUrl;
   const pathname = url.pathname;
 
   const url_access_token = url.searchParams.get('token');
   const url_ejento_access_token = url.searchParams.get('ejento_access_token');
   const x = url.searchParams.get('x');
+
+  const userId = getUserId()
 
   const {
     NEXT_PUBLIC_AGENT,
@@ -32,9 +38,9 @@ export default function middleware(req: NextRequest) {
     );
   }
 
-  /* ---------------- COOKIE HANDLING ---------------- */
+  /* ---------------- configuration in cookie ---------------- */
 
-  if (NEXT_PUBLIC_ENV_DRIVEN !== 'true' && pathname !== '/settings') {
+  if (NEXT_PUBLIC_ENV_DRIVEN !== 'true' && pathname !== '/settings' && !(isPublicAgent) && (!isAuthFlowEnabled)) {
     const credentialsCookie = req.cookies.get('ejento_api_credentials');
 
     if (!credentialsCookie) {
@@ -95,6 +101,15 @@ export default function middleware(req: NextRequest) {
 
   const accessToken = req.cookies.get('token')?.value;
   const ejentoToken = req.cookies.get('ejento_access_token')?.value;
+
+  if(isPublicAgent && isAuthFlowEnabled){
+        try{
+           
+        }
+        catch(error){
+
+        }
+  }
 
   const isAuthenticated =
     isValidToken(accessToken) && isValidToken(ejentoToken);
