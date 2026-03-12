@@ -326,7 +326,6 @@ export class ApiService {
   }
 
   async createCorpus(thread_id :  any){
-    console.log(thread_id,'thread id')
     const body = {
       name: `AttachmentCorpus-${thread_id}`,
       description: "Attachment Corpus",
@@ -342,7 +341,6 @@ export class ApiService {
         headers: this.getHeaders(),
 
       });
-      console.log(response,'response from corpus')
       return response.data;
     } catch (error: any) {
       if (error.response) {

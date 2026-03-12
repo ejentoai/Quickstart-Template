@@ -172,7 +172,6 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
     };
  
     const handleSubmit = async (question?: string, regenerating?: boolean, messageIdToRegenerate?: string, Attachment?:boolean) => {
-      console.log(Attachment,'attachemtn')
       localStorage.setItem('query', question || input);
       localStorage.setItem('thread_id', id);
     

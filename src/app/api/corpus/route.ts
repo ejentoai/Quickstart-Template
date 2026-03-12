@@ -29,9 +29,7 @@ export async function POST(req : NextRequest){
             { status: 401 }
         )
         }
-        console.log(cookieCredentials,'cookieCredentials')
         const parsedCredentials = JSON.parse(cookieCredentials)
-        console.log(parsedCredentials,'parse')
         ejentoAccessToken = parsedCredentials.ejentoAccessToken
     }
     if(!ejentoAccessToken){

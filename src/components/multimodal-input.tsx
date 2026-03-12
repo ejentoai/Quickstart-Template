@@ -232,13 +232,11 @@ function PureMultimodalInput({
         if (response.ok) {
           const threadData = await response.json();
           if(threadData.externalApiId){
-            console.log('thread from backend',threadData.externalApiId)
             localStorage.setItem('external_thread_id',threadData.externalApiId)
             thread_id = threadData.externalApiId
           }
           else if(!external_thread_id){
             thread_id = await createThread();
-            console.log('created the thread',thread_id)
             if (!thread_id) throw new Error("Something went wrong");
           }
         } 
@@ -436,7 +434,6 @@ function PureMultimodalInput({
       );
   
       if (isUploadCancelledRef.current) {
-        console.log("Upload cancelled before completion");
         return;
       }
   
