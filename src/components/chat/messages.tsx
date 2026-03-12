@@ -19,18 +19,13 @@ interface MessagesProps {
   setMessages: (
     messages: any[] | ((messages: any[]) => any[]),
   ) => void;
-  reload: (
-    chatRequestOptions?: any,
-  ) => Promise<string | null | undefined>;
+  reload: any
   isReadonly: boolean;
   isLoadingResponse: boolean
   corpus?: Item[];
   setSelectedCorpus?: (selectedCorpus: any) => void;
   selectedCorpus?: any;
-  append: (
-    message: any,
-    chatRequestOptions?: any,
-  ) => Promise<string | null | undefined>;
+  append: any
   setIsFinished: Dispatch<SetStateAction<boolean>>;
   streaming: boolean;
   streamEvents: any;

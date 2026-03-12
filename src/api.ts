@@ -78,8 +78,6 @@ export class ApiService {
     }
   }
 
-  
-
   async getCorpus(): Promise<any> {
     try {
       const url = getProxiedUrl(

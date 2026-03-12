@@ -103,6 +103,13 @@ const NonMemoizedMarkdown = ({
       );
     },
     sup: ({ node, children, ...props }) => {
+      // if (props.href?.includes('-fnref-')) {
+      //   return (
+      //     <sup className="hidden" {...props}>
+      //       {children}
+      //     </sup>
+      //   );
+      // } else {
       let number = extractNumberFromUrl(
         node?.children?.at(0)?.properties?.href
       );
@@ -123,6 +130,16 @@ const NonMemoizedMarkdown = ({
     },
     a: (props) => {
       const { node, children, ...rest } = props;
+      // if(node?.children[0]?.value?.length === 1 && node?.children[0]?.value?.match(/\d/)) {
+      //   return <a {...props}>{children}</a>
+      // }
+
+      // return (
+      //   <a href={`${process.env.NEXT_PUBLIC_CITATION_URL}${message?.references?.find((x:any) => number == x.number)?.url}`} target="_blank" className="text-white hover:underline">
+      //     <sup {...props}>{number}</sup>
+      //   </a>
+      // )
+      // }
       let number = extractNumberFromUrl(props?.href);
       if (number) {
         let numberUrl = message?.references?.find(

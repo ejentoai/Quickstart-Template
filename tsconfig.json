@@ -22,6 +22,18 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    "C:/NextBuilds/Quickstart-Template/.next/types/**/*.ts",
+    "C:\\NextBuilds\\Quickstart-Template\\.next/types/**/*.ts",
+    "next-env.d.ts",
+    "src/components/authentication/login-form.tsx",
+    "../../NextBuilds/Quickstart-Template/.next/types/**/*.ts",
+    "src/app/api/env-from-cookies"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }

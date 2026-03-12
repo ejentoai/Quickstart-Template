@@ -41,16 +41,8 @@ function PureMultimodalInput({
   setInput: (value: string) => void;
   isLoading: boolean;
   messages: Array<any>;
-  append: (
-    message: any | CreateMessage,
-    chatRequestOptions?: ChatRequestOptions,
-  ) => Promise<string | null | undefined>;
-  handleSubmit: (
-    event?: {
-      preventDefault?: () => void;
-    },
-    chatRequestOptions?: ChatRequestOptions,
-  ) => void;
+  append: any
+  handleSubmit: any
   className?: string;
   setIsTextFieldSelected: (value: boolean) => void;
   isTextFieldSelected?: boolean;
