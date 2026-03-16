@@ -8,7 +8,7 @@ import { colorSvg, monoSvg } from './icons';
 import StaticLogo from './chat/static-logo';
 
 export const Overview = (props: any) => {
-  const { corpus, setSelectedCorpus, selectedCorpus, append, input, setInput, isLoading, messages, isTextFieldSelected, setIsTextFieldSelected, forceComplete, setForceComplete} = props;
+  const { corpus, setSelectedCorpus, selectedCorpus,handleSubmit, append, input, setInput, isLoading, messages, isTextFieldSelected, setIsTextFieldSelected, forceComplete, setForceComplete} = props;
   const searchParams = useSearchParams();
   const encryptedId = searchParams.get("id");
   let id = decryptData(encryptedId);
@@ -30,7 +30,7 @@ export const Overview = (props: any) => {
           chatId={id}
           input={input}
           setInput={setInput}
-          handleSubmit={append}
+          handleSubmit={handleSubmit}
           isLoading={isLoading}
           messages={messages}
           append={append}

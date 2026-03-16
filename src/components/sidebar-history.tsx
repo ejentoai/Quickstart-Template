@@ -169,6 +169,10 @@ const ChatItem = ({
             onClick={() => {
               handleSetQueryParams(chat.id.toString(), document.getElementById(chat.id.toString())!.innerText);
               localStorage.setItem('active_thread_id', chat.id.toString())
+              localStorage.removeItem('corpus_id')
+              localStorage.removeItem('corpus_connection')
+              localStorage.removeItem('external_thread_id')
+              chat?.externalApiId?.toString() && localStorage.setItem('external_thread_id', chat?.externalApiId?.toString())
               setOpenMobile(false);
             }}
           >
@@ -299,7 +303,9 @@ export function SidebarHistory({ fetchThreads, threads, groupedChats, setThreads
           if (updatedThreads.length > 0) {
             // Navigate to the first remaining thread
             localStorage.setItem('active_thread_id', updatedThreads[0].id.toString());
+            updatedThreads[0].externalApiId?.toString() && localStorage.setItem('external_thread_id', updatedThreads[0].externalApiId?.toString());
             localStorage.removeItem('corpus_connection')
+            localStorage.removeItem('corpus_id')
             handleSetQueryParams(updatedThreads[0].id.toString(), updatedThreads[0].title);
           } else {
             // No threads remain after deletion; clear active thread context
@@ -364,6 +370,7 @@ export function SidebarHistory({ fetchThreads, threads, groupedChats, setThreads
         if (updatedThreads.length > 0) {
           // Navigate to the first remaining thread
           localStorage.setItem('active_thread_id', updatedThreads[0].id.toString());
+          console.log('i am pressed 5')
           localStorage.removeItem('corpus_connection')
           handleSetQueryParams(updatedThreads[0].id.toString(), updatedThreads[0].title);
         } else {

@@ -67,6 +67,7 @@ function PureChatHeader({
           handleSetQueryParams(tempThreadId.toString(), newTitle);
           localStorage.setItem('active_thread_id', tempThreadId.toString());
           localStorage.removeItem('corpus_connection')
+          localStorage.removeItem('corpus_id')
           
           toast.success('New chat created');
         }

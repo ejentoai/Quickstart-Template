@@ -4,7 +4,7 @@ import { AnimatePresence } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { useWindowSize } from "usehooks-ts";
 import { ChatHeader } from "@/components/chat/chat-header";
-import { decryptData } from "@/lib/utils";
+import { decryptData, pairMessagesWithDocuments } from "@/lib/utils";
 import { Block, type UIBlock } from "../block";
 import { BlockStreamHandler } from "../block-stream-handler";
 import { MultimodalInput } from "../multimodal-input";
@@ -17,6 +17,7 @@ import { Skeleton } from "../ui/skeleton";
 import { Item } from "@/model";
 import { useChat } from "./hooks/useChat";
 import { isPublicAgentMode } from '@/lib/utils';
+import { toast } from "sonner";
  
 /**
  * CHAT COMPONENT - Main chat interface
@@ -112,6 +113,7 @@ export default function Chat({
   const { isLoading: configLoading } = useConfig();
   const apiService = useApiService();
   const [corpus, setCorpus] = useState<any>([]);
+  const [corpusId, setCorpusId] = useState<number | null>(null);
  
   // PUBLIC_AGENT mode: Get session context (must be defined before useChat)
   const isPublicAgent = isPublicAgentMode();
@@ -244,6 +246,7 @@ export default function Chat({
   });
  
   const [attachments, setAttachments] = useState<Array<any>>([]);
+  const [documents, setDocuments] = useState<Array<any>>([]);
   const [isFinished, setIsFinished] = useState(false);
   const [isLoadingChat, setIsLoadingChat] = useState(true);
   const searchParams = useSearchParams();
@@ -264,6 +267,8 @@ export default function Chat({
     // Only fetch if we have an id and it's different from the last fetched id
     // and we're not in the middle of a local-to-server transition
     if (id && id !== lastFetchedIdRef.current && !isTransitioningRef.current) {
+      setMessages([]);
+      setDocuments([]);
       lastFetchedIdRef.current = id;
       fetchChat();
     }
@@ -279,7 +284,38 @@ export default function Chat({
       delete (window as any).setTransitioningState;
     };
   }, []);
- 
+
+  /**
+ * Fetches corpus and documents for a given thread
+ * @param threadId - The thread ID to fetch corpus connection for
+ * @returns Promise with the fetched documents array
+ */
+  const fetchCorpusAndDocuments = async (threadId: number) => {
+    try {
+      setDocuments([]); // Clear documents immediately
+      const data = await apiService?.getCorpusConnection(threadId);
+      if (data && data?.corpus?.id) {
+        const corpusId = data.corpus.id;
+        const corpusConnection = data.id;
+        localStorage.setItem('corpus_id', corpusId);
+        localStorage.setItem('corpus_connection', corpusConnection);
+        setCorpusId(corpusId);
+        
+        // Fetch documents and return them for immediate use
+        const fetchedDocuments = await apiService?.getCorpusDocuments(corpusId);
+        setDocuments(fetchedDocuments || []); // Update state for other uses
+        return fetchedDocuments || []; // Return for immediate use
+      } else {
+        setCorpusId(null);
+        return []; // Return empty array if no documents
+      }
+    } catch (error) {
+      console.error("Error fetching corpus or documents:", error);
+      setCorpusId(null);
+      return []; // Return empty array on error
+    }
+  };
+  
   /**
    * Fetches chat history for the current thread
    *
@@ -289,22 +325,18 @@ export default function Chat({
    * - Handles error states and guardrail-triggered responses
    * - Manages pending user queries from localStorage
    * - Sets up message state for the chat interface
-   *
-   * Message transformation includes:
-   * - Converting Q&A pairs into separate user/assistant messages
-   * - Adding metadata (feedback, references, guardrails)
-   * - Handling error responses with retry functionality
    */
   const fetchChat = async () => {
-
     setIsLoadingChat(true);
-    let userQuery: { role: string; content: string | null; }[] = []
+    let userQuery: { role: string; content: string | null; created_on?: string | null }[] = [];
+    
     if (!id) {
       const userQuery = thread_id && query ? [{ role: "user", content: query }] : [];
-      setMessages(userQuery); // <-- initialize messages immediately
+      setMessages(userQuery);
       setIsLoadingChat(false);
       return;
     }
+    
     try {
       if (id) {
         if (isPublicAgent) {
@@ -312,7 +344,7 @@ export default function Chat({
           if (!res.ok) throw new Error("Failed to fetch public thread");
           const data = await res.json();
           const storedMessages = data?.messages || [];
-         
+          
           if (storedMessages.length > 0) {
             // Transform stored messages to chat format
             const transformedMessages = storedMessages.map((msg: any) => {
@@ -322,39 +354,58 @@ export default function Chat({
                 content: msg.content,
                 ...metadata,
                 id: msg.id,
-                agent_response_id : msg.agent_response_id,
+                agent_response_id: msg.agent_response_id,
                 // Ensure vote fields are always boolean, never undefined
                 is_upvote: metadata.is_upvote === true,
                 is_downvote: metadata.is_downvote === true,
+                created_on: msg.createdAt
               };
             });
-           
+            
+            // const external_thread_id = localStorage.getItem("external_thread_id");
+            let fetchedDocuments: any[] = [];
+            
+            if(data.externalApiId){
+              fetchedDocuments = await fetchCorpusAndDocuments(parseInt(data.externalApiId));
+            }
+            
             // Handle pending user query from localStorage
             if (thread_id === id.toString()) {
-              userQuery = [{ role: "user", content: query }]
+              userQuery = [{
+                role: "user",
+                content: query,
+                created_on: new Date().toISOString()
+              }];
             }
-            setMessages([...transformedMessages, ...userQuery]);
+            
+            // Use fetchedDocuments directly instead of documents state
+            if (fetchedDocuments && fetchedDocuments.length > 0) {
+              const pairedMessages = pairMessagesWithDocuments(transformedMessages, fetchedDocuments);
+              setMessages([...pairedMessages, ...userQuery]);
+            } else {
+              setMessages([...transformedMessages, ...userQuery]);
+            }
           } else {
             // No stored messages, start with empty or pending query
             if (thread_id === id.toString()) {
-              userQuery = [{ role: "user", content: query }]
-              setMessages(userQuery)
+              userQuery = [{ role: "user", content: query }];
+              setMessages(userQuery);
             } else {
               setMessages([]);
             }
           }
           return;
         }
-       
+        
         // Normal mode: Use existing server-based logic
         const isLocalThread = parseInt(id) < 0;
-       
+        
         if (isLocalThread) {
           // For local threads, don't fetch from API, just start with empty messages
           // Handle pending user query from localStorage if exists
           if (thread_id === id.toString()) {
-            userQuery = [{ role: "user", content: query }]
-            setMessages(userQuery)
+            userQuery = [{ role: "user", content: query }];
+            setMessages(userQuery);
           } else {
             setMessages([]);
           }
@@ -362,32 +413,60 @@ export default function Chat({
           // For server threads, fetch chat history as usual
           const response = await apiService?.getChatlogs(parseInt(id));
           if (response && response?.data?.agent_responses?.length > 0) {
+            console.log(response.data.agent_responses);
             // Transform API response into message format
             const transformedMessages = response.data.agent_responses.flatMap((item: any) => [
-              { role: "user", content: item.question },
+              {
+                role: "user",
+                content: item.question,
+                created_on: item.created_on, // Add timestamp from the log
+                id: `user-${item.id}`
+              },
               {
                 role: "assistant",
-                content: (item?.response?.success || item?.response?.guardrail_triggered) ? item?.response?.answer : 'error::' + item?.response?.message,
+                content: (item?.response?.success || item?.response?.guardrail_triggered)
+                  ? item?.response?.answer
+                  : 'error::' + item?.response?.message,
                 query: item.question,
                 id: item.id,
+                created_on: item.modified_on, // Add timestamp
                 is_upvote: item.feedback[0]?.is_upvote,
                 is_downvote: item.feedback[0]?.is_downvote,
                 references: item.response.references,
                 guardrail_triggered: item?.response?.guardrail_triggered || false,
                 blocked: item?.response?.blocked || false,
-                // reflectionEvents: item?.response_steps?.map((step: any) => step?.friendly_message) || [],
               },
             ]);
+  
+            // Fetch corpus and documents - get them directly
+            let fetchedDocuments: any[] = [];
+            try {
+              fetchedDocuments = await fetchCorpusAndDocuments(parseInt(id));
+            } catch (error) {
+              console.error("Error fetching corpus documents:", error);
+            }
+            
             // Handle pending user query from localStorage
             if (thread_id === id.toString()) {
-              userQuery = [{ role: "user", content: query }]
+              userQuery = [{
+                role: "user",
+                content: query,
+                created_on: new Date().toISOString()
+              }];
             }
-            setMessages([...transformedMessages, ...userQuery]);
+            
+            // Use fetchedDocuments directly instead of documents state
+            if (fetchedDocuments && fetchedDocuments.length > 0) {
+              const pairedMessages = pairMessagesWithDocuments(transformedMessages, fetchedDocuments);
+              setMessages([...pairedMessages, ...userQuery]);
+            } else {
+              setMessages([...transformedMessages, ...userQuery]);
+            }
           } else {
             // Handle empty chat history
             if (thread_id === id.toString()) {
-              userQuery = [{ role: "user", content: query }]
-              setMessages(userQuery)
+              userQuery = [{ role: "user", content: query }];
+              setMessages(userQuery);
             } else {
               setMessages([]);
             }
@@ -398,8 +477,8 @@ export default function Chat({
       console.error(e);
       // For local threads or API errors, still allow user to start chatting
       if (thread_id === id?.toString()) {
-        userQuery = [{ role: "user", content: query }]
-        setMessages(userQuery)
+        userQuery = [{ role: "user", content: query }];
+        setMessages(userQuery);
       } else {
         setMessages([]);
       }
@@ -407,6 +486,7 @@ export default function Chat({
       setIsLoadingChat(false);
     }
   };
+
 
   // Show loading while config is loading
   if (configLoading) {
@@ -499,6 +579,8 @@ export default function Chat({
               reflectionContentsRef={reflectionContentsRef}
               thoughtProcessRef={thoughtProcessRef}
               isReflectingRef={isReflectingRef}
+              documents={documents}
+              handleSubmit={handleSubmit}
             />
  
             <form className="flex mx-auto my-auto px-4 bg-background pb-4 md:pb-6 gap-2 w-full md:max-w-3xl">            

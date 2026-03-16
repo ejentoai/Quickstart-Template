@@ -186,8 +186,9 @@ export function AppSidebar() {
 
         const threadId = String(newThread.id);
 
-        localStorage.removeItem('corpus_connection')
-        localStorage.removeItem('external_thread_id')
+        localStorage.removeItem('corpus_id');
+        localStorage.removeItem('corpus_connection');
+        localStorage.removeItem('external_thread_id');
 
         handleSetQueryParams(
           threadId,
@@ -243,9 +244,11 @@ export function AppSidebar() {
         modified_on: new Date().toISOString(),
         is_deleted: false,
         chat_id: null,
+        externalApiId : null
       };
 
       const updatedThreads = [newThread, ...threads];
+      localStorage.removeItem('corpus_id');
       localStorage.removeItem('corpus_connection');
       localStorage.removeItem('external_thread_id')
       setThreads(updatedThreads);

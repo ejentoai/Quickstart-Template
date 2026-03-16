@@ -171,7 +171,10 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
       }
     };
  
-    const handleSubmit = async (question?: string, regenerating?: boolean, messageIdToRegenerate?: string, Attachment?:boolean) => {
+    const handleSubmit = async (question?: string, regenerating?: boolean, messageIdToRegenerate?: string, documents?: any[]) => {
+      const assistantMessageCount = messages.filter((msg: { role: string }) => msg.role === 'assistant').length;      ;
+      const isSecondMessage = assistantMessageCount === 1;
+
       localStorage.setItem('query', question || input);
       localStorage.setItem('thread_id', id);
     
@@ -184,7 +187,7 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
       hasErrorOccurredRef.current = false;
       setIsCache(false);
     
-      if (!question && input.length === 0) return;
+      if (!question && input.length === 0 && (!documents || documents.length === 0)) return;
       
       try {
         setIsLoading(true);
@@ -226,7 +229,6 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                   console.error('Error deleting messages from DB:', err);
                 }
               }
-              
               // Update messages state to remove the pair being regenerated
               setMessages(messagesToKeep);
               
@@ -251,7 +253,6 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                   console.error('Error deleting assistant message from DB:', err);
                 }
               }
-              
               setMessages(messagesToKeep);
               chatHistory = formatChatData(messagesToKeep);
             }
@@ -266,9 +267,13 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
             content: userQuestion,
             id: tempUserMessageId,
             timestamp: new Date().toISOString(),
-            isRegeneration: true
+            isRegeneration: true,
+            paired_documents: documents?.map(doc => ({
+              source: doc.file.name,
+              description: doc.file.name,
+              documentId: doc.documentId
+            })) || []
           };
-          
           setMessages((messages: any) => [...messages, userMessage]);
           
           // Save user message to database for regeneration in public mode
@@ -313,9 +318,13 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
             role: "user", 
             content: userQuestion,
             id: tempUserMessageId,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            paired_documents: documents?.map(doc => ({
+              source: doc.file.name,
+              description: doc.file.name,
+              documentId: doc.documentId
+            })) || []
           };
-          
           setMessages((messages: any) => [...messages, userMessage]);
           
           // Save user message to database when public agent mode is on
@@ -370,24 +379,32 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
             // NORMAL MODE: always use the existing URL/thread ID so messages go to the same thread
             
           } else {
-            // PUBLIC AGENT MODE: keep the old behavior
-            const external_thread_id = Number(localStorage.getItem('external_thread_id'));
-
-            if (external_thread_id) {
-              chatThreadId = external_thread_id;
-            } else if (!isFirstMessageRef.current) {
+            if(!isFirstMessageRef.current){
               try {
                 const response = await fetch(`/api/thread/${id}`);
                 if (response.ok) {
                   const threadData = await response.json();
-                  chatThreadId = threadData.externalApiId;
+                  if(threadData.externalApiId){
+                    chatThreadId = threadData.externalApiId;
+                  }
+                  else{
+                    chatThreadId = null;
+                  }
+                  
                 }
               } catch (error) {
                 console.error('Error fetching external API ID:', error);
                 chatThreadId = null;
               }
-            } else {
-              chatThreadId = null;
+            }
+            else{
+              const external_thread_id = Number(localStorage.getItem('external_thread_id'));
+              if (external_thread_id) {
+                chatThreadId = external_thread_id;
+              }
+              else{
+                chatThreadId = null;
+              }
             }
           }
     
@@ -456,7 +473,6 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                       guardrail_triggered: response?.guardrail_triggered || false,
                       blocked: response?.blocked || false,
                     };
-                    
                     setMessages((messages: any) => [...messages, errorMessage]);
                     
                     // Save error message to DB in public mode
@@ -565,7 +581,6 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                         guardrail_triggered: response?.guardrail_triggered || false,
                         blocked: response?.blocked || false,
                       };
-                      
                       setMessages((messages: any) => [...messages, assistantMessage]);
                       
                       // Save assistant message to database in public mode
@@ -603,7 +618,7 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                         }
                         
                         // Update thread title if first message
-                        if (response.chat_thread_name && threadName && isFirstMessageRef.current) {
+                        if (response.chat_thread_name && threadName && isSecondMessage) {
                           publicAgentSession.updateThreadTitle(id, threadName, response.thread_id)
                             .catch(err => console.error('Error updating thread title in DB:', err));
                         }
@@ -710,24 +725,33 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
           if (!isPublicAgent) {
             chatThreadId = id ? parseInt(id as string) : null;
           } else {
-            // PUBLIC AGENT MODE: keep the old behavior
-            const external_thread_id = Number(localStorage.getItem('external_thread_id'));
-              if (external_thread_id) {
-                chatThreadId = external_thread_id;
-              } else if (!isFirstMessageRef.current) {
-                try {
-                  const response = await fetch(`/api/thread/${id}`);
-                  if (response.ok) {
-                    const threadData = await response.json();
+            if(!isFirstMessageRef.current){
+              try {
+                const response = await fetch(`/api/thread/${id}`);
+                if (response.ok) {
+                  const threadData = await response.json();
+                  if(threadData.externalApiId){
                     chatThreadId = threadData.externalApiId;
                   }
-                } catch (error) {
-                  console.error('Error fetching external API ID:', error);
-                  chatThreadId = null;
+                  else{
+                    chatThreadId = null;
+                  }
+                  
                 }
-              } else {
+              } catch (error) {
+                console.error('Error fetching external API ID:', error);
                 chatThreadId = null;
               }
+            }
+            else{
+              const external_thread_id = Number(localStorage.getItem('external_thread_id'));
+              if (external_thread_id) {
+                chatThreadId = external_thread_id;
+              }
+              else{
+                chatThreadId = null;
+              }
+            }
           }
     
           const requestBody: any = {
@@ -738,6 +762,7 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
             is_file_attached: true,
             caching_enabled: regenerating ? false : true,
             overrides: {
+              sources : true,
               log_intermediate_response: true,
               retrieve_data_points: true
             },
@@ -880,7 +905,8 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
       }
     };
  
-    const append = (message: any, regenerating?: boolean, Attachment?: boolean) => {
+    const append = (message: any, regenerating?: boolean, documents?: any[]) => {
+      
       if (regenerating && messages.length > 0) {
         // Find the assistant message to regenerate
         const assistantMessageIndex = messages.findIndex((m: any) => 
@@ -898,13 +924,13 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
             // Remove only the assistant message (same as normal mode)
             updatedMessages.splice(assistantMessageIndex, 1);
             setMessages(updatedMessages);
-            handleSubmit(userQuery, true, message.id,Attachment);
+            handleSubmit(userQuery, true, message.id,documents);
           }
         } else {
-          handleSubmit(message?.query || message?.content,false,undefined,Attachment);
+          handleSubmit(message?.query || message?.content,false,undefined,documents);
         }
       } else {
-        handleSubmit(message?.query || message?.content,false,undefined,Attachment);
+        handleSubmit(message?.query || message?.content,false,undefined,documents);
       }
     };
  

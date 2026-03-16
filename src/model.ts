@@ -17,6 +17,7 @@ export interface ChatThreadResponse {
   title: string;
   is_deleted: boolean;
   chat_id: null | number;
+  externalApiId : null | number;
 }
 
 export interface createChatThreadResponse {

@@ -5,6 +5,7 @@ import { Dispatch, memo, SetStateAction, useEffect, useState } from 'react';
 
 import { Item } from "@/model";
 import { StreamingMessage } from './streaming-messages';
+import { getMessageDocumentPairs } from '@/lib/utils';
 
 
 interface MessagesProps {
@@ -36,6 +37,8 @@ interface MessagesProps {
   reflectionContentsRef: any;
   thoughtProcessRef: any;
   isReflectingRef: any;
+  documents : any[];
+  handleSubmit? : any;
 }
 
 function PureMessages({
@@ -65,7 +68,18 @@ function PureMessages({
   reflectionContentsRef,
   thoughtProcessRef,
   isReflectingRef,
+  documents,
+  handleSubmit
 }: Readonly<MessagesProps>) {
+  const [messageDocumentPairs, setMessageDocumentPairs] = useState<Map<number, Document[]>>(new Map());
+
+  useEffect(() => {
+    if (documents?.length && messages.length) {
+      const pairs = getMessageDocumentPairs(messages, documents);
+      setMessageDocumentPairs(pairs);
+    }
+  }, [messages, documents]);
+  
   useEffect(() => {
     const chatContainer = document.getElementById("chat-container");
 
@@ -86,9 +100,9 @@ function PureMessages({
       id="chat-container"
       className="flex flex-col min-w-0 gap-6 flex-1 overflow-y-scroll pt-4"
     >
-      {messages.length === 0 && !isLoading && <Overview isLoading={isLoadingResponse || streaming} messages={messages} input={input} setInput={setInput} append={append} selectedCorpus={selectedCorpus} corpus={corpus} setSelectedCorpus={setSelectedCorpus} setIsTextFieldSelected={setIsTextFieldSelected} isTextFieldSelected={isTextFieldSelected} forceComplete={forceComplete} setForceComplete={setForceComplete} />}
-
+      {messages.length === 0 && !isLoading && <Overview isLoading={isLoadingResponse || streaming} messages={messages} input={input} setInput={setInput} append={append} selectedCorpus={selectedCorpus} corpus={corpus} setSelectedCorpus={setSelectedCorpus} setIsTextFieldSelected={setIsTextFieldSelected} isTextFieldSelected={isTextFieldSelected} forceComplete={forceComplete} setForceComplete={setForceComplete} handleSubmit={handleSubmit}/>}
       {messages.map((message, index) => (
+        
         <PreviewMessage
           streamContentRef={streamContentRef}
           showRetry={index === messages.length - 1}
@@ -96,7 +110,10 @@ function PureMessages({
           messages={messages}
           streaming={streaming}
           chatId={chatId}
-          message={message}
+          message={{
+            ...message,
+            paired_documents: message.paired_documents || messageDocumentPairs.get(index) || []
+          }}
           block={block}
           setBlock={setBlock}
           isLoading={isLoading && messages.length - 1 === index}
@@ -115,6 +132,7 @@ function PureMessages({
           isCache={isCache}
           setIsCache={setIsCache}
           showThoughtProcessTemp={showThoughtProcess}
+          showPairedDocuments
           // toggleThoughtProcess={toggleThoughtProcess}
         />
       ))}

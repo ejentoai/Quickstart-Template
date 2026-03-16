@@ -323,3 +323,204 @@ export const refreshIfEmpty = (value: any) => {
 //   return DOMPurify.sanitize(input, { ALLOWED_TAGS: [] })?.trim()
 // }
 
+// utils/messageDocumentPairing.ts
+
+interface ChatDocument extends Document {
+  id: number;
+  created_on: string;
+  source: string;
+  description: string;
+}
+
+interface Message {
+  id?: string;
+  role: "user" | "assistant";
+  content: string;
+  created_on?: string;
+  paired_documents?: Document[]; 
+}
+// utils/messageDocumentPairing.ts
+
+interface ChatDocument {
+  id: number;
+  created_on: string;
+  source: string;
+  description: string;
+  is_failed?: boolean;  // Add these fields
+  step?: string;        // Add these fields
+}
+
+interface Message {
+  id?: string;
+  role: "user" | "assistant";
+  content: string;
+  created_on?: string;
+  documents?: ChatDocument[];
+}
+
+/**
+ * Filter out failed documents
+ * Documents with is_failed === true or step === "failed" are excluded
+ */
+const filterFailedDocuments = (documents: ChatDocument[]): ChatDocument[] => {
+  return documents.filter(doc => {
+    const isFailed = doc.is_failed === true || doc.step === "failed";
+    return !isFailed;
+  });
+};
+
+/**
+ * Pair documents with messages based on time intervals between user messages
+ * Documents that fall between Msg1 and Msg2 belong to Msg2
+ * Failed documents are automatically excluded
+ * 
+ * Timeline:
+ * Msg1 (10:00) ── Documents uploaded ── Msg2 (10:05) → Documents belong to Msg2
+ *                    (10:02, 10:03)
+ */
+export const pairMessagesWithDocuments = (
+  messages: any[],
+  documents: ChatDocument[]
+): Message[] => {
+
+  // First, filter out failed documents
+  const validDocuments = filterFailedDocuments(documents);
+  
+  if (!validDocuments.length) return messages;
+
+  // Sort messages by timestamp
+  const sortedMessages = [...messages].sort((a, b) => {
+    if (!a.created_on) return 1;
+    if (!b.created_on) return -1;
+    return new Date(a.created_on).getTime() - new Date(b.created_on).getTime();
+  });
+
+  // Sort valid documents by timestamp
+  const sortedDocs = [...validDocuments].sort((a, b) => 
+    new Date(a.created_on).getTime() - new Date(b.created_on).getTime()
+  );
+
+  // Get all user messages with timestamps
+  const userMessages = sortedMessages
+    .map((msg, index) => ({ ...msg, originalIndex: index }))
+    .filter(msg => msg.role === 'user' && msg.created_on);
+
+  if (!userMessages.length) return messages;
+
+  const result = [...sortedMessages];
+  let docIndex = 0;
+
+  // Handle documents that come before the first user message
+  const firstMsg = userMessages[0];
+  const firstMsgTime = new Date(firstMsg.created_on!).getTime();
+  
+  const docsBeforeFirst: ChatDocument[] = [];
+  while (docIndex < sortedDocs.length) {
+    const doc = sortedDocs[docIndex];
+    const docTime = new Date(doc.created_on).getTime();
+    
+    if (docTime < firstMsgTime) {
+      docsBeforeFirst.push(doc);
+      docIndex++;
+    } else {
+      break;
+    }
+  }
+  
+  // Attach documents before first message to the first message
+  if (docsBeforeFirst.length > 0) {
+    const firstIndex = firstMsg.originalIndex;
+    result[firstIndex] = {
+      ...result[firstIndex],
+      documents: docsBeforeFirst
+    };
+  }
+
+  // For each subsequent user message
+  for (let i = 1; i < userMessages.length; i++) {
+    const currentMsg = userMessages[i];
+    const prevMsg = userMessages[i - 1];
+    
+    const prevTime = new Date(prevMsg.created_on!).getTime();
+    const currentTime = new Date(currentMsg.created_on!).getTime();
+    
+    
+    // Collect documents that fall between previous message and current message
+    const docsForCurrentMsg: ChatDocument[] = [];
+    
+    while (docIndex < sortedDocs.length) {
+      const doc = sortedDocs[docIndex];
+      const docTime = new Date(doc.created_on).getTime();
+      
+      while (docIndex < sortedDocs.length) {
+        const doc = sortedDocs[docIndex];
+        const docTime = new Date(doc.created_on).getTime();
+      
+        // prevent overlap with previous message
+        if (docTime <= prevTime) {
+          docIndex++;
+          continue;
+        }
+      
+        if (docTime > currentTime) {
+          break;
+        }
+      
+        docsForCurrentMsg.push(doc);
+        docIndex++;
+      }
+    }
+    
+    // Add documents to the current user message
+    if (docsForCurrentMsg.length > 0) {
+      const originalIndex = currentMsg.originalIndex;
+      result[originalIndex] = {
+        ...result[originalIndex],
+        documents: docsForCurrentMsg
+      };
+    }
+  }
+  
+  // Handle documents that come after the last message
+  const lastUserMsg = userMessages[userMessages.length - 1];
+  if (lastUserMsg && docIndex < sortedDocs.length) {
+    const remainingDocs = sortedDocs.slice(docIndex);
+    if (remainingDocs.length > 0) {
+      const lastIndex = lastUserMsg.originalIndex;
+      const existingDocs = result[lastIndex].documents || [];
+      result[lastIndex] = {
+        ...result[lastIndex],
+        documents: [...existingDocs, ...remainingDocs]
+      };
+      console.log(`Added ${remainingDocs.length} valid docs to last message`);
+    }
+  }
+
+  return result;
+};
+
+/**
+ * Group documents by their proximity to messages
+ * Returns a map of message indices to their paired documents
+ * Failed documents are automatically excluded
+ */
+export const getMessageDocumentPairs = (
+  messages: Message[],
+  documents: ChatDocument[]
+): Map<number, ChatDocument[]> => {
+  const pairs = new Map<number, ChatDocument[]>();
+  
+  if (!documents.length) return pairs;
+
+  // First, get the properly paired messages (which already filters failed docs)
+  const pairedMessages = pairMessagesWithDocuments(messages, documents);
+  
+  // Then create a map of index -> documents
+  pairedMessages.forEach((message, index) => {
+    if (message.role === "user" && message.documents && message.documents.length > 0) {
+      pairs.set(index, message.documents);
+    }
+  });
+
+  return pairs;
+};
