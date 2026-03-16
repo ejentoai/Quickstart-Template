@@ -365,9 +365,6 @@ interface Message {
 const filterFailedDocuments = (documents: ChatDocument[]): ChatDocument[] => {
   return documents.filter(doc => {
     const isFailed = doc.is_failed === true || doc.step === "failed";
-    if (isFailed) {
-      console.log(`Filtering out failed document: ${doc.source || doc.id}`);
-    }
     return !isFailed;
   });
 };
@@ -386,7 +383,6 @@ export const pairMessagesWithDocuments = (
   documents: ChatDocument[]
 ): Message[] => {
 
-  console.log(documents,)
   // First, filter out failed documents
   const validDocuments = filterFailedDocuments(documents);
   
@@ -438,7 +434,6 @@ export const pairMessagesWithDocuments = (
       ...result[firstIndex],
       documents: docsBeforeFirst
     };
-    console.log(`Added ${docsBeforeFirst.length} valid docs before first message to Msg 0`);
   }
 
   // For each subsequent user message
@@ -448,8 +443,7 @@ export const pairMessagesWithDocuments = (
     
     const prevTime = new Date(prevMsg.created_on!).getTime();
     const currentTime = new Date(currentMsg.created_on!).getTime();
-    
-    console.log(`Checking documents between Msg ${i-1} and Msg ${i}`);
+
     
     // Collect documents that fall between previous message and current message
     const docsForCurrentMsg: ChatDocument[] = [];
@@ -478,7 +472,6 @@ export const pairMessagesWithDocuments = (
         ...result[originalIndex],
         documents: docsForCurrentMsg
       };
-      console.log(`Added ${docsForCurrentMsg.length} valid docs to Msg ${i}`);
     }
   }
   
@@ -489,11 +482,16 @@ export const pairMessagesWithDocuments = (
     if (remainingDocs.length > 0) {
       const lastIndex = lastUserMsg.originalIndex;
       const existingDocs = result[lastIndex].documents || [];
+
+      const uniqueDocs = [...existingDocs, ...remainingDocs].filter(
+        (doc, index, arr) =>
+          index === arr.findIndex((d) => d.id === doc.id)
+      );
+
       result[lastIndex] = {
         ...result[lastIndex],
-        documents: [...existingDocs, ...remainingDocs]
+        documents: uniqueDocs
       };
-      console.log(`Added ${remainingDocs.length} valid docs to last message`);
     }
   }
 
