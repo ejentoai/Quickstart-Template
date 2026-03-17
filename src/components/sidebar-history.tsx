@@ -370,7 +370,6 @@ export function SidebarHistory({ fetchThreads, threads, groupedChats, setThreads
         if (updatedThreads.length > 0) {
           // Navigate to the first remaining thread
           localStorage.setItem('active_thread_id', updatedThreads[0].id.toString());
-          console.log('i am pressed 5')
           localStorage.removeItem('corpus_connection')
           handleSetQueryParams(updatedThreads[0].id.toString(), updatedThreads[0].title);
         } else {

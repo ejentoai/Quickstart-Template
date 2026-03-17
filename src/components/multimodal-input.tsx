@@ -858,26 +858,6 @@ function PureMultimodalInput({
                   </div>
                 )}
               </div>
-
-              {/* Close button with loading state */}
-              <button
-                type="button"
-                onClick={removeCurrentUpload}
-                disabled={isCancelling}
-                className={cx(
-                  "absolute -top-1 -right-1 h-5 w-5 rounded-full flex items-center justify-center text-xs shadow-lg transition-all",
-                  currentUpload.status === 'error'
-                    ? "bg-red-500 hover:bg-red-600 text-white"
-                    : "bg-gray-800 hover:bg-gray-900 text-white",
-                  isCancelling && "opacity-50 cursor-not-allowed"
-                )}
-              >
-                {isCancelling ? (
-                  <Spinner className="h-3 w-3" />
-                ) : (
-                  '×'
-                )}
-              </button>
             </div>
           )}
 

@@ -172,7 +172,7 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
     };
  
     const handleSubmit = async (question?: string, regenerating?: boolean, messageIdToRegenerate?: string, documents?: any[]) => {
-      const assistantMessageCount = messages.filter((msg: { role: string }) => msg.role === 'assistant').length;      ;
+      const assistantMessageCount = messages.filter((msg: { role: string }) => msg.role === 'assistant').length;
       const isSecondMessage = assistantMessageCount === 1;
 
       localStorage.setItem('query', question || input);
@@ -187,12 +187,21 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
       hasErrorOccurredRef.current = false;
       setIsCache(false);
     
+      // Modified: Check if there's a question OR documents
       if (!question && input.length === 0 && (!documents || documents.length === 0)) return;
+      
+      // Modified: Set default message if only files are attached
+      let userQuestion = question || input;
+      const hasFiles = documents && documents.length > 0;
+      
+      if (!userQuestion && hasFiles) {
+        // Default message when only files are attached
+        userQuestion = "Explain the attached content"
+      }
       
       try {
         setIsLoading(true);
         let chatHistory;
-        let userQuestion = question || input;
         let userMessageId = null; // Track user message ID for public mode
     
         if (regenerating && messageIdToRegenerate) {
@@ -418,7 +427,7 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
               retrieve_data_points: true,
             },
             caching_enabled: regenerating ? false : true,
-            user_query: question || input,
+            user_query: userQuestion, // This now contains the default message if files are attached
             is_file_attached : true
           };
           
@@ -757,7 +766,7 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
           const requestBody: any = {
             chat_thread_id: chatThreadId,
             ...(chatHistory && chatHistory.length > 0 && { history: chatHistory }),
-            user_query: userQuestion,
+            user_query: userQuestion, // This now contains the default message if files are attached
             query_source: "app-ejento",
             is_file_attached: true,
             caching_enabled: regenerating ? false : true,

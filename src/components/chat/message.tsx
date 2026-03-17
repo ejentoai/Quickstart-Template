@@ -344,10 +344,6 @@ const PurePreviewMessage = ({
                 <DocumentBadge
                   key={doc.id || idx}
                   document={doc}
-                  onClick={() => {
-                    // Optional: Handle document click (e.g., open preview)
-                    console.log("Document clicked:", doc);
-                  }}
                 />
               ))}
             </div>
@@ -439,7 +435,7 @@ const PurePreviewMessage = ({
                     "bg-primary text-background px-3 py-2 rounded-xl":
                       message.role === "user",
                   })}
-                  style={{ maxWidth: message.role === "user" ? '100%' : '', textWrap: 'wrap', wordBreak: 'break-word', backgroundColor: message.role === 'user' ? '#FF6B35' : '' }}
+                  style={{ maxWidth: message.role === "user" ? '400px' : '', textWrap: 'wrap', wordBreak: 'break-word', backgroundColor: message.role === 'user' ? '#FF6B35' : '' }}
                 >
                   {
                     typeof message.content === 'string' && message.content.includes('error::') ?

@@ -413,7 +413,6 @@ export default function Chat({
           // For server threads, fetch chat history as usual
           const response = await apiService?.getChatlogs(parseInt(id));
           if (response && response?.data?.agent_responses?.length > 0) {
-            console.log(response.data.agent_responses);
             // Transform API response into message format
             const transformedMessages = response.data.agent_responses.flatMap((item: any) => [
               {
