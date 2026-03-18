@@ -572,8 +572,7 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                       const savedReflectionContents = [...reflectionContentsRef.current];
                       
                       // Create a temporary ID for the assistant message
-                      const tempAssistantMessageId = `temp-assistant-${Date.now()}`;
-                      
+                      const tempAssistantMessageId = `temp-assistant-${Date.now()}`;      
                       const assistantMessage = {
                         role: "assistant",
                         content: response?.answer,
@@ -591,7 +590,6 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                         blocked: response?.blocked || false,
                       };
                       setMessages((messages: any) => [...messages, assistantMessage]);
-                      
                       // Save assistant message to database in public mode
                       if (isPublicAgent && publicAgentSession) {
                         try {
@@ -727,7 +725,7 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
               signal
             },
           );
-        } else {
+        }else {
           // Non-streaming version
           let chatThreadId = null;
     
@@ -833,13 +831,14 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
             
             if (belongsToCurrentThread) {
               const tempAssistantMessageId = `temp-assistant-${Date.now()}`;
+
               
               const assistantMessage = {
                 role: "assistant",
                 content: responseData?.answer,
                 query: userQuestion,
                 id: tempAssistantMessageId,
-                agent_response_id: responseData?.chatlog_id,
+                agent_response_id: responseData?.agent_response_id,
                 is_upvote: false,
                 is_downvote: false,
                 followUpQuestions: responseData?.followup_questions,
@@ -848,7 +847,6 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
               };
               
               setMessages((messages: any) => [...messages, assistantMessage]);
-              
               // Save assistant message in public mode
               if (isPublicAgent && publicAgentSession) {
                 try {
@@ -858,7 +856,7 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                     responseData?.answer,
                     {
                       query: userQuestion,
-                      agent_response_id: responseData?.chatlog_id,
+                      agent_response_id: responseData?.agent_response_id,
                       followUpQuestions: responseData?.followup_questions,
                       references: responseData?.references,
                       is_upvote: false,

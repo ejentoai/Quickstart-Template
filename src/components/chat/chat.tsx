@@ -18,6 +18,7 @@ import { Item } from "@/model";
 import { useChat } from "./hooks/useChat";
 import { isPublicAgentMode } from '@/lib/utils';
 import { toast } from "sonner";
+
  
 /**
  * CHAT COMPONENT - Main chat interface
@@ -48,14 +49,17 @@ import { toast } from "sonner";
  * @param singleQAIndex - Optional index to extract only one Q&A pair
  * @returns Formatted array of {user: string, bot: string} objects
  */
+
+/**
+ * Formats chat data from API response into user/bot pairs
+ */
 export function formatChatData(chatArray: any[], singleQAIndex?: number) {
   const result: any = [];
   let currentPair: { user?: string; bot?: string } = {};
  
-  // If singleQAIndex is provided, only process that specific Q&A pair
   if (singleQAIndex !== undefined) {
-    const userMessage = chatArray[singleQAIndex - 1]; // Previous message should be user
-    const assistantMessage = chatArray[singleQAIndex]; // Current message should be assistant
+    const userMessage = chatArray[singleQAIndex - 1];
+    const assistantMessage = chatArray[singleQAIndex];
    
     if (userMessage?.role === "user" && assistantMessage?.role === "assistant") {
       return [{
@@ -63,17 +67,16 @@ export function formatChatData(chatArray: any[], singleQAIndex?: number) {
         bot: assistantMessage.content || 'No agent response found'
       }];
     }
-    return []; // Return empty if pair not found
+    return [];
   }
  
-  // Original logic for full conversation
   chatArray.forEach((item) => {
     if (item.role === "user") {
       currentPair.user = item.content;
     } else if (item.role === "assistant") {
       currentPair.bot = item.content;
       result.push(currentPair);
-      currentPair = {}; // Reset for the next pair
+      currentPair = {};
     }
   });
  
@@ -113,7 +116,7 @@ export default function Chat({
   const { isLoading: configLoading } = useConfig();
   const apiService = useApiService();
   const [corpus, setCorpus] = useState<any>([]);
-  const [corpusId, setCorpusId] = useState<number | null>(null);
+  const [documents, setDocuments] = useState<Array<any>>([]);
  
   // PUBLIC_AGENT mode: Get session context (must be defined before useChat)
   const isPublicAgent = isPublicAgentMode();
@@ -143,7 +146,6 @@ export default function Chat({
     isReflectingRef,
   } = useChat({ selectedCorpus });
  
- 
   /**
    * Processes raw corpus data from API into structured format with versions
    *
@@ -157,10 +159,10 @@ export default function Chat({
    * @param data - Raw corpus data from API
    * @returns Processed array of corpus items with versions and IDs
    */
+
   function extractCorpusDataWithVersions(data: any[]): Item[] {
     const corpusMap: { [key: string]: Item } = {};
     const excludedCorpus = ["feedback corpus"];
- 
     // Define the replacement mapping for product name standardization
     const replacements: { [key: string]: string } = {
       "Transparent Data Encryption": "Transparent Data Encryption (TDE)",
@@ -170,7 +172,6 @@ export default function Chat({
     data?.forEach((item) => {
       const { corpus } = item;
       let [baseName, version] = corpus?.name?.split("$$");
- 
       // Skip if the corpus name is in the excluded list
       if (excludedCorpus.includes(baseName?.trim()?.toLowerCase())) return;
  
@@ -183,7 +184,7 @@ export default function Chat({
       if (corpusMap[baseName]) {
         if (version && !corpusMap[baseName]?.versions?.includes(version?.trim())) {
           corpusMap[baseName]?.versions?.push(version?.trim());
-          corpusMap[baseName]?.corpusIds?.push(corpus?.id);  // Push the corresponding corpusId
+          corpusMap[baseName]?.corpusIds?.push(corpus?.id);
         }
       } else {
         // If no version exists, push an empty string to ensure the versions array is not empty
@@ -198,7 +199,6 @@ export default function Chat({
     // Return the array of unique items with versions and corresponding corpus IDs
     return Object.values(corpusMap);
   }
- 
  
   useEffect(() => {
     const fetchData = async () => {
@@ -246,7 +246,6 @@ export default function Chat({
   });
  
   const [attachments, setAttachments] = useState<Array<any>>([]);
-  const [documents, setDocuments] = useState<Array<any>>([]);
   const [isFinished, setIsFinished] = useState(false);
   const [isLoadingChat, setIsLoadingChat] = useState(true);
   const searchParams = useSearchParams();
@@ -262,7 +261,28 @@ export default function Chat({
   // Track if we're in a local-to-server transition to prevent unnecessary fetches
   const isTransitioningRef = useRef<boolean>(false);
 
- 
+  /**
+   * Fetches documents for a given thread from API
+   * Always uses API as source of truth
+   */
+  const fetchDocumentsForThread = async (threadId: number) => {
+    try {
+      setDocuments([]);
+      const data = await apiService?.getCorpusConnection(threadId);
+      if (data && data?.corpus?.id) {
+        const corpusId = data.corpus.id;
+        // Fetch documents directly from API
+        const fetchedDocuments = await apiService?.getCorpusDocuments(corpusId);
+        setDocuments(fetchedDocuments || []);
+        return fetchedDocuments || [];
+      }
+      return [];
+    } catch (error) {
+      console.error("Error fetching documents:", error);
+      return [];
+    }
+  };
+  
   useEffect(() => {
     // Only fetch if we have an id and it's different from the last fetched id
     // and we're not in the middle of a local-to-server transition
@@ -274,7 +294,6 @@ export default function Chat({
     }
   }, [id]);
  
-  // Expose function to mark transition state
   useEffect(() => {
     (window as any).setTransitioningState = (isTransitioning: boolean) => {
       isTransitioningRef.current = isTransitioning;
@@ -285,37 +304,6 @@ export default function Chat({
     };
   }, []);
 
-  /**
- * Fetches corpus and documents for a given thread
- * @param threadId - The thread ID to fetch corpus connection for
- * @returns Promise with the fetched documents array
- */
-  const fetchCorpusAndDocuments = async (threadId: number) => {
-    try {
-      setDocuments([]); // Clear documents immediately
-      const data = await apiService?.getCorpusConnection(threadId);
-      if (data && data?.corpus?.id) {
-        const corpusId = data.corpus.id;
-        const corpusConnection = data.id;
-        localStorage.setItem('corpus_id', corpusId);
-        localStorage.setItem('corpus_connection', corpusConnection);
-        setCorpusId(corpusId);
-        
-        // Fetch documents and return them for immediate use
-        const fetchedDocuments = await apiService?.getCorpusDocuments(corpusId);
-        setDocuments(fetchedDocuments || []); // Update state for other uses
-        return fetchedDocuments || []; // Return for immediate use
-      } else {
-        setCorpusId(null);
-        return []; // Return empty array if no documents
-      }
-    } catch (error) {
-      console.error("Error fetching corpus or documents:", error);
-      setCorpusId(null);
-      return []; // Return empty array on error
-    }
-  };
-  
   /**
    * Fetches chat history for the current thread
    *
@@ -355,18 +343,16 @@ export default function Chat({
                 ...metadata,
                 id: msg.id,
                 agent_response_id: msg.agent_response_id,
-                // Ensure vote fields are always boolean, never undefined
                 is_upvote: metadata.is_upvote === true,
                 is_downvote: metadata.is_downvote === true,
                 created_on: msg.createdAt
               };
             });
             
-            // const external_thread_id = localStorage.getItem("external_thread_id");
             let fetchedDocuments: any[] = [];
             
             if(data.externalApiId){
-              fetchedDocuments = await fetchCorpusAndDocuments(parseInt(data.externalApiId));
+              fetchedDocuments = await fetchDocumentsForThread(parseInt(data.externalApiId));
             }
             
             // Handle pending user query from localStorage
@@ -378,7 +364,6 @@ export default function Chat({
               }];
             }
             
-            // Use fetchedDocuments directly instead of documents state
             if (fetchedDocuments && fetchedDocuments.length > 0) {
               const pairedMessages = pairMessagesWithDocuments(transformedMessages, fetchedDocuments);
               setMessages([...pairedMessages, ...userQuery]);
@@ -401,8 +386,6 @@ export default function Chat({
         const isLocalThread = parseInt(id) < 0;
         
         if (isLocalThread) {
-          // For local threads, don't fetch from API, just start with empty messages
-          // Handle pending user query from localStorage if exists
           if (thread_id === id.toString()) {
             userQuery = [{ role: "user", content: query }];
             setMessages(userQuery);
@@ -418,7 +401,7 @@ export default function Chat({
               {
                 role: "user",
                 content: item.question,
-                created_on: item.created_on, // Add timestamp from the log
+                created_on: item.created_on,
                 id: `user-${item.id}`
               },
               {
@@ -428,7 +411,7 @@ export default function Chat({
                   : 'error::' + item?.response?.message,
                 query: item.question,
                 id: item.id,
-                created_on: item.modified_on, // Add timestamp
+                created_on: item.modified_on,
                 is_upvote: item.feedback[0]?.is_upvote,
                 is_downvote: item.feedback[0]?.is_downvote,
                 references: item.response.references,
@@ -437,15 +420,13 @@ export default function Chat({
               },
             ]);
   
-            // Fetch corpus and documents - get them directly
             let fetchedDocuments: any[] = [];
             try {
-              fetchedDocuments = await fetchCorpusAndDocuments(parseInt(id));
+              fetchedDocuments = await fetchDocumentsForThread(parseInt(id));
             } catch (error) {
-              console.error("Error fetching corpus documents:", error);
+              console.error("Error fetching documents:", error);
             }
             
-            // Handle pending user query from localStorage
             if (thread_id === id.toString()) {
               userQuery = [{
                 role: "user",
@@ -454,7 +435,6 @@ export default function Chat({
               }];
             }
             
-            // Use fetchedDocuments directly instead of documents state
             if (fetchedDocuments && fetchedDocuments.length > 0) {
               const pairedMessages = pairMessagesWithDocuments(transformedMessages, fetchedDocuments);
               setMessages([...pairedMessages, ...userQuery]);
@@ -462,7 +442,6 @@ export default function Chat({
               setMessages([...transformedMessages, ...userQuery]);
             }
           } else {
-            // Handle empty chat history
             if (thread_id === id.toString()) {
               userQuery = [{ role: "user", content: query }];
               setMessages(userQuery);
@@ -474,7 +453,6 @@ export default function Chat({
       }
     } catch (e) {
       console.error(e);
-      // For local threads or API errors, still allow user to start chatting
       if (thread_id === id?.toString()) {
         userQuery = [{ role: "user", content: query }];
         setMessages(userQuery);
@@ -486,8 +464,6 @@ export default function Chat({
     }
   };
 
-
-  // Show loading while config is loading
   if (configLoading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -498,7 +474,6 @@ export default function Chat({
     );
   }
  
-  // Show message if no config after loading
   if (!apiService) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -584,21 +559,18 @@ export default function Chat({
  
             <form className="flex mx-auto my-auto px-4 bg-background pb-4 md:pb-6 gap-2 w-full md:max-w-3xl">            
               {!isReadonly && messages.length > 0 && (
-                // <div className="relative">
-                  <MultimodalInput
-                    chatId={id}
-                    input={input}
-                    setInput={setInput}
-                    handleSubmit={handleSubmit}
-                    isLoading={isLoading || streaming}
-                    messages={messages}
-                    append={append}
-                    setIsTextFieldSelected={() => { }}
-                    setForceComplete={() => { }}
-                    isFinished={isFinished}
-                  />
- 
-                // </div>
+                <MultimodalInput
+                  chatId={id}
+                  input={input}
+                  setInput={setInput}
+                  handleSubmit={handleSubmit}
+                  isLoading={isLoading || streaming}
+                  messages={messages}
+                  append={append}
+                  setIsTextFieldSelected={() => {}}
+                  setForceComplete={() => {}}
+                  isFinished={isFinished}
+                />
               )}
             </form>
           </div>
@@ -620,7 +592,6 @@ export default function Chat({
                 setMessages={setMessages}
                 reload={reload}
                 votes={[]}
-                // isReadonly={isReadonly}
               />
             )}
           </AnimatePresence>
@@ -634,7 +605,3 @@ export default function Chat({
     </>
   );
 }
- 
- 
- 
- 
