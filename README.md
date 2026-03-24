@@ -257,7 +257,6 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 | `NEXT_PUBLIC_AGENT_HEADER_TEXT` | Custom header text for agent | Default header |
 | `NEXT_PUBLIC_STREAM_CHAT` | Enable streaming chat responses | `true` |
 | `NEXT_PUBLIC_SECRET_KEY` | Secret key for encryption | A JWT Secret Key of your choice|
-| `FAST_API_INDEXING_BASE_URL` | Base URL for the indexing service API | `https://your-indexing-service-url.com/indexing-service` |
 | `INDEXING_SERVICE_KEY` | Subscription key for the indexing service | `your-indexing-service-subscription-key` |
 | `INDEXING_SERVICE_HEADER` | Header name for the indexing service subscription key | `Ocp-Apim-Subscription-Key` |
 

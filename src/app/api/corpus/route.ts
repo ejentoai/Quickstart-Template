@@ -1,7 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
 import axios from 'axios'
  
-const INDEXING_SERVICE_URL = process.env.FAST_API_INDEXING_BASE_URL;
+const EJENTO_BASE_URL = process.env.EJENTO_BASE_URL;
 const INDEXING_SERVICE_HEADER = process.env.INDEXING_SERVICE_HEADER;
 const INDEXING_SERVICE_KEY = process.env.INDEXING_SERVICE_KEY;
 const envDriven = process.env.NEXT_PUBLIC_ENV_DRIVEN === 'true';
@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
       formData.append('source', source?.toString() || '');
     }
  
-    const url = `${INDEXING_SERVICE_URL}/api/v2/corpora/${id}/documents`;
+    const url = `${EJENTO_BASE_URL}/indexing-service/api/v2/corpora/${id}/documents`;
     const response = await axios.post(url, formData, { headers });
    
     return NextResponse.json(response.data);
@@ -153,7 +153,7 @@ export async function DELETE(req: NextRequest) {
  
     headers['Content-Type'] = 'application/json';
  
-    const url = `${INDEXING_SERVICE_URL}/api/v2/corpora/${corpusId}/documents`;
+    const url = `${EJENTO_BASE_URL}/indexing-service/api/v2/corpora/${corpusId}/documents`;
    
     const response = await axios.delete(url, {
       headers,
