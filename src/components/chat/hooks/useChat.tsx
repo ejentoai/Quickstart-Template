@@ -838,7 +838,7 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                 content: responseData?.answer,
                 query: userQuestion,
                 id: tempAssistantMessageId,
-                agent_response_id: responseData?.agent_response_id,
+                agent_response_id: responseData?.chatlog_id,
                 is_upvote: false,
                 is_downvote: false,
                 followUpQuestions: responseData?.followup_questions,
@@ -856,7 +856,7 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                     responseData?.answer,
                     {
                       query: userQuestion,
-                      agent_response_id: responseData?.agent_response_id,
+                      agent_response_id: responseData?.chatlog_id,
                       followUpQuestions: responseData?.followup_questions,
                       references: responseData?.references,
                       is_upvote: false,

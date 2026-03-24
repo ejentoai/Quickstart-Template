@@ -27,16 +27,9 @@ The [Quick-start Template for Building an App Guide](https://api.ejento.ai/guide
       - **Authenticated Users**: User account-based chat history stored in database when authentication is enabled
       
 - **Persistent Configuration**: API credentials stored securely in the database for manual configuration mode
-- **Public Agent Mode**: Support for public-facing AI agents 
-  - **Multi-Database Support**: Flexible database configuration in Public Agent Mode using Prisma ORM
-  - **Flexible user identification:**
-      - **Anonymous Users**: Browser session-based chat history stored in Prisma-managed Database when authentication is disabled
-      - **Authenticated Users**: User account-based chat history stored in database when authentication is enabled
-- **Persistent Configuration**: API credentials stored securely in the database for manual configuration mode
 
 ### Developer Experience
 - **TypeScript**: Fully typed codebase for better development experience
-- **Modern Stack**: Next.js 15, React 19, Tailwind CSS, Prisma ORM
 - **Modern Stack**: Next.js 15, React 19, Tailwind CSS, Prisma ORM
 - **Component Library**: Built with Radix UI and shadcn/ui components
 - **Flexible Configuration**: Environment-driven and manual configuration modes with database persistence
@@ -49,16 +42,12 @@ The [Quick-start Template for Building an App Guide](https://api.ejento.ai/guide
 - **Node.js**: Version 20 or higher
 - **npm**: Version 7 or higher (or yarn/pnpm/bun)
 - **Database**: Prisma supported databases such as PostgreSQL (local & Supabase), MySQL, etc
-- **Database**: Prisma supported databases such as PostgreSQL (local & Supabase), MySQL, etc
 - **Modern Browser**: Chrome, Firefox, Safari, or Edge (latest versions)
 
 ### API Requirements
 
 - Refer to the [documentation](https://docshub.ejento.ai/tutorials/apikeys) to retrieve your Base URL, API Key, Agent ID, and Access Token (only if authentication is disabled) from Ejento AI.
 - **Ejento API Access**: Valid Ejento API credentials are required. The credentials required depend on whether authentication is enabled or disabled:
-
-  **1. Authentication Enabled**
-
 
   **1. Authentication Enabled**
 
@@ -70,16 +59,12 @@ The [Quick-start Template for Building an App Guide](https://api.ejento.ai/guide
 
   **2. Authentication Disabled**
 
-
-  **2. Authentication Disabled**
-
   - The user must provide all credentials during configuration:
     - Base URL for your Ejento API instance
     - API Key (Ocp-Apim-Subscription-Key)
     - Ejento Access Token
     - Agent ID
 
-  - For retrieving Ejento Access Token before its expiration (7 days), refer the Guide [here](https://api.ejento.ai/getting-started-with-authentication).
   - For retrieving Ejento Access Token before its expiration (7 days), refer the Guide [here](https://api.ejento.ai/getting-started-with-authentication).
 
 ## 🛠️ Installation
@@ -100,7 +85,6 @@ npm install --legacy-peer-deps
 ### 3. Configure Environment Variables
 
 Create a `.env` file in the root directory:
-Create a `.env` file in the root directory:
 
 ```bash
 # Copy from example (if available) or create new
@@ -110,15 +94,8 @@ touch .env
 Add the following environment variables:
 
 ```env
+# NODE_ENV can be production or development
 NODE_ENV=production
-
-# Database Configuration (Required for all modes)
-# Supports any Prisma-compatible database
-# Examples:
-# PostgreSQL: "postgresql://username:password@localhost:5432/ejento_db"
-# MySQL: "mysql://username:password@localhost:3306/ejento_db"
-
-DATABASE_URL="provider://username:password@localhost:5432/db_name"
 
 # Database Configuration (Required for all modes)
 # Supports any Prisma-compatible database
@@ -272,7 +249,6 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 2. **Validation**: All configurations are automatically validated:
    - Credential validation (requires API key and access token if auth is disabled, otherwise only API key)
-   - Credential validation (requires API key and access token if auth is disabled, otherwise only API key)
    - Agent validation (confirms agent exists and is accessible)
    - User data fetching (automatically retrieves user information)
 
@@ -295,9 +271,6 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ### 1. Internal AI Assistant with User Tracking
 Deploy as an internal AI assistant for your organization:
-- Enable authentication to track usage by employee
-- Each user sees their own chat history stored in the central database
-- All chat history stored centrally for analytics and compliance
 - Enable authentication to track usage by employee
 - Each user sees their own chat history stored in the central database
 - All chat history stored centrally for analytics and compliance
