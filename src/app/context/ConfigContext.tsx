@@ -62,8 +62,8 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
   const [isValidating, setIsValidating] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const isAuthEnabled = process.env.NEXT_PUBLIC_AUTH_FLOW === 'true';
-  const [isConfigured, setIsConfigured] = useState<boolean>(false);
   const isEnvDriven = process.env.NEXT_PUBLIC_ENV_DRIVEN === 'true'
+  const [isConfigured, setIsConfigured] = useState<boolean>(false);
 
   const updateConfig = (newConfig: Partial<UserConfig>, source: ConfigSource) => {
     setConfig(prev => (prev ? { ...prev, ...newConfig } : (newConfig as UserConfig)));

@@ -1,6 +1,6 @@
 # Quick-start Ejento AI Template
 
-A flexible Next.js template for building AI-powered chat applications with the Ejento AI platform. This template provides a complete chat interface with streaming responses, message history, flexible configuration options and authentication flow. Users are encouraged to build upon this template to utilize Ejento AI's capabilities by taking advantage of [Ejento AI APIs](https://api.ejento.ai/).
+A flexible Next.js template for building AI-powered chat applications with the Ejento AI platform. This template provides a complete chat interface with streaming responses, message history, support for file uploads and attachments, flexible configuration options, and authentication flow. Users are encouraged to build upon this template to utilize Ejento AI's capabilities by taking advantage of [Ejento AI APIs](https://api.ejento.ai/).
 
 The [Quick-start Template for Building an App Guide](https://api.ejento.ai/guide/quick-start-template-for-building-an-app) will walk you through the steps required to get started.
 
@@ -8,13 +8,24 @@ The [Quick-start Template for Building an App Guide](https://api.ejento.ai/guide
 
 ### Core Functionality
 - **Message History**: Persistent chat threads organized by date (today, yesterday, last week, etc.) 
+- **Message History**: Persistent chat threads organized by date (today, yesterday, last week, etc.) 
 - **Streaming Responses**: Real-time streaming of AI responses with typewriter effect
 - **Thread Management**: Create, navigate, and organize multiple chat conversations
+- **File Upload & Attachments**: Support for uploading documents, images, and various file formats to enable content-based conversations
+
+  - **Multi-format Support**: PDF, Word, Excel, CSV, PPTX, RTF, Images, Text, JSON, XML, HTML, and more
+  - **Weblink Integration**: Direct URL upload for online documents and webpages
+  - **Plain Text Input**: Direct text paste support
+  - **Content-based Queries**: Upload content and ask questions based on the content
+
 - **Public Agent Mode**: Support for public-facing AI agents 
+
   - **Multi-Database Support**: Flexible database configuration in Public Agent Mode using Prisma ORM
   - **Flexible user identification:**
+
       - **Anonymous Users**: Browser session-based chat history stored in Prisma-managed Database when authentication is disabled
       - **Authenticated Users**: User account-based chat history stored in database when authentication is enabled
+      
 - **Persistent Configuration**: API credentials stored securely in the database for manual configuration mode
 
 ### Developer Experience
@@ -83,6 +94,7 @@ touch .env
 Add the following environment variables:
 
 ```env
+# NODE_ENV can be production or development
 NODE_ENV=production
 
 # Database Configuration (Required for all modes)
@@ -222,6 +234,9 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 | `NEXT_PUBLIC_AGENT_HEADER_TEXT` | Custom header text for agent | Default header |
 | `NEXT_PUBLIC_STREAM_CHAT` | Enable streaming chat responses | `true` |
 | `NEXT_PUBLIC_SECRET_KEY` | Secret key for encryption | A JWT Secret Key of your choice|
+| `INDEXING_SERVICE_KEY` | Subscription key for the indexing service | `your-indexing-service-subscription-key` |
+| `INDEXING_SERVICE_HEADER` | Header name for the indexing service subscription key | `Ocp-Apim-Subscription-Key` |
+
 
 ## 🎯 Application Behavior
 
@@ -245,7 +260,9 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ### Chat Features
 
-- **Streaming Responses**: Real-time streaming of AI responses
+- **Streaming Responses**: Real-time streaming of AI responses with typewriter effect
+- **File Attachments**: Upload and process multiple file types within conversations
+- **Content-based Q&A**: Ask questions about uploaded documents and images
 - **Message History**: Persistent chat threads with date-based organization stored in your database
 - **Message Actions**: Upvote, downvote, regenerate and provide feedback to responses
 - **Thread Management**: Create new chats, navigate between threads
@@ -260,33 +277,23 @@ Deploy as an internal AI assistant for your organization:
 - Use environment-driven configuration for security
 - Deploy with PostgreSQL for production reliability(in Public Agent Mode)
 
-### 2. Public AI Agent (Anonymous Access)
-Create a public-facing AI agent for anonymous users:
-- Enable `NEXT_PUBLIC_AGENT=true` and set `NEXT_PUBLIC_ENV_DRIVEN=true`
-- Disable authentication: `NEXT_PUBLIC_AUTH_FLOW=false`
-- Users access the agent without login
-- Chat history stored in database with session-based isolation
-- Perfect for demos, landing pages, or public tools
+### 2. Public AI Agent
+Create a public-facing AI agent:
+- Enable `NEXT_PUBLIC_AGENT=true` and set `NEXT_PUBLIC_ENV_DRIVEN=true` for public agent mode
+- Same Agent exposed to multiple users. Browser based session management for anonymous access. 
+- **Note**: The Author's credentials will be utilized for authentication and interaction with Ejento AI, however users will only be able to see the chats of their own browser session
 
-### 3. Public AI Agent (Registered Users)
-Create a public-facing AI agent for registered users:
-- Enable `NEXT_PUBLIC_AGENT=true` and set `NEXT_PUBLIC_ENV_DRIVEN=true`
-- Enable authentication: `NEXT_PUBLIC_AUTH_FLOW=true`
-- Users must register/login to access the agent
-- Chat history follows users across devices via database storage
-
-### 4. Development/Testing Environment
+### 3. Development/Testing Environment
 Use for local development and testing:
 - Manual configuration mode for flexibility
 - Easy switching between different Agents when `NEXT_PUBLIC_ENV_DRIVEN=false` and `NEXT_PUBLIC_AGENT=false`
 - Full access to settings page with database-stored configurations
 
-### 5. White-Label Solution
+### 4. White-Label Solution
 Customize for clients:
 - Environment-driven configuration per deployment
 - Custom branding and styling
-- Choose between anonymous or authenticated user models
-- Centralized chat history storage per client in their preferred database (Public Agent Mode).Otherwise, chat history is stored in the application's backend database.
+- Isolated credential management
 
 ### 6. Hybrid Deployment
 Support both anonymous and authenticated users:
@@ -303,14 +310,14 @@ ejento_template/
 │   └── seeds/           # Database seed data
 ├── src/
 │   ├── app/              # Next.js app router pages
-│   │   ├── api/          # API routes (config, ejento-config, message, thread, session, user, proxy, sso, etc.)
-│   │   ├── auth/         # Authentication-related pages (login, register)
+│   │   ├── api/          # API routes (proxy, config, sso)
+│   │   ├── auth/         # authentication-related pages
 │   │   ├── chat/         # Chat page
 │   │   ├── settings/     # Settings page
 │   │   └── context/      # React contexts (auth, config)
 │   ├── components/       # React components
-│   │   ├── authentication # Login/register components
-│   │   ├── chat/         # Chat-related components
+│   │   ├─ authentication # authentication-related components
+│   │   ├─ chat/         # Chat-related components
 │   │   └── ui/           # UI component library
 │   ├── generated/        #auto-generated code created by Prisma
 │   │   ├── prisma        #Prisma Client output directory
@@ -322,108 +329,19 @@ ejento_template/
 └── package.json         # Dependencies and scripts
 ```
 
-## 🗄️ Database Schema
+### Key Technologies
 
-The Prisma schema includes the following main models, all of which work with any supported database provider:
-
-- **User**: Stores authenticated user information for registered users
-- **Session**: Tracks anonymous browser sessions with unique session IDs
-- **EjentoConfig**: Stores API credentials and settings for manual configuration mode
-- **Thread**: Stores thread information for chat conversations, linked to either a User (authenticated) or an Session (anonymous users).
-- **Message**: Stores individual messages within chats with proper foreign key relationships
-
-## Key Relationships
-
-### Authenticated Users (`User`)
-- Each user can own multiple threads.  
-- Each user has a single configuration (`EjentoConfig`) storing API keys, tokens, and agent settings.
-
-### Anonymous Users (`Session`)
-- Threads created by anonymous users are linked to a session, providing session-based isolation.  
-- Each session can have multiple threads.
-
-### Threads (`Thread`)
-- Each thread belongs to either a **User** (authenticated) or a **Session** (anonymous).  
-- Each thread contains multiple messages (`Message`).  
-- Optionally linked to an external API ID (`externalApiId`) for integration with Ejento AI.
-
-### Messages (`Message`)
-- Each message belongs to exactly one thread.  
-- Deleting a thread automatically deletes all its messages (`onDelete: Cascade`).  
-- Each message has a role (**user** or **assistant**) and optional metadata.
-
-### Configuration (`EjentoConfig`)
-- Each user can have one configuration.  
-- Stores API keys, base URLs, agent IDs, and optional access tokens.
-
-## 🔐 Authentication Modes
-
-### Mode 1: Authentication Disabled (Anonymous Users)
-```env
-NEXT_PUBLIC_AUTH_FLOW=false
-NEXT_PUBLIC_AGENT=true  # or false
-```
-- Users access chat immediately
-- No login required
-
-### Mode 2: Authentication Enabled (Registered Users)
-```env
-NEXT_PUBLIC_AUTH_FLOW=true
-NEXT_PUBLIC_AGENT=true  # or false
-```
-- Users redirected to login page
-- Ideal for production applications
+- **Framework**: Next.js 15 (App Router)
+- **UI Library**: React 19
+- **Styling**: Tailwind CSS
+- **UI Components**: Radix UI, shadcn/ui
+- **State Management**: React Context API
+- **HTTP Client**: Axios
+- **Streaming**: @microsoft/fetch-event-source
+- **Editor**: ProseMirror
+- **Animations**: Framer Motion
 
 ## 🐛 Troubleshooting
-
-### Database Issues
-
-**Problem**: Can't reach database server
-- ✅ Verify your database is running: Check provider-specific commands
-- ✅ Check `DATABASE_URL` connection string format for your provider
-- ✅ Ensure database exists and is accessible
-- ✅ Check network/firewall settings
-
-**Problem**: Prisma migration failed
-- ✅ Run `npx prisma migrate reset` to reset (development only)
-- ✅ Check migration history: `npx prisma migrate status`
-- ✅ Ensure database user has sufficient privileges
-- ✅ Verify your database version is compatible with Prisma
-
-**Problem**: Configuration not persisting
-- ✅ Check database connection in Prisma Studio: `npx prisma studio`
-- ✅ Verify the Configuration model exists in the database
-- ✅ Check browser console for API errors when saving settings
-- ✅ For manual mode: Ensure `NEXT_PUBLIC_ENV_DRIVEN=false`
-
-**Problem**: Chat history not loading
-- ✅ For authenticated mode: Verify user is logged in and has user ID
-- ✅ For session mode: Check session cookies are being set properly
-- ✅ Verify database connection for Chat/Message models
-- ✅ Check API response for chat history endpoint
-- ✅ Confirm foreign key relationships in database
-
-**Problem**: Switching Database Providers
-
-- ✅ Update the `provider` in the `datasource` block of your `schema.prisma` file (e.g., `"mysql"` → `"postgresql"`)  
-- ✅ Update the `DATABASE_URL` in the `.env` file to match the new database  
-- ✅ Delete the existing `migrations` folder inside the `prisma` directory (required when switching database engines)  
-- ✅ Run `npx prisma generate` to regenerate the Prisma Client  
-- ✅ Run `npx prisma migrate dev --name init` to create fresh migrations for the new database  
-
-### Authentication Issues
-
-**Problem**: Cannot login
-- ✅ Verify `NEXT_PUBLIC_AUTH_FLOW=true` is set
-- ✅ Check email/OTP entry format
-- ✅ Ensure user exists in database
-- ✅ Check authentication API endpoints
-- ✅ Verify database connection for User model
-
-**Problem**: Session expired
-- ✅ Check session duration configuration in database
-- ✅ Clear browser cookies and retry
-- ✅ Check Session table for expired sessions
 
 ### Configuration Issues
 
@@ -461,14 +379,7 @@ NEXT_PUBLIC_AGENT=true  # or false
 **Problem**: Messages not persisting
 - ✅ Check database tables in Prisma Studio to verify messages are being saved(Public Agent Mode)
 - ✅ Verify API endpoints for chat history are accessible
-- ✅ Check for errors in browser console when saving messages
-- ✅ Check foreign key constraints in Message table
-
-**Problem**: Slow query performance
-- ✅ Add database indexes to frequently queried fields
-- ✅ Optimize Prisma queries with select/include
-- ✅ Consider database-specific optimizations
-- ✅ Monitor query performance with Prisma logging
+- ✅ Check for errors in browser console
 
 ## 📝 License
 
@@ -480,7 +391,6 @@ This is a template repository. Feel free to:
 - Fork and customize for your needs
 - Report issues or suggest improvements
 - Share your customizations with the community
-- Contribute database provider-specific optimizations
 
 ## 📚 Additional Resources
 
@@ -488,21 +398,18 @@ This is a template repository. Feel free to:
 - [Ejento AI API Documentation](https://api.ejento.ai/)
 - [Next.js Documentation](https://nextjs.org/docs)
 - [React Documentation](https://react.dev)
-- [Prisma Documentation](https://www.prisma.io/docs)
-- [Database Providers Guide](https://www.prisma.io/docs/concepts/database-connectors)
-- [PostgreSQL Documentation](https://www.postgresql.org/docs)
-- [MySQL Documentation](https://dev.mysql.com/doc)
-- [MongoDB Documentation](https://docs.mongodb.com)
-- [SQLite Documentation](https://www.sqlite.org/docs.html)
+- [Tailwind CSS Documentation](https://tailwindcss.com/docs)
+- [Radix UI Documentation](https://www.radix-ui.com)
 
 ## 🆘 Support
 
 For issues related to:
 - **Template/Code**: Open an issue in this repository
 - **Ejento AI APIs**: Contact your Ejento AI provider via `developer.support@ejento.ai`
+- **File Upload/Attachment Features**: Check browser and API compatibility
 - **Deployment**: Refer to your hosting platform's documentation
 - **Prisma ORM**: Check [Prisma's documentation](https://www.prisma.io/docs) 
 
 ---
 
-**Built with ❤️ using Next.js, React, and Prisma - Database agnostic and ready for any scale**
+**Built with ❤️ using Next.js and React**

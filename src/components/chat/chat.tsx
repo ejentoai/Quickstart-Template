@@ -4,7 +4,7 @@ import { AnimatePresence } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { useWindowSize } from "usehooks-ts";
 import { ChatHeader } from "@/components/chat/chat-header";
-import { decryptData } from "@/lib/utils";
+import { decryptData, pairMessagesWithDocuments } from "@/lib/utils";
 import { Block, type UIBlock } from "../block";
 import { BlockStreamHandler } from "../block-stream-handler";
 import { MultimodalInput } from "../multimodal-input";
@@ -17,6 +17,8 @@ import { Skeleton } from "../ui/skeleton";
 import { Item } from "@/model";
 import { useChat } from "./hooks/useChat";
 import { isPublicAgentMode } from '@/lib/utils';
+import { toast } from "sonner";
+
  
 /**
  * CHAT COMPONENT - Main chat interface
@@ -47,14 +49,17 @@ import { isPublicAgentMode } from '@/lib/utils';
  * @param singleQAIndex - Optional index to extract only one Q&A pair
  * @returns Formatted array of {user: string, bot: string} objects
  */
+
+/**
+ * Formats chat data from API response into user/bot pairs
+ */
 export function formatChatData(chatArray: any[], singleQAIndex?: number) {
   const result: any = [];
   let currentPair: { user?: string; bot?: string } = {};
  
-  // If singleQAIndex is provided, only process that specific Q&A pair
   if (singleQAIndex !== undefined) {
-    const userMessage = chatArray[singleQAIndex - 1]; // Previous message should be user
-    const assistantMessage = chatArray[singleQAIndex]; // Current message should be assistant
+    const userMessage = chatArray[singleQAIndex - 1];
+    const assistantMessage = chatArray[singleQAIndex];
    
     if (userMessage?.role === "user" && assistantMessage?.role === "assistant") {
       return [{
@@ -62,17 +67,16 @@ export function formatChatData(chatArray: any[], singleQAIndex?: number) {
         bot: assistantMessage.content || 'No agent response found'
       }];
     }
-    return []; // Return empty if pair not found
+    return [];
   }
  
-  // Original logic for full conversation
   chatArray.forEach((item) => {
     if (item.role === "user") {
       currentPair.user = item.content;
     } else if (item.role === "assistant") {
       currentPair.bot = item.content;
       result.push(currentPair);
-      currentPair = {}; // Reset for the next pair
+      currentPair = {};
     }
   });
  
@@ -112,6 +116,7 @@ export default function Chat({
   const { isLoading: configLoading } = useConfig();
   const apiService = useApiService();
   const [corpus, setCorpus] = useState<any>([]);
+  const [documents, setDocuments] = useState<Array<any>>([]);
  
   // PUBLIC_AGENT mode: Get session context (must be defined before useChat)
   const isPublicAgent = isPublicAgentMode();
@@ -141,7 +146,6 @@ export default function Chat({
     isReflectingRef,
   } = useChat({ selectedCorpus });
  
- 
   /**
    * Processes raw corpus data from API into structured format with versions
    *
@@ -155,10 +159,10 @@ export default function Chat({
    * @param data - Raw corpus data from API
    * @returns Processed array of corpus items with versions and IDs
    */
+
   function extractCorpusDataWithVersions(data: any[]): Item[] {
     const corpusMap: { [key: string]: Item } = {};
     const excludedCorpus = ["feedback corpus"];
- 
     // Define the replacement mapping for product name standardization
     const replacements: { [key: string]: string } = {
       "Transparent Data Encryption": "Transparent Data Encryption (TDE)",
@@ -168,7 +172,6 @@ export default function Chat({
     data?.forEach((item) => {
       const { corpus } = item;
       let [baseName, version] = corpus?.name?.split("$$");
- 
       // Skip if the corpus name is in the excluded list
       if (excludedCorpus.includes(baseName?.trim()?.toLowerCase())) return;
  
@@ -181,7 +184,7 @@ export default function Chat({
       if (corpusMap[baseName]) {
         if (version && !corpusMap[baseName]?.versions?.includes(version?.trim())) {
           corpusMap[baseName]?.versions?.push(version?.trim());
-          corpusMap[baseName]?.corpusIds?.push(corpus?.id);  // Push the corresponding corpusId
+          corpusMap[baseName]?.corpusIds?.push(corpus?.id);
         }
       } else {
         // If no version exists, push an empty string to ensure the versions array is not empty
@@ -196,7 +199,6 @@ export default function Chat({
     // Return the array of unique items with versions and corresponding corpus IDs
     return Object.values(corpusMap);
   }
- 
  
   useEffect(() => {
     const fetchData = async () => {
@@ -259,17 +261,39 @@ export default function Chat({
   // Track if we're in a local-to-server transition to prevent unnecessary fetches
   const isTransitioningRef = useRef<boolean>(false);
 
- 
+  /**
+   * Fetches documents for a given thread from API
+   * Always uses API as source of truth
+   */
+  const fetchDocumentsForThread = async (threadId: number) => {
+    try {
+      setDocuments([]);
+      const data = await apiService?.getCorpusConnection(threadId);
+      if (data && data?.corpus?.id) {
+        const corpusId = data.corpus.id;
+        // Fetch documents directly from API
+        const fetchedDocuments = await apiService?.getCorpusDocuments(corpusId);
+        setDocuments(fetchedDocuments || []);
+        return fetchedDocuments || [];
+      }
+      return [];
+    } catch (error) {
+      console.error("Error fetching documents:", error);
+      return [];
+    }
+  };
+  
   useEffect(() => {
     // Only fetch if we have an id and it's different from the last fetched id
     // and we're not in the middle of a local-to-server transition
     if (id && id !== lastFetchedIdRef.current && !isTransitioningRef.current) {
+      setMessages([]);
+      setDocuments([]);
       lastFetchedIdRef.current = id;
       fetchChat();
     }
   }, [id]);
  
-  // Expose function to mark transition state
   useEffect(() => {
     (window as any).setTransitioningState = (isTransitioning: boolean) => {
       isTransitioningRef.current = isTransitioning;
@@ -279,7 +303,7 @@ export default function Chat({
       delete (window as any).setTransitioningState;
     };
   }, []);
- 
+
   /**
    * Fetches chat history for the current thread
    *
@@ -289,22 +313,18 @@ export default function Chat({
    * - Handles error states and guardrail-triggered responses
    * - Manages pending user queries from localStorage
    * - Sets up message state for the chat interface
-   *
-   * Message transformation includes:
-   * - Converting Q&A pairs into separate user/assistant messages
-   * - Adding metadata (feedback, references, guardrails)
-   * - Handling error responses with retry functionality
    */
   const fetchChat = async () => {
-
     setIsLoadingChat(true);
-    let userQuery: { role: string; content: string | null; }[] = []
+    let userQuery: { role: string; content: string | null; created_on?: string | null }[] = [];
+    
     if (!id) {
       const userQuery = thread_id && query ? [{ role: "user", content: query }] : [];
-      setMessages(userQuery); // <-- initialize messages immediately
+      setMessages(userQuery);
       setIsLoadingChat(false);
       return;
     }
+    
     try {
       if (id) {
         if (isPublicAgent) {
@@ -312,7 +332,7 @@ export default function Chat({
           if (!res.ok) throw new Error("Failed to fetch public thread");
           const data = await res.json();
           const storedMessages = data?.messages || [];
-         
+          
           if (storedMessages.length > 0) {
             // Transform stored messages to chat format
             const transformedMessages = storedMessages.map((msg: any) => {
@@ -322,39 +342,53 @@ export default function Chat({
                 content: msg.content,
                 ...metadata,
                 id: msg.id,
-                agent_response_id : msg.agent_response_id,
-                // Ensure vote fields are always boolean, never undefined
+                agent_response_id: msg.agent_response_id,
                 is_upvote: metadata.is_upvote === true,
                 is_downvote: metadata.is_downvote === true,
+                created_on: msg.createdAt
               };
             });
-           
+            
+            let fetchedDocuments: any[] = [];
+            
+            if(data.externalApiId){
+              fetchedDocuments = await fetchDocumentsForThread(parseInt(data.externalApiId));
+            }
+            
             // Handle pending user query from localStorage
             if (thread_id === id.toString()) {
-              userQuery = [{ role: "user", content: query }]
+              userQuery = [{
+                role: "user",
+                content: query,
+                created_on: new Date().toISOString()
+              }];
             }
-            setMessages([...transformedMessages, ...userQuery]);
+            
+            if (fetchedDocuments && fetchedDocuments.length > 0) {
+              const pairedMessages = pairMessagesWithDocuments(transformedMessages, fetchedDocuments);
+              setMessages([...pairedMessages, ...userQuery]);
+            } else {
+              setMessages([...transformedMessages, ...userQuery]);
+            }
           } else {
             // No stored messages, start with empty or pending query
             if (thread_id === id.toString()) {
-              userQuery = [{ role: "user", content: query }]
-              setMessages(userQuery)
+              userQuery = [{ role: "user", content: query }];
+              setMessages(userQuery);
             } else {
               setMessages([]);
             }
           }
           return;
         }
-       
+        
         // Normal mode: Use existing server-based logic
         const isLocalThread = parseInt(id) < 0;
-       
+        
         if (isLocalThread) {
-          // For local threads, don't fetch from API, just start with empty messages
-          // Handle pending user query from localStorage if exists
           if (thread_id === id.toString()) {
-            userQuery = [{ role: "user", content: query }]
-            setMessages(userQuery)
+            userQuery = [{ role: "user", content: query }];
+            setMessages(userQuery);
           } else {
             setMessages([]);
           }
@@ -364,30 +398,53 @@ export default function Chat({
           if (response && response?.data?.agent_responses?.length > 0) {
             // Transform API response into message format
             const transformedMessages = response.data.agent_responses.flatMap((item: any) => [
-              { role: "user", content: item.question },
+              {
+                role: "user",
+                content: item.question,
+                created_on: item.created_on,
+                id: `user-${item.id}`
+              },
               {
                 role: "assistant",
-                content: (item?.response?.success || item?.response?.guardrail_triggered) ? item?.response?.answer : 'error::' + item?.response?.message,
+                content: (item?.response?.success || item?.response?.guardrail_triggered)
+                  ? item?.response?.answer
+                  : 'error::' + item?.response?.message,
                 query: item.question,
                 id: item.id,
+                created_on: item.modified_on,
                 is_upvote: item.feedback[0]?.is_upvote,
                 is_downvote: item.feedback[0]?.is_downvote,
                 references: item.response.references,
                 guardrail_triggered: item?.response?.guardrail_triggered || false,
                 blocked: item?.response?.blocked || false,
-                // reflectionEvents: item?.response_steps?.map((step: any) => step?.friendly_message) || [],
               },
             ]);
-            // Handle pending user query from localStorage
-            if (thread_id === id.toString()) {
-              userQuery = [{ role: "user", content: query }]
+  
+            let fetchedDocuments: any[] = [];
+            try {
+              fetchedDocuments = await fetchDocumentsForThread(parseInt(id));
+            } catch (error) {
+              console.error("Error fetching documents:", error);
             }
-            setMessages([...transformedMessages, ...userQuery]);
-          } else {
-            // Handle empty chat history
+            
             if (thread_id === id.toString()) {
-              userQuery = [{ role: "user", content: query }]
-              setMessages(userQuery)
+              userQuery = [{
+                role: "user",
+                content: query,
+                created_on: new Date().toISOString()
+              }];
+            }
+            
+            if (fetchedDocuments && fetchedDocuments.length > 0) {
+              const pairedMessages = pairMessagesWithDocuments(transformedMessages, fetchedDocuments);
+              setMessages([...pairedMessages, ...userQuery]);
+            } else {
+              setMessages([...transformedMessages, ...userQuery]);
+            }
+          } else {
+            if (thread_id === id.toString()) {
+              userQuery = [{ role: "user", content: query }];
+              setMessages(userQuery);
             } else {
               setMessages([]);
             }
@@ -396,10 +453,9 @@ export default function Chat({
       }
     } catch (e) {
       console.error(e);
-      // For local threads or API errors, still allow user to start chatting
       if (thread_id === id?.toString()) {
-        userQuery = [{ role: "user", content: query }]
-        setMessages(userQuery)
+        userQuery = [{ role: "user", content: query }];
+        setMessages(userQuery);
       } else {
         setMessages([]);
       }
@@ -408,7 +464,6 @@ export default function Chat({
     }
   };
 
-  // Show loading while config is loading
   if (configLoading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -419,7 +474,6 @@ export default function Chat({
     );
   }
  
-  // Show message if no config after loading
   if (!apiService) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -499,25 +553,24 @@ export default function Chat({
               reflectionContentsRef={reflectionContentsRef}
               thoughtProcessRef={thoughtProcessRef}
               isReflectingRef={isReflectingRef}
+              documents={documents}
+              handleSubmit={handleSubmit}
             />
  
             <form className="flex mx-auto my-auto px-4 bg-background pb-4 md:pb-6 gap-2 w-full md:max-w-3xl">            
               {!isReadonly && messages.length > 0 && (
-                // <div className="relative">
-                  <MultimodalInput
-                    chatId={id}
-                    input={input}
-                    setInput={setInput}
-                    handleSubmit={handleSubmit}
-                    isLoading={isLoading || streaming}
-                    messages={messages}
-                    append={append}
-                    setIsTextFieldSelected={() => { }}
-                    setForceComplete={() => { }}
-                    isFinished={isFinished}
-                  />
- 
-                // </div>
+                <MultimodalInput
+                  chatId={id}
+                  input={input}
+                  setInput={setInput}
+                  handleSubmit={handleSubmit}
+                  isLoading={isLoading || streaming}
+                  messages={messages}
+                  append={append}
+                  setIsTextFieldSelected={() => {}}
+                  setForceComplete={() => {}}
+                  isFinished={isFinished}
+                />
               )}
             </form>
           </div>
@@ -539,7 +592,6 @@ export default function Chat({
                 setMessages={setMessages}
                 reload={reload}
                 votes={[]}
-                // isReadonly={isReadonly}
               />
             )}
           </AnimatePresence>
@@ -553,7 +605,3 @@ export default function Chat({
     </>
   );
 }
- 
- 
- 
- 

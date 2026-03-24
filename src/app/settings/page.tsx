@@ -189,7 +189,6 @@ export default function SettingsPage() {
             </CardTitle>
             <CardDescription>
               {isPublicAgent
-              {isPublicAgent
                 ? 'PUBLIC_AGENT mode is enabled. Configuration is managed via environment variables. You will be redirected to chat once validation completes.'
                 : 'This application is using environment‑driven configuration. The settings below are managed server‑side and cannot be modified here.'}
             </CardDescription>
@@ -405,8 +404,6 @@ export default function SettingsPage() {
               </div>
  
               <div className="pt-4">
-                <Button
-                  onClick={handleSaveAndProceed}
                 <Button
                   onClick={handleSaveAndProceed}
                   className="w-full"

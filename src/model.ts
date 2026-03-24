@@ -17,6 +17,13 @@ export interface ChatThreadResponse {
   title: string;
   is_deleted: boolean;
   chat_id: null | number;
+  externalApiId : null | number;
+}
+
+export interface createChatThreadResponse {
+  success: boolean;
+  message: string;
+  data: ChatThreadResponse;
 }
 
 export interface AllChatsResponseV2 {
