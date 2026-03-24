@@ -47,6 +47,8 @@ type ToolProps = {
   append: (
     message: Message | CreateMessage,
     chatRequestOptions?: ChatRequestOptions,
+    regenerating?: boolean,
+    Attachment?: boolean,
   ) => Promise<string | null | undefined>;
 };
 
@@ -161,6 +163,8 @@ const ReadingLevelSelector = ({
   append: (
     message: Message | CreateMessage,
     chatRequestOptions?: ChatRequestOptions,
+    regenerating?: boolean,
+    Attachment?: boolean,
   ) => Promise<string | null | undefined>;
 }) => {
   const LEVELS = [
@@ -274,6 +278,8 @@ export const Tools = ({
   append: (
     message: Message | CreateMessage,
     chatRequestOptions?: ChatRequestOptions,
+    regenerating?: boolean,
+    Attachment?: boolean,
   ) => Promise<string | null | undefined>;
   isAnimating: boolean;
   setIsToolbarVisible: Dispatch<SetStateAction<boolean>>;
@@ -340,6 +346,8 @@ const PureToolbar = ({
   append: (
     message: Message | CreateMessage,
     chatRequestOptions?: ChatRequestOptions,
+    regenerating?: boolean,
+    Attachment?: boolean,
   ) => Promise<string | null | undefined>;
   stop: () => void;
   setMessages: Dispatch<SetStateAction<Message[]>>;

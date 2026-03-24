@@ -231,7 +231,12 @@ export function SidebarUserNav() {
         // If critical config changed, reload the page to refresh all components
         if (configChanged) {
 
-          
+          localStorage.removeItem('active_thread_id');
+          localStorage.removeItem('thread_id');
+          localStorage.removeItem('query');
+
+        // Redirect to fresh chat
+        router.push('/');
           setTimeout(() => {
             window.location.reload();
           }, 500); // Small delay to allow toast to show
@@ -246,20 +251,6 @@ export function SidebarUserNav() {
       // localStorage.setItem('configSaved','true')
       toast.success('Configuration updated successfully!');
       
-      // If critical config changed, reload the page to refresh all components
-      if (configChanged) {
-
-        localStorage.removeItem('active_thread_id');
-        localStorage.removeItem('thread_id');
-        localStorage.removeItem('query');
-
-        // Redirect to fresh chat
-        router.push('/');
-
-        setTimeout(() => {
-          window.location.reload();
-        }, 500); // Small delay to allow toast to show
-      }
     } catch (error) {
       console.error('Error saving configuration:', error);
       toast.error('Failed to save configuration. Please verify your credentials and try again.');

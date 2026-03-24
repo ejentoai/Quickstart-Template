@@ -186,6 +186,10 @@ export function AppSidebar() {
 
         const threadId = String(newThread.id);
 
+        localStorage.removeItem('corpus_id');
+        localStorage.removeItem('corpus_connection');
+        localStorage.removeItem('external_thread_id');
+
         handleSetQueryParams(
           threadId,
           newThread.title || 'New Chat'
@@ -195,7 +199,7 @@ export function AppSidebar() {
           'active_thread_id',
           threadId
         );
-
+        
         toast.success('New chat created');
 
       } catch (error) {
@@ -240,9 +244,13 @@ export function AppSidebar() {
         modified_on: new Date().toISOString(),
         is_deleted: false,
         chat_id: null,
+        externalApiId : null
       };
 
       const updatedThreads = [newThread, ...threads];
+      localStorage.removeItem('corpus_id');
+      localStorage.removeItem('corpus_connection');
+      localStorage.removeItem('external_thread_id')
       setThreads(updatedThreads);
       groupChatsByDate(updatedThreads);
 

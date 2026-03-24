@@ -10,12 +10,11 @@ export async function GET(req: Request) {
     if (AUTH_ENABLED && !userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    if (!userId) {
-      return NextResponse.json(null);
-    }
-    const finalUserId = userId;
+
+    const numericUserId = Number(userId)
+
     const config = await prisma.ejentoConfig.findUnique({
-      where: { userId: finalUserId },
+      where: { userId: numericUserId },
     });
     return NextResponse.json(config || null);
 
@@ -34,9 +33,7 @@ export async function POST(req: Request) {
     if (AUTH_ENABLED && !userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    if (!userId) {
-      return NextResponse.json(null);
-    }
+    const numericUserId = Number(userId)
 
     const body = await req.json();
     const { baseUrl, apiKey, ejentoAccessToken, agentId } = body;
@@ -48,9 +45,8 @@ export async function POST(req: Request) {
       );
     }
 
-    const finalUserId = userId;
     const config = await prisma.ejentoConfig.upsert({
-      where: { userId: finalUserId },
+      where: { userId: numericUserId },
       update: {
         baseUrl,
         apiKey,
@@ -58,7 +54,7 @@ export async function POST(req: Request) {
         agentId: Number(agentId),
       },
       create: {
-        userId: finalUserId,
+        userId: numericUserId,
         baseUrl,
         apiKey,
         ejentoAccessToken : ejentoAccessToken || null,
@@ -85,14 +81,10 @@ export async function DELETE(req: Request) {
     if (AUTH_ENABLED && !userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    if (!userId) {
-      return NextResponse.json(null);
-    }
-
-    const finalUserId = userId;
+    const numericUserId = Number(userId)
 
     await prisma.ejentoConfig.delete({
-      where: { userId: finalUserId },
+      where: { userId: numericUserId },
     });
 
     return NextResponse.json({ message: "Config deleted successfully" });

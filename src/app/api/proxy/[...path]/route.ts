@@ -122,9 +122,49 @@ async function proxyRequest(request: NextRequest, pathArray: string[], method: s
     // Prepare fetch options
     const fetchOptions: RequestInit = { method, headers };
 
+    // EXACT CODE FROM YOUR EXAMPLE - copied directly
     if (method !== 'GET' && method !== 'HEAD') {
-      const body = await request.text();
-      if (body) fetchOptions.body = body;
+      // Check if it's FormData
+      if (contentType.includes('multipart/form-data')) {
+        // Get the form data from the request
+        const formData = await request.formData()
+        
+        // Create a new FormData for axios
+        const axiosFormData = new FormData()
+        
+        // Extract the file from formData
+        const userId = formData.get('user_id')
+        const contentType = formData.get('content_type')
+        const source = formData.get('source')
+        const uploadFrom = formData.get('upload_from')
+        const attachment = formData.get('attachment')
+        
+        if (!userId || !contentType || !source || !uploadFrom) {
+          return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+        }
+        
+        // Append form data fields
+        axiosFormData.append('user_id', userId.toString())
+        axiosFormData.append('content_type', contentType.toString())
+        axiosFormData.append('upload_from', uploadFrom.toString())
+        axiosFormData.append('attachment', attachment?.toString() ?? '')
+        
+        // Handle file correctly - this is the tricky part
+        if (source instanceof Blob) {
+          // If it's a blob/file, append it with its name
+          const filename = (source as any).name || 'file'
+          axiosFormData.append('source', source, filename)
+        } else {
+          axiosFormData.append('source', source.toString())
+        }
+        
+        fetchOptions.body = axiosFormData;
+        // Remove Content-Type header so browser sets it with boundary
+        delete headers['Content-Type'];
+      } else {
+        const body = await request.text();
+        if (body) fetchOptions.body = body;
+      }
     }
 
     const response = await fetch(fullUrl, fetchOptions);

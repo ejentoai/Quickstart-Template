@@ -49,7 +49,7 @@ export function MessageActions({
   vote: any | undefined;
   isLoading: boolean;
   setMessages: any;
-  append: (message: any, chatRequestOptions?: any) => Promise<string | null | undefined>
+  append: (message: any, chatRequestOptions?: any, Attachment?:any) => Promise<string | null | undefined>
   showRetry: boolean;
   messages: any[],
   index: number

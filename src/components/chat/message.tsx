@@ -37,6 +37,7 @@ import Image from "next/image";
 import DOMPurify from 'dompurify';
 import { ChevronUp, ChevronDown, ChevronRight } from "lucide-react";
 import { getEjentoAccessToken } from "@/cookie";
+import { DocumentBadge } from "../document-badge";
  
 /**
  * Message Interface - Structure for chat messages
@@ -117,13 +118,14 @@ interface PreviewMessageProps {
   messages: Array<any>;
   selectedCorpus?: any;
   showRetry: boolean;
-  append: (message: any, chatRequestOptions?: any) => Promise<string | null | undefined>;
+  append: (message: any, chatRequestOptions?: any, Attachment?:any) => Promise<string | null | undefined>;
   setIsFinished: Dispatch<SetStateAction<boolean>>;
   streaming: boolean;
   streamContentRef: any;
   isCache: boolean;
   setIsCache: Dispatch<SetStateAction<boolean>>;
   showThoughtProcessTemp: boolean;
+  showPairedDocuments : boolean
 }
  
 /**
@@ -162,6 +164,7 @@ const PurePreviewMessage = ({
   isCache,
   setIsCache,
   showThoughtProcessTemp,
+  showPairedDocuments = true,
 }: PreviewMessageProps) => {
   // Component state management
   const [mode, setMode] = useState<"view" | "edit">("view"); // Toggle between view and edit modes
@@ -335,6 +338,16 @@ const PurePreviewMessage = ({
         )}
  
         <div className="flex flex-col gap-2 w-full mt-1">
+        {message.role === "user" && message.paired_documents && message.paired_documents.length > 0 && showPairedDocuments && (
+            <div className="flex flex-wrap gap-2 mb-1 justify-end">
+              {message.paired_documents.map((doc : any, idx : any) => (
+                <DocumentBadge
+                  key={doc.id || idx}
+                  document={doc}
+                />
+              ))}
+            </div>
+          )}
           {message.role === "assistant" && message.reflectionEvents?.length > 1 && (
             <div className="w-full max-w-xl">
               <div className="flex">
@@ -414,17 +427,18 @@ const PurePreviewMessage = ({
           )}
  
           {message.content && mode === "view" && (
-            <div className="flex flex-row gap-2 items-start">
+            
+            <div className="flex flex-row gap-2 items-start justify-end">
               {
                 <div
                   className={cn("flex flex-col gap-4", {
                     "bg-primary text-background px-3 py-2 rounded-xl":
                       message.role === "user",
                   })}
-                  style={{ maxWidth: message.role === "user" ? '100%' : '', textWrap: 'wrap', wordBreak: 'break-word', backgroundColor: message.role === 'user' ? '#FF6B35' : '' }}
+                  style={{ maxWidth: message.role === "user" ? '400px' : '', textWrap: 'wrap', wordBreak: 'break-word', backgroundColor: message.role === 'user' ? '#FF6B35' : '' }}
                 >
                   {
-                    message.content.includes('error::') ?
+                    typeof message.content === 'string' && message.content.includes('error::') ?
                       <div style={{ backgroundColor: '#fadede' }} className="px-3 py-2 rounded-xl">
                         <p style={{ color: 'red' }} className="pe-1">{!message.content.includes('undefined') ? message.content.split('::')[1] : `An unexpected error occurred. Please try again. `}</p>
                         <button
