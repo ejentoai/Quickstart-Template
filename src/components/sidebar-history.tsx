@@ -2,7 +2,7 @@
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
 import { toast } from 'sonner';
-
+ 
 import {
   MoreHorizontalIcon,
   TrashIcon,
@@ -39,7 +39,7 @@ import { decryptData, handleSetQueryParams } from '@/lib/utils';
 import { getAccessToken, getUserFromCookie } from '@/cookie';
 import { isPublicAgentMode } from '@/lib/utils';
 import { usePublicAgentSession } from '@/hooks/usePublicAgentSession';
-
+ 
 interface props {
   fetchThreads: () => void;
   threads: ChatThreadResponse[];
@@ -47,7 +47,7 @@ interface props {
   setThreads: any;
   groupChatsByDate: (chats: ChatThreadResponse[]) => void;
   isLoading: boolean;
-  updateChatTitle?: (id: number, title: string) => Promise<void>;
+  updateChatTitle?: (id: number, title: string, externalChatId?: number) => Promise<void>;
 }
 interface GroupedChats {
   today: ChatThreadResponse[];
@@ -56,7 +56,7 @@ interface GroupedChats {
   lastMonth: ChatThreadResponse[];
   older: ChatThreadResponse[];
 }
-
+ 
 const ChatItem = ({
   chat,
   isActive,
@@ -67,16 +67,16 @@ const ChatItem = ({
 }: {
   chat: ChatThreadResponse;
   isActive: boolean;
-  onDelete: (id: number) => void;
+  onDelete: (id: any) => void;
   setOpenMobile: (open: boolean) => void;
   threads: ChatThreadResponse[];
-  onEditTitle: (id: number, title: string) => Promise<void>;
+  onEditTitle: (id: number, title: string, externalChatId?:number) => Promise<void>;
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState(chat.title);
   const inputRef = useRef<HTMLInputElement>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-
+ 
   const handleEditClick = () => {
     setDropdownOpen(false); // Explicitly close the dropdown
     // Wait for the dropdown to close before enabling edit mode
@@ -88,15 +88,15 @@ const ChatItem = ({
       }, 150);
     }, 100);
   };
-
+ 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setEditedTitle(e.target.value);
   };
-
+ 
   const handleTitleSave = async () => {
     if (editedTitle.trim() !== '' && editedTitle !== chat.title) {
       try {
-        await onEditTitle(chat.id, editedTitle);
+        await onEditTitle(chat.id,editedTitle,chat.externalApiId ?? undefined);
         // Title update is handled optimistically by the parent component
       } catch (error) {
         toast.error('Failed to update chat title');
@@ -107,7 +107,7 @@ const ChatItem = ({
     }
     setIsEditing(false);
   };
-
+ 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       handleTitleSave();
@@ -116,31 +116,31 @@ const ChatItem = ({
       setIsEditing(false);
     }
   };
-
+ 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (isEditing && inputRef.current && !inputRef.current.contains(e.target as Node)) {
         handleTitleSave();
       }
     };
-
+ 
     if (isEditing) {
       // Add a small delay before adding the click listener to prevent immediate triggering
       const timer = setTimeout(() => {
         document.addEventListener('mousedown', handleClickOutside);
       }, 100);
-      
+     
       return () => {
         clearTimeout(timer);
         document.removeEventListener('mousedown', handleClickOutside);
       };
     }
-    
+   
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [isEditing, editedTitle]);
-
+ 
   return (
     <SidebarMenuItem>
       <SidebarMenuButton asChild isActive={isActive} style={{ cursor: 'pointer' }}>
@@ -180,10 +180,10 @@ const ChatItem = ({
           </span>
         )}
       </SidebarMenuButton>
-
-      <DropdownMenu 
-        modal={true} 
-        open={dropdownOpen} 
+ 
+      <DropdownMenu
+        modal={true}
+        open={dropdownOpen}
         onOpenChange={setDropdownOpen}
       >
         <DropdownMenuTrigger asChild>
@@ -195,7 +195,7 @@ const ChatItem = ({
             <span className="sr-only">More</span>
           </SidebarMenuAction>
         </DropdownMenuTrigger>
-
+ 
         <DropdownMenuContent side="bottom" align="end">
           <DropdownMenuItem
             className="cursor-pointer focus:bg-accent/50"
@@ -209,9 +209,10 @@ const ChatItem = ({
           </DropdownMenuItem>
           <DropdownMenuItem
             className="cursor-pointer text-destructive focus:bg-destructive/15 focus:text-destructive dark:text-red-500"
-            onSelect={() => onDelete(chat.id)}
+            onSelect={() => onDelete(chat)}
             disabled={threads.length === 1}
           >
+           
             <TrashIcon />
             <span>Delete</span>
           </DropdownMenuItem>
@@ -220,12 +221,12 @@ const ChatItem = ({
     </SidebarMenuItem>
   );
 };
-
+ 
 ChatItem.displayName = "PureChatItem";
-
-
+ 
+ 
 export function SidebarHistory({ fetchThreads, threads, groupedChats, setThreads, groupChatsByDate, isLoading, updateChatTitle }: props) {
-
+ 
   const apiService = useApiService();
   const { setOpenMobile } = useSidebar();
   const searchParams = useSearchParams()
@@ -235,19 +236,20 @@ export function SidebarHistory({ fetchThreads, threads, groupedChats, setThreads
   const title= decryptData(title_encrypted)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
-  
+  const [externalChatId, setExternalChatId] = useState<number | null>(null);
+ 
   // PUBLIC_AGENT mode: Get session context
   const publicAgentSession = usePublicAgentSession();
   const isPublicAgent = isPublicAgentMode();
-
-
+ 
+ 
   useEffect(() => {
       const user_info = getUserFromCookie()
       if (user_info) {
         fetchThreads();
       }
   }, []);
-
+ 
   useEffect(() => {
     if (title && id) {
       const updatedThreads = threads.map(thread => {
@@ -260,13 +262,13 @@ export function SidebarHistory({ fetchThreads, threads, groupedChats, setThreads
         }
         return thread;
       });
-
+ 
       setThreads(updatedThreads)
       groupChatsByDate(updatedThreads)
-
+ 
     }
   }, [title])
-
+ 
   useEffect(() => {
     if (title && id) {
       const oldThread = threads.filter((thread) => thread.id == id)
@@ -275,159 +277,142 @@ export function SidebarHistory({ fetchThreads, threads, groupedChats, setThreads
       }
     }
   }, [id])
-
+ 
   const handleDelete = async () => {
     if (!deleteId) return;
-    
-    // PUBLIC_AGENT mode: Delete from DB
+ 
+    // PUBLIC_AGENT mode: delete sequentially via Next.js API and backend API
     if (isPublicAgent && publicAgentSession) {
       try {
-        const threadIdString = deleteId.toString();
-        const deletePromise = publicAgentSession.deleteThreadById(threadIdString);
-        
-        toast.promise(deletePromise, {
-          loading: 'Deleting chat...',
-          success: 'Chat deleted successfully',
-          error: 'Failed to delete chat',
-        });
-  
-        await deletePromise;
-        
-        // Remove the deleted thread from local state
+        if (!apiService) throw new Error("API service unavailable");
+        if (!externalChatId) throw new Error("Missing external chat ID for backend deletion");
+ 
+        const nextApiResponse = await apiService.deleteChatThread(externalChatId);
+ 
+        if (!nextApiResponse) throw new Error("Next.js API deletion failed");
+ 
+        await publicAgentSession.deleteThreadById(deleteId.toString());
+ 
+        toast.success('Chat deleted successfully');
+ 
         const updatedThreads = threads.filter(thread => thread.id !== deleteId);
         setThreads(updatedThreads);
         groupChatsByDate(updatedThreads);
-        
-        // If the deleted thread was the active one, handle navigation
+ 
         if (id && deleteId === parseInt(id)) {
           if (updatedThreads.length > 0) {
-            // Navigate to the first remaining thread
             localStorage.setItem('active_thread_id', updatedThreads[0].id.toString());
-            updatedThreads[0].externalApiId?.toString() && localStorage.setItem('external_thread_id', updatedThreads[0].externalApiId?.toString());
-            localStorage.removeItem('corpus_connection')
-            localStorage.removeItem('corpus_id')
+            updatedThreads[0].externalApiId?.toString() &&
+              localStorage.setItem('external_thread_id', updatedThreads[0].externalApiId?.toString());
+            localStorage.removeItem('corpus_connection');
+            localStorage.removeItem('corpus_id');
             handleSetQueryParams(updatedThreads[0].id.toString(), updatedThreads[0].title);
           } else {
-            // No threads remain after deletion; clear active thread context
             localStorage.removeItem('active_thread_id');
+            localStorage.removeItem('corpus_connection');
             handleSetQueryParams('', '');
           }
         }
+ 
       } catch (error) {
-        // Error toast is already handled by toast.promise
-        console.error('Failed to delete chat from IndexedDB:', error);
+        toast.error('Failed to delete chat. Try again.');
+        console.error('Deletion error:', error);
       } finally {
         setShowDeleteDialog(false);
       }
+ 
       return;
     }
-    
-    // Normal mode: Delete via API
+ 
+    // Normal mode: delete via Next.js API only
     if (!apiService) return;
-    
+ 
     try {
-      // For negative IDs (local threads not on backend)
       if (deleteId < 0) {
-        // Just remove from local state - no API call needed
         const updatedThreads = threads.filter(thread => thread.id !== deleteId);
         setThreads(updatedThreads);
         groupChatsByDate(updatedThreads);
-        
-        // If the deleted thread was the active one, handle navigation
+ 
         if (id && deleteId === parseInt(id)) {
           if (updatedThreads.length > 0) {
-            // Navigate to the first remaining thread
             localStorage.setItem('active_thread_id', updatedThreads[0].id.toString());
             handleSetQueryParams(updatedThreads[0].id.toString(), updatedThreads[0].title);
           } else {
-            // No threads remain after deletion; clear active thread context
             localStorage.removeItem('active_thread_id');
             handleSetQueryParams('', '');
           }
         }
-        
         toast.success('Chat deleted successfully');
         setShowDeleteDialog(false);
         return;
       }
-      
+ 
       const responsePromise = apiService.deleteChatThread(deleteId);
       toast.promise(responsePromise, {
         loading: 'Deleting chat...',
         success: 'Chat deleted successfully',
         error: 'Failed to delete chat',
       });
-  
-      const response = await responsePromise;
-      
-      // Remove the deleted thread from local state
+      await responsePromise;
+ 
       const updatedThreads = threads.filter(thread => thread.id !== deleteId);
       setThreads(updatedThreads);
       groupChatsByDate(updatedThreads);
-      
-      // If the deleted thread was the active one, handle navigation
+ 
       if (id && deleteId === parseInt(id)) {
         if (updatedThreads.length > 0) {
-          // Navigate to the first remaining thread
           localStorage.setItem('active_thread_id', updatedThreads[0].id.toString());
-          localStorage.removeItem('corpus_connection')
+          localStorage.removeItem('corpus_connection');
           handleSetQueryParams(updatedThreads[0].id.toString(), updatedThreads[0].title);
         } else {
-          // No threads remain after deletion; clear active thread context
           localStorage.removeItem('active_thread_id');
           handleSetQueryParams('', '');
         }
       }
     } catch (error) {
-      // Error toast is already handled by toast.promise for the API call
       console.error('Failed to delete chat:', error);
     } finally {
       setShowDeleteDialog(false);
     }
   };
-
-  const handleDeleteClick = (chatId: number) => {
-    setDeleteId(chatId);
+ 
+  const handleDeleteClick = (chat: any) => {
+    setDeleteId(chat.id);
+    setExternalChatId(chat.externalApiId)
     setShowDeleteDialog(true);
   };
-
-  const handleUpdateTitle = async (chatId: number, newTitle: string) => {
+ 
+  const handleUpdateTitle = async (chatId: number, newTitle: string, externalChatId?: number) => {
+    if (!updateChatTitle) return;
+ 
     try {
-      // Update title optimistically in the UI
+ 
+      await updateChatTitle(chatId, newTitle, externalChatId);
+ 
       const updatedThreads = threads.map(thread => {
         if (thread.id === chatId) {
-          return {
-            ...thread,
-            title: newTitle,
-          };
+          return { ...thread, title: newTitle };
         }
         return thread;
       });
-      
+ 
       setThreads(updatedThreads);
       groupChatsByDate(updatedThreads);
-      
-      // If this is the active thread, update URL params
+ 
       if (chatId.toString() === id) {
         handleSetQueryParams(chatId.toString(), newTitle);
       }
-      
-      // Call the parent function to persist the change
-      if (updateChatTitle) {
-        updateChatTitle(chatId, newTitle);
-      }
+ 
     } catch (error) {
       toast.error('Failed to update chat title');
-      // Revert changes if the API call fails
-      fetchThreads();
+      console.error('Update title error:', error);
     }
   };
-
-  // Don't render if no config is available (check AFTER all hooks)
+ 
   if (!apiService) {
     return null;
   }
-
+ 
   return (
     <>
       {
@@ -456,7 +441,7 @@ export function SidebarHistory({ fetchThreads, threads, groupedChats, setThreads
             </div>
           </SidebarGroupContent>
         </SidebarGroup>
-
+ 
       }
       {(threads.length === 0 && !isLoading) ? (
         <SidebarGroup>
@@ -467,7 +452,7 @@ export function SidebarHistory({ fetchThreads, threads, groupedChats, setThreads
           </SidebarGroupContent>
         </SidebarGroup>
       ) : (
-
+ 
         Object.entries(groupedChats).map(
           ([key, chats]) =>
             chats.length > 0 && (
@@ -499,7 +484,7 @@ export function SidebarHistory({ fetchThreads, threads, groupedChats, setThreads
             ),
         )
       )}
-
+ 
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -517,3 +502,5 @@ export function SidebarHistory({ fetchThreads, threads, groupedChats, setThreads
     </>
   );
 }
+ 
+ 
