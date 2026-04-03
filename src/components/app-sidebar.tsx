@@ -141,7 +141,6 @@ export function AppSidebar() {
       try {
         if (threads.length > 0) {
           const latestThread = threads[0];
-          console.log(latestThread,'latest')
           if (isThreadEmpty(latestThread)) {
             handleSetQueryParams(
               latestThread.id.toString(),

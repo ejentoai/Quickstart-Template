@@ -536,7 +536,6 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                       }
                       
                       if (shouldUpdateUrl) {
-                        console.log(response,'resp')
                         if(isPublicAgent){
                           handleSetQueryParams(id.toString(), response.chat_thread_name);
                         } else {
@@ -856,7 +855,6 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                 
                 if (shouldUpdateUrl) {
                   if(isPublicAgent){
-                    console.log(response,'response')
                     handleSetQueryParams(id.toString(), responseData.chat_thread_name);
                   } else {
                     handleSetQueryParams(responseData.thread_id.toString(), responseData.chat_thread_name);
@@ -876,10 +874,8 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
               localStorage.removeItem('thread_id');
               localStorage.removeItem('query');
             }
-            console.log(responseData,'responseeeeeeeeeeee')
             if (belongsToCurrentThread) {
               const tempAssistantMessageId = `temp-assistant-${Date.now()}`;
-              console.log(responseData,'responseeeeeeeeeeee')
               
               const assistantMessage = {
                 role: "assistant",
