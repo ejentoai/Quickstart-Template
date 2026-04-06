@@ -1,5 +1,5 @@
 'use client';
-
+ 
 /**
  * APP SIDEBAR COMPONENT - Main navigation and chat history sidebar
  *
@@ -20,7 +20,7 @@
  * - Handles URL parameter management for chat navigation
  * - Implements date-based grouping for better UX
  */
-
+ 
 import { isToday, isYesterday, subMonths, subWeeks } from 'date-fns';
 import { PlusIcon } from '@/components/icons';
 import { SidebarHistory } from '@/components/sidebar-history';
@@ -48,7 +48,7 @@ import { handleSetQueryParams } from '@/lib/utils';
 import { useSearchParams } from 'next/navigation';
 import { useWindowSize } from 'usehooks-ts';
 import { useConfig } from '@/app/context/ConfigContext';
-
+ 
 /**
  * Interface for grouping chat threads by date ranges
  * Used to organize chat history into logical time-based sections
@@ -60,7 +60,7 @@ interface GroupedChats {
   lastMonth: ChatThreadResponse[];
   older: ChatThreadResponse[];
 }
-
+ 
 /**
  * App Sidebar Component
  *
@@ -76,17 +76,17 @@ export function AppSidebar() {
   const initializationInProgressRef = React.useRef(false);
   const agentImageUrl = process.env.NEXT_PUBLIC_AGENT_IMAGE?.trim();
   const isExternalImage = !!agentImageUrl;
-
+ 
   const { setOpenMobile } = useSidebar();
   const [threads, setThreads] = useState<ChatThreadResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
+ 
   const searchParams = useSearchParams();
   const id = searchParams.get('id');
-  
+ 
   const { width: windowWidth } = useWindowSize();
   const isMobile = windowWidth ? windowWidth < 768 : false;
-
+ 
   const [groupedChats, setGroupedChats] = useState<GroupedChats>({
     today: [],
     yesterday: [],
@@ -94,48 +94,64 @@ export function AppSidebar() {
     lastMonth: [],
     older: [],
   });
-
+ 
   const user_info = getUserFromCookie();
   const userEmail =
     config?.userInfo?.email ||
     user_info?.email ||
     user_info?.data?.email ||
     'user';
-
-  const updateChatTitle = async (chatId: number, newTitle: string) => {
-    if (!apiService) return;
-
-    try {
-      if (isPublicAgent) {
-        await fetch(`/api/thread/${chatId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title: newTitle }),
-        });
-      } else {
-        await apiService.updateChatThreadTitle(chatId, newTitle);
-        toast.success('Chat title updated successfully');
+ 
+    const updateChatTitle = async (
+      chatId: number,
+      newTitle: string,
+      externalChatId?: number
+    ) => {
+      if (!apiService) throw new Error('API service unavailable');
+   
+      try {
+        if (isPublicAgent) {
+          if (!externalChatId) throw new Error('External chat ID is required in public mode');
+   
+          const res1 = await apiService.updateChatThreadTitle(externalChatId, newTitle);
+   
+          const res2 = await fetch(`/api/thread/${chatId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title: newTitle }),
+          });
+   
+          if (!res2.ok) throw new Error('Next.js API update failed');
+   
+          toast.success('Chat title updated successfully');
+   
+        } else {
+          const res = await apiService.updateChatThreadTitle(chatId, newTitle);
+          if (!res) throw new Error('API update failed');
+          toast.success('Chat title updated successfully');
+        }
+   
+      } catch (error) {
+        console.error('Error updating chat title:', error);
+        throw error;
       }
-    } catch (error) {
-      console.error('Error updating chat title:', error);
-    }
-  };
-
+    };
+ 
   React.useEffect(() => {
     (window as any).addNewThreadFromHeader = addNewThread;
-
+ 
     return () => {
       delete (window as any).updateLocalThreadWithServerId;
       delete (window as any).addNewThreadFromHeader;
     };
   }, [threads]);
-
+ 
   const isThreadEmpty = (thread: ChatThreadResponse): boolean => {
     return (
-      (thread.title === 'New Chat') 
+      (thread.title === 'New Chat')
     );
   };
-
+ 
   const addNewThread = async () => {
     if (isPublicAgent) {
       try {
@@ -146,70 +162,70 @@ export function AppSidebar() {
               latestThread.id.toString(),
               latestThread.title
             );
-  
+ 
             localStorage.setItem(
               'active_thread_id',
               latestThread.id.toString()
             );
-  
+ 
             toast.success('Switched to existing new chat');
             return;
           }
         }
-
+ 
         const res = await fetch("/api/thread", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ title: "New Chat" }),
         });
-
+ 
         if (!res.ok) {
           const errorText = await res.text();
           console.error('API Error Response:', errorText);
           toast.error('Failed to create new thread');
           return;
         }
-
+ 
         const newThread = await res.json();
-
+ 
         if (!newThread || !newThread.id) {
           console.error('Invalid thread data received:', newThread);
           toast.error('Invalid response from server');
           return;
         }
-
+ 
         setThreads(prev => {
           const updated = [newThread, ...prev];
           groupChatsByDate(updated);
           return updated;
         });
-
+ 
         const threadId = String(newThread.id);
-
+ 
         localStorage.removeItem('corpus_id');
         localStorage.removeItem('corpus_connection');
         localStorage.removeItem('external_thread_id');
-
+ 
         handleSetQueryParams(
           threadId,
           newThread.title || 'New Chat'
         );
-
+ 
         localStorage.setItem(
           'active_thread_id',
           threadId
         );
-        
+       
         toast.success('New chat created');
-
+ 
       } catch (error) {
         console.error("Error creating public thread:", error);
         toast.error('Failed to create new chat');
       }
-
+ 
       return;
     }
-
+ 
     try {
       if (threads.length > 0) {
         const latestThread = threads[0];
@@ -218,19 +234,19 @@ export function AppSidebar() {
             latestThread.id.toString(),
             latestThread.title
           );
-
+ 
           localStorage.setItem(
             'active_thread_id',
             latestThread.id.toString()
           );
-
+ 
           toast.success('Switched to existing new chat');
           return;
         }
       }
-
+ 
       const tempThreadId = -Date.now();
-
+ 
       const newThread: ChatThreadResponse = {
         id: tempThreadId,
         title: 'New Chat',
@@ -246,36 +262,36 @@ export function AppSidebar() {
         chat_id: null,
         externalApiId : null
       };
-
+ 
       const updatedThreads = [newThread, ...threads];
       localStorage.removeItem('corpus_id');
       localStorage.removeItem('corpus_connection');
       localStorage.removeItem('external_thread_id')
       setThreads(updatedThreads);
       groupChatsByDate(updatedThreads);
-
+ 
       handleSetQueryParams(
         tempThreadId.toString(),
         'New Chat'
       );
-
+ 
       localStorage.setItem(
         'active_thread_id',
         tempThreadId.toString()
       );
-
+ 
       toast.success('New chat created');
-
+ 
     } catch (e) {
       console.error('Error creating new thread:', e);
       toast.error('Failed to create new chat');
     }
   };
-
-  
+ 
+ 
   /**
    * Fetches all chat threads for the current user
-   * 
+   *
    * This function:
    * - In PUBLIC_AGENT mode: Retrieves threads from Prisma DataBase
    * - In normal mode: Retrieves chat threads from the API
@@ -284,28 +300,28 @@ export function AppSidebar() {
    * - Creates a new local thread if no threads exist
    * - Manages loading states and error handling
    */
-
+ 
   const fetchThreads = async () => {
     if (initializationInProgressRef.current) {
       return;
     }
     try {
       initializationInProgressRef.current = true;
-
+ 
       if (isPublicAgent) {
         try {
           const res = await fetch("/api/thread");
           const fetchedThreads = await res.json();
           setThreads(fetchedThreads);
           groupChatsByDate(fetchedThreads);
-
+ 
           const threadCreated = sessionStorage.getItem('public_thread_created');
-
+ 
           if (!id && fetchedThreads.length === 0 && !threadCreated) {
             sessionStorage.setItem('public_thread_created', 'true');
             await addNewThread();
           }
-
+ 
           if (!id && fetchedThreads.length > 0) {
             const mostRecent = fetchedThreads[0];
             handleSetQueryParams(
@@ -313,107 +329,107 @@ export function AppSidebar() {
               mostRecent.title
             );
           }
-
+ 
         } catch (error) {
           console.error("Error fetching public threads:", error);
         } finally {
           setIsLoading(false);
         }
-
+ 
         return;
       }
-
+ 
       if (!apiService) return;
-
+ 
       try {
         const response = await apiService.getChatThreads();
         const threads = response?.data?.chat_threads || [];
-
+ 
         if (threads?.length > 0) {
           setThreads(threads);
           groupChatsByDate(threads);
-
+ 
           if (!id) {
             const mostRecentThread = threads[0];
             handleSetQueryParams(
               mostRecentThread?.id.toString(),
               mostRecentThread?.title
             );
-
+ 
             localStorage.setItem(
               'active_thread_id',
               mostRecentThread?.id.toString()
             );
           }
-
+ 
         } else {
           const threadCreated = sessionStorage.getItem('normal_thread_created');
-
+ 
           if (!threadCreated) {
             sessionStorage.setItem('normal_thread_created', 'true');
             await addNewThread();
           }
         }
-
+ 
       } catch (error) {
         console.error('Error fetching threads:', error);
-
+ 
         const threadCreated = sessionStorage.getItem('normal_thread_created');
-
+ 
         if (!threadCreated) {
           sessionStorage.setItem('normal_thread_created', 'true');
           await addNewThread();
         }
-
+ 
       } finally {
         setIsLoading(false);
       }
-
+ 
     } finally {
       initializationInProgressRef.current = false;
     }
   };
-
+ 
   useEffect(() => {
     const handleBeforeUnload = () => {
       sessionStorage.removeItem('public_thread_created');
       sessionStorage.removeItem('normal_thread_created');
       sessionStorage.removeItem('threads_initialized');
     };
-
+ 
     window.addEventListener('beforeunload', handleBeforeUnload);
-
+ 
     if (hasInitializedRef.current) {
       return;
     }
-
+ 
     const sessionInitialized = sessionStorage.getItem('threads_initialized');
-
+ 
     if (sessionInitialized) {
       hasInitializedRef.current = true;
       return;
     }
-
+ 
     hasInitializedRef.current = true;
     sessionStorage.setItem('threads_initialized', 'true');
     fetchThreads();
-
+ 
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, []);
-
+ 
   const groupChatsByDate = (chats: ChatThreadResponse[]) => {
     const now = new Date();
     const oneWeekAgo = subWeeks(now, 1);
     const oneMonthAgo = subMonths(now, 1);
-
+ 
     const groups = chats.reduce<GroupedChats>(
       (acc, chat) => {
         const chatDate = new Date(
           chat.created_on || (chat as any).created_at
         );
-
+ 
         if (isToday(chatDate)) {
           acc.today.push(chat);
         } else if (isYesterday(chatDate)) {
@@ -425,7 +441,7 @@ export function AppSidebar() {
         } else {
           acc.older.push(chat);
         }
-
+ 
         return acc;
       },
       {
@@ -436,14 +452,14 @@ export function AppSidebar() {
         older: [],
       }
     );
-
+ 
     setGroupedChats(groups);
   };
-
+ 
   if (!apiService) {
     return null;
   }
-
+ 
   return (
     <Sidebar className="group-data-[side=left]:border-r-0">
       <SidebarHeader>
@@ -467,7 +483,7 @@ export function AppSidebar() {
                 priority
               />
             )}
-
+ 
             {isMobile ? (
               <Button
                 variant="ghost"
@@ -503,7 +519,7 @@ export function AppSidebar() {
           </div>
         </SidebarMenu>
       </SidebarHeader>
-
+ 
       <SidebarContent>
         <SidebarHistory
           isLoading={isLoading}
@@ -521,3 +537,5 @@ export function AppSidebar() {
     </Sidebar>
   );
 }
+ 
+ 
