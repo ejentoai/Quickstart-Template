@@ -860,20 +860,36 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                     handleSetQueryParams(responseData.thread_id.toString(), responseData.chat_thread_name);
                   }
                 }
+
+              // Handle local thread specific updates
+              if (isLocalThread && responseData.thread_id) {
+                // Mark that we're transitioning to prevent fetchChat from running
+                if ((window as any).setTransitioningState) {
+                  (window as any).setTransitioningState(true);
+                }
+                
+                // Update the sidebar thread list with the real server ID
+                if ((window as any).updateLocalThreadWithServerId) {
+                  (window as any).updateLocalThreadWithServerId(
+                    parseInt(id), 
+                    responseData.thread_id, 
+                    responseData.chat_thread_name
+                  );
+                }
+                
+                // Clear any temporary thread data
+                localStorage.removeItem('thread_id');
+                localStorage.removeItem('query');
+                
+                // Clear transition state after a brief delay to allow URL update to complete
+                setTimeout(() => {
+                  if ((window as any).setTransitioningState) {
+                    (window as any).setTransitioningState(false);
+                  }
+                }, 100);
+              }
             }
 
-            if (isLocalThread && responseData.thread_id) {
-              if ((window as any).updateLocalThreadWithServerId) {
-                (window as any).updateLocalThreadWithServerId(
-                  parseInt(id),
-                  responseData.thread_id,
-                  responseData.chat_thread_name
-                );
-              }
-            
-              localStorage.removeItem('thread_id');
-              localStorage.removeItem('query');
-            }
             if (belongsToCurrentThread) {
               const tempAssistantMessageId = `temp-assistant-${Date.now()}`;
               
