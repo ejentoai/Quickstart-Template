@@ -56,7 +56,7 @@ export function MessageActions({
 }) {
   const apiService = useApiService();
   const isPublicAgent = isPublicAgentMode();
-  
+ 
   const [user, setUser] = useState<{ id: string, email: string, full_name: string, is_super_user: boolean, user_type: string } | null>(null)
   const [additionalComment, setAdditionalComment] = useState('')
   const [showAdditionalComment, setShowAdditionalComment] = useState(true)
@@ -67,7 +67,7 @@ export function MessageActions({
   const { width } = useWindowSize();
   const [isCreatingTicket, setIsCreatingTicket] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('Analyzing conversation...');
-
+ 
   // Get the current message from the messages array to ensure we always have the latest state
   const currentMessage = useMemo(() => {
     const msg = messages[index] || message;
@@ -80,7 +80,7 @@ export function MessageActions({
     };
     return normalizedMsg;
   }, [messages, index, message]);
-
+ 
   async function updateMessageAPI(messageId: string | number, data: { content?: string, metadata?: any }) {
     try {
       const res = await fetch(`/api/message/${messageId}`, {
@@ -88,7 +88,7 @@ export function MessageActions({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
-
+ 
       if (!res.ok) throw new Error('Failed to update message');
       return await res.json();
     } catch (error) {
@@ -96,27 +96,27 @@ export function MessageActions({
       return null;
     }
   }
-
+ 
   useEffect(() => {
     if (textareaRef.current && showAdditionalComment) {
       const height = textareaRef.current.scrollHeight + 10 + 'px';
       setTextareaHeight(height);
     }
   }, [showAdditionalComment, additionalComment]);
-
+ 
   useEffect(() => {
     const user_info = getUserFromCookie()
     if (user_info) {
       setUser(user_info)
     }
   }, [])
-
+ 
   useEffect(() => {
     if (isCreatingTicket) {
       const messages = ['Analyzing conversation...', 'Summarizing content...'];
       let currentIndex = 0;
       setLoadingMessage(messages[0]);
-
+ 
       const interval = setInterval(() => {
         if (currentIndex < messages.length - 1) {
           currentIndex += 1;
@@ -125,18 +125,18 @@ export function MessageActions({
           clearInterval(interval);
         }
       }, 3500);
-
+ 
       return () => clearInterval(interval);
     } else {
       setLoadingMessage('Analyzing conversation...');
     }
   }, [isCreatingTicket]);
-
+ 
   if (isLoading) return null;
   if (currentMessage.role === 'user') return null;
   if (currentMessage.toolInvocations && currentMessage.toolInvocations.length > 0)
     return null;
-
+ 
   const handleRegenerateclick = () => {
     // For regeneration, we need to pass the message with the correct ID
     // The append function in useChat expects to find the message by either:
@@ -145,247 +145,159 @@ export function MessageActions({
     // Pass the entire currentMessage which contains both identifiers
     append(currentMessage, true);
   };
-
+ 
   const handleUpvoteclick = async () => {
-    if (currentMessage.is_upvote) return;
-    if (!user) return;
-
+    if (currentMessage.is_upvote || !user) return;
+ 
+    const messageId = parseInt(currentMessage?.agent_response_id || currentMessage?.id);
+    if (isNaN(messageId)) return;
+ 
+    const toastId = toast.loading('Upvoting Response...');
+ 
     try {
+      // Public route
       if (isPublicAgent) {
-        const messageId = parseInt(currentMessage?.agent_response_id);
-        if (isNaN(messageId)) {
-          return;
-        }
-        const toastId = toast.loading('Upvoting Response...');
-
         const res = await fetch(`/api/message/${messageId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            metadata: {
-              ...currentMessage.metadata,
-              is_upvote: true,
-              is_downvote: false,
-            },
+            metadata: { ...currentMessage.metadata, is_upvote: true, is_downvote: false },
           }),
         });
-
-        if (!res.ok) {
-          toast.error('Unable to upvote', { id: toastId });
-          console.error('[DEBUG] Upvote failed (Public Agent):', res.statusText);
-          return;
-        }
-
-        toast.success('Upvoted Response!', { id: toastId });
-        setMessages((prevMessages: any[]) =>
-          prevMessages.map((msg) =>
-            msg.id === messageId || msg.agent_response_id === messageId
-              ? { ...msg, is_upvote: true, is_downvote: false }
-              : msg
-          )
-        );
-
-      } else {
-        const messageId = parseInt(currentMessage?.agent_response_id || currentMessage?.id);
-        if (isNaN(messageId)) {
-          return;
-        }
-        if (!apiService) {
-          console.error('API service not available');
-          toast.error('API service not available');
-          return;
-        }
-        try {
-          await toast.promise(
-            apiService.handleUpvote({ vote_type: 'upvote' }, messageId),
-            {
-              loading: 'Upvoting Response...',
-              success: 'Upvoted Response!',
-              error: 'Unable to upvote',
-            }
-          );
-          setMessages((prevMessages: any[]) =>
-            prevMessages.map((msg) =>
-              msg.id === messageId || msg.agent_response_id === messageId
-                ? { ...msg, is_upvote: true, is_downvote: false }
-                : msg
-            )
-          );
-        } catch (err) {
-          console.error('[DEBUG] Upvote failed (Backend):', err);
-          return;
-        }
+        if (!res.ok) throw new Error('Failed to upvote (public)');
       }
-    } catch (error) {
-      console.error('[DEBUG] Unexpected error during upvote:', error);
-      toast.error('Unable to upvote');
+ 
+      // Backend
+      if (!apiService) throw new Error('API service not available');
+      await apiService.handleUpvote({ vote_type: 'upvote' }, messageId);
+ 
+      // Update UI only after both succeed
+      setMessages((prev : any[]) =>
+        prev.map(msg =>
+          msg.id === messageId || msg.agent_response_id === messageId
+            ? { ...msg, is_upvote: true, is_downvote: false }
+            : msg
+        )
+      );
+ 
+      toast.success('Upvoted Response!', { id: toastId });
+    } catch (error: any) {
+      console.error('[DEBUG] Upvote failed:', error);
+      toast.error(error.message || 'Unable to upvote', { id: toastId });
     }
   };
-
+ 
   const openDialog = () => {
     localStorage.setItem('message_id', currentMessage.id);
     setShowDeleteDialog(true);
   };
-
+ 
   const handleDownvoteclick = async () => {
     if (currentMessage.is_downvote || !user) return;
-
+ 
+    const messageId = parseInt(currentMessage?.agent_response_id || currentMessage?.id);
+    if (isNaN(messageId)) return;
+ 
+    const toastId = toast.loading('Downvoting Response...');
+ 
     try {
       if (isPublicAgent) {
-        const messageId = parseInt(currentMessage?.agent_response_id);
-        if (isNaN(messageId)) {
-          return;
-        }
-        const toastId = toast.loading('Downvoting Response...');
-
         const res = await fetch(`/api/message/${messageId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            metadata: {
-              id: currentMessage.id,
-              ...currentMessage.metadata,
-              is_upvote: false,
-              is_downvote: true,
-            },
+            metadata: { ...currentMessage.metadata, is_upvote: false, is_downvote: true },
           }),
         });
-
-        if (!res.ok) {
-          toast.error('Unable to downvote', { id: toastId });
-          console.error('[DEBUG] Downvote failed (Public Agent):', res.statusText);
-          return;
-        }
-
-        toast.success('Downvoted Response!', { id: toastId });
-        setMessages((prevMessages: any[]) =>
-          prevMessages.map((msg) =>
-            msg.id === messageId || msg.agent_response_id === messageId
-              ? { ...msg, is_downvote: true, is_upvote: false }
-              : msg
-          )
-        );
-
-      } else {
-        const messageId = parseInt(currentMessage?.agent_response_id || currentMessage?.id);
-        if (isNaN(messageId)) {
-          return;
-        }
-        if (!apiService) {
-          console.error('API service not available');
-          toast.error('API service not available');
-          return;
-        }
-        try {
-          await toast.promise(
-            apiService.handleDownvote({ vote_type: 'downvote' }, messageId),
-            {
-              loading: 'Downvoting Response...',
-              success: 'Downvoted Response!',
-              error: 'Unable to downvote',
-            }
-          );
-          setMessages((prevMessages: any[]) =>
-            prevMessages.map((msg) =>
-              msg.id === messageId || msg.agent_response_id === messageId
-                ? { ...msg, is_downvote: true, is_upvote: false }
-                : msg
-            )
-          );
-        } catch (err) {
-          console.error('[DEBUG] Downvote failed (Backend):', err);
-          return;
-        }
+        if (!res.ok) throw new Error('Failed to downvote (public)');
       }
-
-      // Open feedback dialog after success
-      openDialog();
-
-    } catch (error) {
-      console.error('[DEBUG] Unexpected error during downvote:', error);
-      toast.error('Unable to downvote');
+ 
+      if (!apiService) throw new Error('API service not available');
+      await apiService.handleDownvote({ vote_type: 'downvote' }, messageId);
+ 
+      // Update UI only after both succeed
+      setMessages((prev : any[]) =>
+        prev.map(msg =>
+          msg.id === messageId || msg.agent_response_id === messageId
+            ? { ...msg, is_downvote: true, is_upvote: false }
+            : msg
+        )
+      );
+ 
+      toast.success('Downvoted Response!', { id: toastId });
+ 
+      openDialog(); // after full success
+    } catch (error: any) {
+      console.error('[DEBUG] Downvote failed:', error);
+      toast.error(error.message || 'Unable to downvote', { id: toastId });
     }
   };
-
+ 
   const handleCommentClick = (comment: string) => {
     setActive(comment);
   };
-
+ 
   const submitting = () => {
     const comment = additionalComment.trim() !== '' ? additionalComment : active;
     handleCommentSubmit(comment);
   };
-
+ 
   const handleCommentSubmit = async (review: string) => {
-    const messageId = parseInt(currentMessage?.agent_response_id);
-    if (isNaN(messageId)) {
-      return;
-    }
+    const messageId = parseInt(currentMessage?.agent_response_id || currentMessage?.id);
+    if (isNaN(messageId)) return;
+ 
+    const toastId = toast.loading('Submitting Feedback...');
+ 
     try {
       if (isPublicAgent) {
-        const toastId = toast.loading('Submitting Feedback...');
-
         const res = await fetch(`/api/message/${messageId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            metadata: {
-              ...currentMessage.metadata,
-              comment: review,
-              is_upvote: false,
-              is_downvote: true,
-              created_by: user?.email,
-            },
+            metadata: { ...currentMessage.metadata, comment: review, is_upvote: false, is_downvote: true, created_by: user?.email },
           }),
         });
-
-        if (!res.ok) throw new Error('Failed to submit feedback');
-        toast.success('Feedback Submitted!', { id: toastId });
-      } else {
-        const body = {
-          chat_id: messageId,
-          comment: review,
-          created_by: user?.email,
-        };
-        if (!apiService) {
-          console.error('API service not available');
-          toast.error('API service not available');
-          return;
-        }
-        const responsePromise = apiService.handleComment(body);
-        toast.promise(responsePromise, {
-          loading: 'Submitting Feedback...',
-          success: 'Feedback Submitted!',
-          error: 'Failed to submit feedback',
-        });
-        await responsePromise;
+        if (!res.ok) throw new Error('Failed to submit feedback (public)');
       }
-
+ 
+      if (!apiService) throw new Error('API service not available');
+      await apiService.handleComment({ chat_id: messageId, comment: review, created_by: user?.email });
+ 
+      // Update UI only after both succeed
+      setMessages((prev : any[]) =>
+        prev.map(msg =>
+          msg.id === messageId || msg.agent_response_id === messageId
+            ? { ...msg, comment: review, is_downvote: true, is_upvote: false }
+            : msg
+        )
+      );
+ 
+      toast.success('Feedback Submitted!', { id: toastId });
       setShowDeleteDialog(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Comment submission failed:', error);
-      toast.error('Failed to submit feedback');
+      toast.error(error.message || 'Failed to submit feedback', { id: toastId });
     } finally {
       setActive('');
       setAdditionalComment('');
     }
   };
-
+ 
   const handleCopy = async (index: number) => {
     const chatLogs = document.getElementsByClassName('answer-chat');
     const chatLogText = chatLogs[index];
-
+ 
     if (chatLogText) {
       const clone = chatLogText.cloneNode(true) as HTMLElement;
       clone.querySelectorAll("*").forEach((node) => {
         node.removeAttribute("style");
         node.removeAttribute("class");
       });
-
+ 
       const tempDiv = document.createElement("div");
       tempDiv.appendChild(clone);
       const cleanHtml = tempDiv.innerHTML;
-
+ 
       await navigator.clipboard.write([
         new ClipboardItem({
           "text/html": new Blob([cleanHtml], { type: "text/html" }),
@@ -394,12 +306,12 @@ export function MessageActions({
       ]);
     }
   };
-
+ 
   // Don't render if no config is available
   if (!apiService) {
     return null;
   }
-
+ 
   return (
       <TooltipProvider delayDuration={0}>
         <div className="flex flex-row gap-2">
@@ -420,7 +332,7 @@ export function MessageActions({
                 </TooltipTrigger>
                 <TooltipContent>Copy</TooltipContent>
               </Tooltip>
-
+ 
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -434,7 +346,7 @@ export function MessageActions({
                 </TooltipTrigger>
                 <TooltipContent>Upvote Response</TooltipContent>
               </Tooltip>
-
+ 
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -448,7 +360,7 @@ export function MessageActions({
                 </TooltipTrigger>
                 <TooltipContent>Downvote Response</TooltipContent>
               </Tooltip>
-
+ 
               {/* Add Retry button when showRetry is true */}
               {showRetry && (
                 <Tooltip>
@@ -464,7 +376,7 @@ export function MessageActions({
                   <TooltipContent>Regenerate Response</TooltipContent>
                 </Tooltip>
               )}
-
+ 
               <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
                 <AlertDialogContent>
                   <AlertDialogHeader>
@@ -514,5 +426,6 @@ export function MessageActions({
       </TooltipProvider>
   );
 }
+ 
  
  
