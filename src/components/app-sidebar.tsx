@@ -37,7 +37,7 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
-import React, { use, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { getUserFromCookie } from '@/cookie';
 import { useApiService } from '@/hooks/useApiService';
 import { ChatThreadResponse } from '@/model';
@@ -76,6 +76,7 @@ export function AppSidebar() {
   const initializationInProgressRef = React.useRef(false);
   const agentImageUrl = process.env.NEXT_PUBLIC_AGENT_IMAGE?.trim();
   const isExternalImage = !!agentImageUrl;
+  const externalChatIdRef = useRef<any>(null);
  
   const { setOpenMobile } = useSidebar();
   const [threads, setThreads] = useState<ChatThreadResponse[]>([]);
@@ -105,16 +106,24 @@ export function AppSidebar() {
     const updateChatTitle = async (
       chatId: number,
       newTitle: string,
-      externalChatId?: number
     ) => {
       if (!apiService) throw new Error('API service unavailable');
    
       try {
         if (isPublicAgent) {
-          if (!externalChatId) throw new Error('External chat ID is required in public mode');
+            const response = await fetch(`/api/thread/${chatId}`);
+            if (response.ok) {
+              const threadData = await response.json();
+              if (threadData.externalApiId) {
+                localStorage.setItem('external_thread_id', threadData.externalApiId);
+                externalChatIdRef.current = threadData.externalApiId;
+              }
+            }
+          if (!externalChatIdRef.current) throw new Error('External chat ID is required in public mode');
    
-          const res1 = await apiService.updateChatThreadTitle(externalChatId, newTitle);
-   
+          const res1 = await apiService.updateChatThreadTitle(externalChatIdRef.current, newTitle);
+          if(!res1.success) throw new Error('Unable to update the title');
+
           const res2 = await fetch(`/api/thread/${chatId}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },

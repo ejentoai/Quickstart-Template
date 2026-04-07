@@ -10,6 +10,7 @@ import {
   chatThreadResponseV2,
   AllChatsResponseV2,
   ChatThreadAgentResponsesV2,
+  DeleteMessageResponse,
   createChatThreadResponse
 } from './model';
 import { getUserId } from './lib/getUserId';
@@ -194,6 +195,24 @@ export class ApiService {
     } catch (error: any) {
       if (error.response) {
         throw new Error(error.response.data.message || "Failed to get chat thread.");
+      }
+      throw new Error("An unexpected error occurred.");
+    }
+  }
+
+  async deleteMessage(agent_response_id: number): Promise<DeleteMessageResponse> {
+    try {
+      const url = getProxiedUrl(
+        `/api/v2/agent-responses/${agent_response_id}`,
+        this.config.baseUrl
+      );
+      const response = await axios.delete<DeleteMessageResponse>(url, {
+        headers: this.getHeaders(),
+      });
+      return response.data;
+    } catch (error: any) {
+      if (error.response) {
+        throw new Error(error.response.data.message || "Failed to delete message.");
       }
       throw new Error("An unexpected error occurred.");
     }

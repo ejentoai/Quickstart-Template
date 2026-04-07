@@ -397,28 +397,30 @@ export default function Chat({
           const response = await apiService?.getChatlogs(parseInt(id));
           if (response && response?.data?.agent_responses?.length > 0) {
             // Transform API response into message format
-            const transformedMessages = response.data.agent_responses.flatMap((item: any) => [
-              {
-                role: "user",
-                content: item.question,
-                created_on: item.created_on,
-                id: `user-${item.id}`
-              },
-              {
-                role: "assistant",
-                content: (item?.response?.success || item?.response?.guardrail_triggered)
-                  ? item?.response?.answer
-                  : 'error::' + item?.response?.message,
-                query: item.question,
-                id: item.id,
-                created_on: item.modified_on,
-                is_upvote: item.feedback[0]?.is_upvote,
-                is_downvote: item.feedback[0]?.is_downvote,
-                references: item.response.references,
-                guardrail_triggered: item?.response?.guardrail_triggered || false,
-                blocked: item?.response?.blocked || false,
-              },
-            ]);
+            const transformedMessages = response.data.agent_responses
+              .filter((item: any) => !item.is_deleted) 
+              .flatMap((item: any) => [
+                {
+                  role: "user",
+                  content: item.question,
+                  created_on: item.created_on,
+                  id: `user-${item.id}`
+                },
+                {
+                  role: "assistant",
+                  content: (item?.response?.success || item?.response?.guardrail_triggered)
+                    ? item?.response?.answer
+                    : 'error::' + item?.response?.message,
+                  query: item.question,
+                  id: item.id,
+                  created_on: item.modified_on,
+                  is_upvote: item.feedback[0]?.is_upvote,
+                  is_downvote: item.feedback[0]?.is_downvote,
+                  references: item.response.references,
+                  guardrail_triggered: item?.response?.guardrail_triggered || false,
+                  blocked: item?.response?.blocked || false,
+                },
+              ]);
   
             let fetchedDocuments: any[] = [];
             try {

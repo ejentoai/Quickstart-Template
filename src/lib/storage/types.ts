@@ -12,7 +12,7 @@ export interface SessionMetadata {
 }
 
 export interface StoredMessage {
-  messageId: number;
+  id: number;
   threadId: number;
   role: 'user' | 'assistant';
   content: string;
