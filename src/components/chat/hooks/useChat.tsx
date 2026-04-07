@@ -730,7 +730,13 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
           let chatThreadId = null;
     
           if (!isPublicAgent) {
-            chatThreadId = id ? parseInt(id as string) : null;
+            if(id < 0){
+              chatThreadId = null
+            }
+            else{
+              chatThreadId = id ? parseInt(id as string) : null;
+            }
+            
           } else {
             if(!isFirstMessageRef.current){
               try {
@@ -778,6 +784,7 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
           const response: any = await apiService.sendChat(requestBody);
           
           if (!response.success) {
+            setIsLoading(false);
             const errorMessage = {
               role: "assistant",
               content: `error:: ${response.message}`,
@@ -787,6 +794,8 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
               followUpQuestions: [],
               references: [],
               query: userQuestion,
+              blocked: response?.blocked || false,
+              guardrail_triggered: response?.guardrail_triggered || false
             };
             
             setMessages((messages: any) => [...messages, errorMessage]);
@@ -809,6 +818,7 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
               }
             }
           } else {
+            setIsLoading(false);
             const responseData = response.data;
             threadName = responseData.chat_thread_name;
             
@@ -822,28 +832,80 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
             const activeThreadId = localStorage.getItem('active_thread_id');
             const responseThreadId = responseData.thread_id?.toString();
             const currentThreadId = id;
+            const isLocalThread = parseInt(id) < 0
             
             const belongsToCurrentThread = isResponseForCurrentThread(
               activeThreadId,
               responseThreadId,
-              currentThreadId
+              currentThreadId,
+              isLocalThread
             );
-            
+
+            if (belongsToCurrentThread && responseData.thread_id) {
+              const shouldUpdateUrl =
+                isLocalThread ||
+                thread_name_from_url === "New Thread" ||
+                thread_name_from_url === "New Chat";
+
+                if(isPublicAgent){
+                  localStorage.setItem('active_thread_id', id);
+                } else {
+                  localStorage.setItem('active_thread_id', responseData.thread_id.toString());
+                }
+                
+                if (shouldUpdateUrl) {
+                  if(isPublicAgent){
+                    handleSetQueryParams(id.toString(), responseData.chat_thread_name);
+                  } else {
+                    handleSetQueryParams(responseData.thread_id.toString(), responseData.chat_thread_name);
+                  }
+                }
+
+              // Handle local thread specific updates
+              if (isLocalThread && responseData.thread_id) {
+                // Mark that we're transitioning to prevent fetchChat from running
+                if ((window as any).setTransitioningState) {
+                  (window as any).setTransitioningState(true);
+                }
+                
+                // Update the sidebar thread list with the real server ID
+                if ((window as any).updateLocalThreadWithServerId) {
+                  (window as any).updateLocalThreadWithServerId(
+                    parseInt(id), 
+                    responseData.thread_id, 
+                    responseData.chat_thread_name
+                  );
+                }
+                
+                // Clear any temporary thread data
+                localStorage.removeItem('thread_id');
+                localStorage.removeItem('query');
+                
+                // Clear transition state after a brief delay to allow URL update to complete
+                setTimeout(() => {
+                  if ((window as any).setTransitioningState) {
+                    (window as any).setTransitioningState(false);
+                  }
+                }, 100);
+              }
+            }
+
             if (belongsToCurrentThread) {
               const tempAssistantMessageId = `temp-assistant-${Date.now()}`;
-
               
               const assistantMessage = {
                 role: "assistant",
                 content: responseData?.answer,
                 query: userQuestion,
                 id: tempAssistantMessageId,
-                agent_response_id: responseData?.chatlog_id,
+                agent_response_id: responseData?.agent_response_id,
                 is_upvote: false,
                 is_downvote: false,
                 followUpQuestions: responseData?.followup_questions,
                 references: responseData?.references,
                 currentChat: true,
+                blocked: response?.blocked || false,
+                guardrail_triggered: response?.guardrail_triggered || false
               };
               
               setMessages((messages: any) => [...messages, assistantMessage]);
@@ -856,7 +918,7 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                     responseData?.answer,
                     {
                       query: userQuestion,
-                      agent_response_id: responseData?.chatlog_id,
+                      agent_response_id: responseData?.agent_response_id,
                       followUpQuestions: responseData?.followup_questions,
                       references: responseData?.references,
                       is_upvote: false,
@@ -878,12 +940,13 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                   console.error('Error saving assistant message to DB:', err);
                 }
                 
-                if (responseData.chat_thread_name && threadName && isFirstMessageRef.current) {
+                if (responseData.chat_thread_name && threadName && isSecondMessage) {
                   publicAgentSession.updateThreadTitle(id, threadName, responseData.thread_id)
                     .catch(err => console.error('Error updating thread title in DB:', err));
                 }
               }
             }
+            
           }
         }
       } catch (e) {
