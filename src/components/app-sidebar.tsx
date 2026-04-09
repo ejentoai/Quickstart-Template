@@ -111,19 +111,10 @@ export function AppSidebar() {
    
       try {
         if (isPublicAgent) {
-            const response = await fetch(`/api/thread/${chatId}`);
-            if (response.ok) {
-              const threadData = await response.json();
-              if (threadData.externalApiId) {
-                localStorage.setItem('external_thread_id', threadData.externalApiId);
-                externalChatIdRef.current = threadData.externalApiId;
-              }
-            }
-          if (!externalChatIdRef.current) throw new Error('External chat ID is required in public mode');
+          if (!externalChatId) throw new Error('External chat ID is required in public mode');
    
-          const res1 = await apiService.updateChatThreadTitle(externalChatIdRef.current, newTitle);
-          if(!res1.success) throw new Error('Unable to update the title');
-
+          const res1 = await apiService.updateChatThreadTitle(externalChatId, newTitle);
+   
           const res2 = await fetch(`/api/thread/${chatId}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },

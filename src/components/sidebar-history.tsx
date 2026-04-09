@@ -47,7 +47,7 @@ interface props {
   setThreads: any;
   groupChatsByDate: (chats: ChatThreadResponse[]) => void;
   isLoading: boolean;
-  updateChatTitle?: (id: number, title: string) => Promise<void>;
+  updateChatTitle?: (id: number, title: string, externalChatId?: number) => Promise<void>;
 }
 interface GroupedChats {
   today: ChatThreadResponse[];
@@ -70,7 +70,7 @@ const ChatItem = ({
   onDelete: (id: any) => void;
   setOpenMobile: (open: boolean) => void;
   threads: ChatThreadResponse[];
-  onEditTitle: (id: number, title: string) => Promise<void>;
+  onEditTitle: (id: number, title: string, externalChatId?:number) => Promise<void>;
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState(chat.title);
