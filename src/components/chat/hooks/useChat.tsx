@@ -296,6 +296,7 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
               documentId: doc.documentId
             })) || []
           };
+
           setMessages((messages: any) => [...messages, userMessage]);
          
           // // Save user message to database for regeneration in public mode
@@ -993,6 +994,7 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
       documents?: any[]
     ): Promise<boolean> => {
 
+
       const normalizeDocuments = (docs: any[] = []) => {
         return docs.map((doc: any) => ({
           file: { name: doc.source },
@@ -1000,7 +1002,7 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
         }));
       };
     
-      const getDocs = (msg: any) => normalizeDocuments(msg?.paired_documents);
+      const getDocs = (msg: any) => normalizeDocuments(msg?.paired_documents || msg?.documents || msg?.attachments);
     
       if (regenerating && messages.length > 0) {
         try {
@@ -1013,10 +1015,12 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
             const userMessageIndex = assistantMessageIndex - 1;
     
             if (userMessageIndex >= 0 && messages[userMessageIndex].role === 'user') {
+              
               const userMessage = messages[userMessageIndex];
               const userQuery = userMessage.content;
               const normalizedDocs = getDocs(userMessage);
-    
+              
+
               const updatedMessages = [...messages];
     
               const canProceed = await deleteAssistantMessage(message);

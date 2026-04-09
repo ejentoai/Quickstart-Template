@@ -374,14 +374,20 @@ export function MessageActions({
               {showRetry && (
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button
+                  <Button
                       className="py-1 px-2 h-fit text-muted-foreground !pointer-events-auto"
                       variant="outline"
                       onClick={handleRegenerateclick}
-                      disabled = {isRegenerating || isLoading}
+                      disabled={isRegenerating || isLoading}
                     >
-                      <IconArrowRound />
-                    </Button>
+                      {isRegenerating ? (
+                        <div className="flex items-center space-x-2">
+                          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                        </div>
+                      ) : (
+                        <IconArrowRound />
+                      )}
+                  </Button>
                   </TooltipTrigger>
                   <TooltipContent>
                     {isRegenerating ? 'Regenerating...' : 'Regenerate Response'}
