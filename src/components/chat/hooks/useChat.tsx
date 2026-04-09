@@ -171,88 +171,101 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
       }
     };
  
+    const deleteAssistantMessage = async (message: any): Promise<boolean> => {
+      if (!message.agent_response_id && !message.id) {
+        return false;
+      }
+      const messageId = parseInt(message?.agent_response_id || message?.id);
+      try {
+        if (isPublicAgent && publicAgentSession) {
+          const res = await fetch(`/api/message/${messageId}`, {
+            method: 'DELETE',
+          });
+    
+          if (!res.ok) {
+            return false;
+          }
+        }
+    
+        const response = await apiService.deleteMessage(messageId);
+    
+    
+        if (!response.success) {
+          return false;
+        }
+    
+        return true;
+    
+      } catch (error) {
+        console.error('Error in deleting message', error);
+        return false;
+      }
+    };
+
     const handleSubmit = async (question?: string, regenerating?: boolean, messageIdToRegenerate?: string, documents?: any[]) => {
       const assistantMessageCount = messages.filter((msg: { role: string }) => msg.role === 'assistant').length;
       const isSecondMessage = assistantMessageCount === 1;
-
+ 
       localStorage.setItem('query', question || input);
       localStorage.setItem('thread_id', id);
-    
+   
       let corpusIds = selectedCorpus?.corpusId;
       let threadName;
-    
+   
       reflectionEventsRef.current = [];
       reflectionContentsRef.current = [];
       thoughtProcessRef.current = "";
       hasErrorOccurredRef.current = false;
       setIsCache(false);
-    
+   
       // Modified: Check if there's a question OR documents
       if (!question && input.length === 0 && (!documents || documents.length === 0)) return;
-      
+     
       // Modified: Set default message if only files are attached
       let userQuestion = question || input;
       const hasFiles = documents && documents.length > 0;
-      
+     
       if (!userQuestion && hasFiles) {
         // Default message when only files are attached
         userQuestion = "Explain the attached content"
       }
-      
+     
       try {
         setIsLoading(true);
         let chatHistory;
         let userMessageId = null; // Track user message ID for public mode
-    
+   
         if (regenerating && messageIdToRegenerate) {
           // Find the assistant message being regenerated
-          const assistantMessageIndex = messages.findIndex((m: any) => 
+          const assistantMessageIndex = messages.findIndex((m: any) =>
             m.role === 'assistant' && m.id === messageIdToRegenerate
           );
-          
+         
           if (assistantMessageIndex !== -1) {
             // Get the user message that preceded this assistant message
             const userMessageIndex = assistantMessageIndex - 1;
-            
+           
             if (userMessageIndex >= 0 && messages[userMessageIndex].role === 'user') {
               // Use that user message's content for regeneration
               userQuestion = messages[userMessageIndex].content;
-              
+             
               // Get the messages to keep (before the user message)
               const messagesToKeep = messages.slice(0, userMessageIndex);
-              const messagesToDelete = messages.slice(userMessageIndex, assistantMessageIndex + 1);
-              
-              // For public mode, delete the messages from database
-              if (isPublicAgent && publicAgentSession) {
-                try {
-                  // Delete both user and assistant messages from database
-                  for (const msg of messagesToDelete) {
-                    if (msg.id && !msg.id.toString().startsWith('temp-')) {
-                      // Call your existing delete endpoint
-                      await fetch(`/api/message/${msg.id}`, {
-                        method: 'DELETE',
-                      });
-                    }
-                  }
-                } catch (err) {
-                  console.error('Error deleting messages from DB:', err);
-                }
-              }
               // Update messages state to remove the pair being regenerated
               setMessages(messagesToKeep);
-              
+             
               // Format chat history from messages to keep
               chatHistory = formatChatData(messagesToKeep);
             } else {
               // Fallback: just remove the assistant message
-              const messagesToKeep = messages.filter((m: any) => 
+              const messagesToKeep = messages.filter((m: any) =>
                 !(m.role === 'assistant' && m.id === messageIdToRegenerate)
               );
-              
-              const assistantMessage = messages.find((m: any) => 
+             
+              const assistantMessage = messages.find((m: any) =>
                 m.role === 'assistant' && m.id === messageIdToRegenerate
               );
-              
+             
               if (isPublicAgent && publicAgentSession && assistantMessage?.id && !assistantMessage.id.toString().startsWith('temp-')) {
                 try {
                   await fetch(`/api/message/${assistantMessage.id}`, {
@@ -268,11 +281,11 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
           } else {
             chatHistory = formatChatData(messages);
           }
-          
+         
           // Add the user message for regeneration
           const tempUserMessageId = `temp-${Date.now()}`;
-          const userMessage = { 
-            role: "user", 
+          const userMessage = {
+            role: "user",
             content: userQuestion,
             id: tempUserMessageId,
             timestamp: new Date().toISOString(),
@@ -283,48 +296,49 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
               documentId: doc.documentId
             })) || []
           };
+
           setMessages((messages: any) => [...messages, userMessage]);
-          
-          // Save user message to database for regeneration in public mode
-          if (isPublicAgent && publicAgentSession) {
-            try {
-              const threadIdNum = parseInt(id);
-              const savedMessage = await publicAgentSession.saveMessage(
-                threadIdNum,
-                'user',
-                userQuestion,
-                { 
-                  query: userQuestion,
-                  timestamp: new Date().toISOString(),
-                  isRegeneration: true
-                }
-              );
-              
-              // Update the user message with the real ID from database
-              if (savedMessage?.messageId) {
-                userMessageId = savedMessage.messageId;
-                setMessages((prev: any) =>
-                  prev.map((msg: any) =>
-                    msg.id === tempUserMessageId
-                      ? { ...msg, id: savedMessage.messageId }
-                      : msg
-                  )
-                );
-              }
-              
-              localStorage.setItem('active_thread_id', id);
-            } catch (err) {
-              console.error('Error saving user message to DB:', err);
-            }
-          }
+         
+          // // Save user message to database for regeneration in public mode
+          // if (isPublicAgent && publicAgentSession) {
+          //   try {
+          //     const threadIdNum = parseInt(id);
+          //     const savedMessage = await publicAgentSession.saveMessage(
+          //       threadIdNum,
+          //       'user',
+          //       userQuestion,
+          //       {
+          //         query: userQuestion,
+          //         timestamp: new Date().toISOString(),
+          //         isRegeneration: true
+          //       }
+          //     );
+             
+          //     // Update the user message with the real ID from database
+          //     if (savedMessage?.messageId) {
+          //       userMessageId = savedMessage.messageId;
+          //       setMessages((prev: any) =>
+          //         prev.map((msg: any) =>
+          //           msg.id === tempUserMessageId
+          //             ? { ...msg, id: savedMessage.messageId }
+          //             : msg
+          //         )
+          //       );
+          //     }
+             
+          //     localStorage.setItem('active_thread_id', id);
+          //   } catch (err) {
+          //     console.error('Error saving user message to DB:', err);
+          //   }
+          // }
         } else {
           // Normal flow - format chat history from current messages
           chatHistory = formatChatData(messages);
-          
+         
           // Add new user message
           const tempUserMessageId = `temp-${Date.now()}`;
-          const userMessage = { 
-            role: "user", 
+          const userMessage = {
+            role: "user",
             content: userQuestion,
             id: tempUserMessageId,
             timestamp: new Date().toISOString(),
@@ -335,7 +349,7 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
             })) || []
           };
           setMessages((messages: any) => [...messages, userMessage]);
-          
+         
           // Save user message to database when public agent mode is on
           if (isPublicAgent && publicAgentSession) {
             try {
@@ -344,39 +358,38 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                 threadIdNum,
                 'user',
                 userQuestion,
-                { 
+                {
                   query: userQuestion,
                   timestamp: new Date().toISOString()
                 }
               );
-              
               // Update the user message with the real ID from database
-              if (savedMessage?.messageId) {
-                userMessageId = savedMessage.messageId;
+              if (savedMessage?.id) {
+                userMessageId = savedMessage.id;
                 setMessages((prev: any) =>
                   prev.map((msg: any) =>
                     msg.id === tempUserMessageId
-                      ? { ...msg, id: savedMessage.messageId }
+                      ? { ...msg, id: savedMessage.id }
                       : msg
                   )
                 );
               }
-              
+             
               localStorage.setItem('active_thread_id', id);
             } catch (err) {
               console.error('Error saving user message to DB:', err);
             }
           }
         }
-        
+       
         setStreamError(false);
         setInput(""); // Clear input immediately
-    
+   
         if (process.env.NEXT_PUBLIC_STREAM_CHAT === 'true') {
           const controller = new AbortController();
           const signal = controller.signal;
           let chatThreadId = null;
-    
+   
           // Initialize correct thread_id
           if (!isPublicAgent) {
             if(id < 0){
@@ -386,7 +399,7 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
               chatThreadId = id ? parseInt(id as string) : null;
             }
             // NORMAL MODE: always use the existing URL/thread ID so messages go to the same thread
-            
+           
           } else {
             if(!isFirstMessageRef.current){
               try {
@@ -399,7 +412,7 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                   else{
                     chatThreadId = null;
                   }
-                  
+                 
                 }
               } catch (error) {
                 console.error('Error fetching external API ID:', error);
@@ -416,7 +429,7 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
               }
             }
           }
-    
+   
           const requestBody: any = {
             chat_thread_id: chatThreadId,
             ...(chatHistory && chatHistory.length > 0 && { history: chatHistory }),
@@ -430,10 +443,10 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
             user_query: userQuestion, // This now contains the default message if files are attached
             is_file_attached : true
           };
-          
+         
           setStreamContent("");
           streamContentRef.current = "";
-    
+   
           abortConnectionRef.current = await apiService.streamChatRequest(
             requestBody,
             {
@@ -447,28 +460,28 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
               },
               onmessage: async (event: any) => {
                 if (hasErrorOccurredRef.current) return;
-    
+   
                 let parsedStreamData = JSON.parse(event.data);
                 setStreaming(true);
-                
+               
                 let hasEnded = parsedStreamData?.step === 'end';
                 let hasError = parsedStreamData?.step === 'error';
                 let thoughtProcess = parsedStreamData?.step === 'tools_stream';
                 const hasReflection = parsedStreamData?.step === "reflection_end" || parsedStreamData?.step === "reflection_skip";
-    
+   
                 if (hasReflection) {
                   reflectionEventsRef.current = [...reflectionEventsRef.current, parsedStreamData?.message];
                 }
-    
+   
                 if (thoughtProcess) {
                   isReflectingRef.current = true;
                   thoughtProcessRef.current += parsedStreamData?.delta;
                   setStreamEvents([]);
                 }
-    
+   
                 if (hasEnded) {
                   const response = parsedStreamData?.output;
-                  
+                 
                   if (!parsedStreamData?.success) {
                     const errorMessage = {
                       role: "assistant",
@@ -483,7 +496,7 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                       blocked: response?.blocked || false,
                     };
                     setMessages((messages: any) => [...messages, errorMessage]);
-                    
+                   
                     // Save error message to DB in public mode
                     if (isPublicAgent && publicAgentSession) {
                       try {
@@ -505,36 +518,36 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                     }
                   } else {
                     threadName = response.chat_thread_name;
-    
+   
                     if (response.thread_id && isFirstMessageRef.current) {
                       if (isPublicAgent) {
                         await updateThreadWithExternalApiId(id, response.thread_id, response.chat_thread_name);
                       }
                     }
-                    
+                   
                     const activeThreadId = localStorage.getItem('active_thread_id');
                     const responseThreadId = response.thread_id?.toString();
                     const currentThreadId = id?.toString();
                     const isLocalThread = parseInt(id) < 0;
-                    
+                   
                     const belongsToCurrentThread = isResponseForCurrentThread(
                       activeThreadId,
                       responseThreadId,
                       currentThreadId,
                       isLocalThread
                     );
-                    
+                   
                     if (belongsToCurrentThread && response.thread_id) {
                       const shouldUpdateUrl = isLocalThread ||
                                             thread_name_from_url === "New Thread" ||
                                             thread_name_from_url === "New Chat";
-                      
+                     
                       if(isPublicAgent){
                         localStorage.setItem('active_thread_id', id);
                       } else {
                         localStorage.setItem('active_thread_id', response.thread_id.toString());
                       }
-                      
+                     
                       if (shouldUpdateUrl) {
                         if(isPublicAgent){
                           handleSetQueryParams(id.toString(), response.chat_thread_name);
@@ -543,12 +556,12 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                         }
                       }
                     }
-                    
+                   
                     if (isLocalThread) {
                       if ((window as any).setTransitioningState) {
                         (window as any).setTransitioningState(true);
                       }
-                      
+                     
                       if ((window as any).updateLocalThreadWithServerId) {
                         (window as any).updateLocalThreadWithServerId(
                           parseInt(id),
@@ -556,21 +569,21 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                           response.chat_thread_name
                         );
                       }
-                      
+                     
                       localStorage.removeItem('thread_id');
                       localStorage.removeItem('query');
-                      
+                     
                       setTimeout(() => {
                         if ((window as any).setTransitioningState) {
                           (window as any).setTransitioningState(false);
                         }
                       }, 100);
                     }
-                    
+                   
                     if (belongsToCurrentThread) {
                       const savedReflectionEvents = [...reflectionEventsRef.current];
                       const savedReflectionContents = [...reflectionContentsRef.current];
-                      
+                     
                       // Create a temporary ID for the assistant message
                       const tempAssistantMessageId = `temp-assistant-${Date.now()}`;      
                       const assistantMessage = {
@@ -609,13 +622,13 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                               is_downvote: false,
                             }
                           );
-                          
+                         
                           // Update the message with the real ID from database
-                          if (savedMessage?.messageId) {
+                          if (savedMessage?.id) {
                             setMessages((prev: any) =>
                               prev.map((msg: any) =>
                                 msg.id === tempAssistantMessageId
-                                  ? { ...msg, id: savedMessage.messageId }
+                                  ? { ...msg, id: savedMessage.id }
                                   : msg
                               )
                             );
@@ -623,7 +636,7 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                         } catch (err) {
                           console.error('Error saving assistant message to DB:', err);
                         }
-                        
+                       
                         // Update thread title if first message
                         if (response.chat_thread_name && threadName && isSecondMessage) {
                           publicAgentSession.updateThreadTitle(id, threadName, response.thread_id)
@@ -635,7 +648,7 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                 } else if (hasError) {
                   hasErrorOccurredRef.current = true;
                   const response = parsedStreamData?.output;
-                  
+                 
                   const errorMessage = {
                     role: "assistant",
                     content: `error:: ${response?.error?.details || parsedStreamData?.message}`,
@@ -648,9 +661,9 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                     guardrail_triggered: response?.blocked || false,
                     blocked: response?.blocked || false,
                   };
-                  
+                 
                   setMessages((messages: any) => [...messages, errorMessage]);
-                  
+                 
                   // Save error message to DB in public mode
                   if (isPublicAgent && publicAgentSession) {
                     try {
@@ -670,7 +683,7 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                       console.error('Error saving error message to DB:', err);
                     }
                   }
-    
+   
                   setStreaming(false);
                   setIsLoading(false);
                   streamContentRef.current = "";
@@ -699,11 +712,11 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                 }
               },
               onclose() {
-                const isIncomplete = streamContentRef.current.length < 50;
-                if (isIncomplete) {
-                  toast.warning("Response appears incomplete. This may be due to a server issue.");
-                }
-                
+                // const isIncomplete = streamContentRef.current.length < 50;
+                // if (isIncomplete) {
+                //   toast.warning("Response appears incomplete. This may be due to a server issue.");
+                // }
+               
                 setStreaming(false);
                 setStreamContent("");
                 setIsLoading(false);
@@ -728,7 +741,7 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
         }else {
           // Non-streaming version
           let chatThreadId = null;
-    
+   
           if (!isPublicAgent) {
             if(id < 0){
               chatThreadId = null
@@ -736,7 +749,7 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
             else{
               chatThreadId = id ? parseInt(id as string) : null;
             }
-            
+           
           } else {
             if(!isFirstMessageRef.current){
               try {
@@ -749,7 +762,7 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                   else{
                     chatThreadId = null;
                   }
-                  
+                 
                 }
               } catch (error) {
                 console.error('Error fetching external API ID:', error);
@@ -766,7 +779,7 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
               }
             }
           }
-    
+   
           const requestBody: any = {
             chat_thread_id: chatThreadId,
             ...(chatHistory && chatHistory.length > 0 && { history: chatHistory }),
@@ -780,9 +793,9 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
               retrieve_data_points: true
             },
           };
-    
+   
           const response: any = await apiService.sendChat(requestBody);
-          
+         
           if (!response.success) {
             setIsLoading(false);
             const errorMessage = {
@@ -797,9 +810,9 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
               blocked: response?.blocked || false,
               guardrail_triggered: response?.guardrail_triggered || false
             };
-            
+           
             setMessages((messages: any) => [...messages, errorMessage]);
-            
+           
             // Save error message to DB in public mode
             if (isPublicAgent && publicAgentSession) {
               try {
@@ -821,38 +834,38 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
             setIsLoading(false);
             const responseData = response.data;
             threadName = responseData.chat_thread_name;
-            
+           
             // Store external API ID only on first message
             if (responseData.thread_id && isFirstMessageRef.current) {
               if (isPublicAgent) {
                 await updateThreadWithExternalApiId(id, responseData.thread_id, responseData.chat_thread_name);
               }
             }
-            
+           
             const activeThreadId = localStorage.getItem('active_thread_id');
             const responseThreadId = responseData.thread_id?.toString();
             const currentThreadId = id;
             const isLocalThread = parseInt(id) < 0
-            
+           
             const belongsToCurrentThread = isResponseForCurrentThread(
               activeThreadId,
               responseThreadId,
               currentThreadId,
               isLocalThread
             );
-
+ 
             if (belongsToCurrentThread && responseData.thread_id) {
               const shouldUpdateUrl =
                 isLocalThread ||
                 thread_name_from_url === "New Thread" ||
                 thread_name_from_url === "New Chat";
-
+ 
                 if(isPublicAgent){
                   localStorage.setItem('active_thread_id', id);
                 } else {
                   localStorage.setItem('active_thread_id', responseData.thread_id.toString());
                 }
-                
+               
                 if (shouldUpdateUrl) {
                   if(isPublicAgent){
                     handleSetQueryParams(id.toString(), responseData.chat_thread_name);
@@ -860,27 +873,27 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                     handleSetQueryParams(responseData.thread_id.toString(), responseData.chat_thread_name);
                   }
                 }
-
+ 
               // Handle local thread specific updates
               if (isLocalThread && responseData.thread_id) {
                 // Mark that we're transitioning to prevent fetchChat from running
                 if ((window as any).setTransitioningState) {
                   (window as any).setTransitioningState(true);
                 }
-                
+               
                 // Update the sidebar thread list with the real server ID
                 if ((window as any).updateLocalThreadWithServerId) {
                   (window as any).updateLocalThreadWithServerId(
-                    parseInt(id), 
-                    responseData.thread_id, 
+                    parseInt(id),
+                    responseData.thread_id,
                     responseData.chat_thread_name
                   );
                 }
-                
+               
                 // Clear any temporary thread data
                 localStorage.removeItem('thread_id');
                 localStorage.removeItem('query');
-                
+               
                 // Clear transition state after a brief delay to allow URL update to complete
                 setTimeout(() => {
                   if ((window as any).setTransitioningState) {
@@ -889,10 +902,10 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                 }, 100);
               }
             }
-
+ 
             if (belongsToCurrentThread) {
               const tempAssistantMessageId = `temp-assistant-${Date.now()}`;
-              
+             
               const assistantMessage = {
                 role: "assistant",
                 content: responseData?.answer,
@@ -907,7 +920,7 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                 blocked: response?.blocked || false,
                 guardrail_triggered: response?.guardrail_triggered || false
               };
-              
+             
               setMessages((messages: any) => [...messages, assistantMessage]);
               // Save assistant message in public mode
               if (isPublicAgent && publicAgentSession) {
@@ -925,13 +938,13 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                       is_downvote: false,
                     }
                   );
-                  
+                 
                   // Update the message with the real ID from database
-                  if (savedMessage?.messageId) {
+                  if (savedMessage?.id) {
                     setMessages((prev: any) =>
                       prev.map((msg: any) =>
                         msg.id === tempAssistantMessageId
-                          ? { ...msg, id: savedMessage.messageId }
+                          ? { ...msg, id: savedMessage.id }
                           : msg
                       )
                     );
@@ -939,14 +952,14 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                 } catch (err) {
                   console.error('Error saving assistant message to DB:', err);
                 }
-                
+               
                 if (responseData.chat_thread_name && threadName && isSecondMessage) {
                   publicAgentSession.updateThreadTitle(id, threadName, responseData.thread_id)
                     .catch(err => console.error('Error updating thread title in DB:', err));
                 }
               }
             }
-            
+           
           }
         }
       } catch (e) {
@@ -955,7 +968,7 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
         setStreaming(false);
         setStreamContent("");
         streamContentRef.current = "";
-        isReflectingRef.current = false;
+        isReflectingRef.current = false; 
       } finally {
         if (!streaming) {
           setIsLoading(false);
@@ -964,7 +977,7 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
         setReload(false);
         localStorage.removeItem('query');
         localStorage.removeItem('thread_id');
-        
+       
         const threadElement = document.getElementById(id);
         if (threadElement) {
           const chatThreadName = threadElement.innerText;
@@ -975,35 +988,71 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
       }
     };
  
-    const append = (message: any, regenerating?: boolean, documents?: any[]) => {
-      
-      if (regenerating && messages.length > 0) {
-        // Find the assistant message to regenerate
-        const assistantMessageIndex = messages.findIndex((m: any) => 
-          m.role === 'assistant' && 
-          // For public agent, check both id and agent_response_id
-          (m.id === message.id || m.agent_response_id === message.id)
-        );
+    const append = async (
+      message: any,
+      regenerating?: boolean,
+      documents?: any[]
+    ): Promise<boolean> => {
+
+
+      const normalizeDocuments = (docs: any[] = []) => {
+        return docs.map((doc: any) => ({
+          file: { name: doc.source },
+          documentId: doc.documentId,
+        }));
+      };
     
-        if (assistantMessageIndex !== -1) {
-          const userMessageIndex = assistantMessageIndex - 1;
-          if (userMessageIndex >= 0 && messages[userMessageIndex].role === 'user') {
-            const userQuery = messages[userMessageIndex].content;
-            const updatedMessages = [...messages];
-            
-            // Remove only the assistant message (same as normal mode)
-            updatedMessages.splice(assistantMessageIndex, 1);
-            setMessages(updatedMessages);
-            handleSubmit(userQuery, true, message.id,documents);
+      const getDocs = (msg: any) => normalizeDocuments(msg?.paired_documents || msg?.documents || msg?.attachments);
+    
+      if (regenerating && messages.length > 0) {
+        try {
+          const assistantMessageIndex = messages.findIndex((m: any) =>
+            m.role === 'assistant' &&
+            (m.id === message.id || m.agent_response_id === message.id)
+          );
+    
+          if (assistantMessageIndex !== -1) {
+            const userMessageIndex = assistantMessageIndex - 1;
+    
+            if (userMessageIndex >= 0 && messages[userMessageIndex].role === 'user') {
+              
+              const userMessage = messages[userMessageIndex];
+              const userQuery = userMessage.content;
+              const normalizedDocs = getDocs(userMessage);
+              
+
+              const updatedMessages = [...messages];
+    
+              const canProceed = await deleteAssistantMessage(message);
+    
+              if (!canProceed) {
+                toast.error('Error in regenerating message');
+                return false;
+              }
+    
+              updatedMessages.splice(assistantMessageIndex, 1);
+              setMessages(updatedMessages);
+    
+              await handleSubmit(userQuery, true, message.id, normalizedDocs);
+              return true;
+            }
+    
+            return false;
+          } else {
+            const normalizedDocs = getDocs(message);
+            await handleSubmit(message?.query || message?.content, false, undefined, normalizedDocs);
+            return true;
           }
-        } else {
-          handleSubmit(message?.query || message?.content,false,undefined,documents);
+        } catch (err) {
+          return false;
         }
       } else {
-        handleSubmit(message?.query || message?.content,false,undefined,documents);
+        const normalizedDocs = getDocs(message);
+        await handleSubmit(message?.query || message?.content, false, undefined, normalizedDocs);
+        return true;
       }
     };
- 
+  
     return {
       streaming,
       streamContent,
@@ -1026,6 +1075,6 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
       reflectionContentsRef,
       thoughtProcessRef,
       isReflectingRef,
-      updateThreadWithExternalApiId
+      updateThreadWithExternalApiId,
     };
 }

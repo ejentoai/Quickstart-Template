@@ -42,7 +42,7 @@ export function MessageActions({
   append,
   showRetry,
   messages,
-  index
+  index,
 }: {
   chatId: string;
   message: any;
@@ -52,7 +52,7 @@ export function MessageActions({
   append: (message: any, chatRequestOptions?: any, Attachment?:any) => Promise<string | null | undefined>
   showRetry: boolean;
   messages: any[],
-  index: number
+  index: number,
 }) {
   const apiService = useApiService();
   const isPublicAgent = isPublicAgentMode();
@@ -67,6 +67,7 @@ export function MessageActions({
   const { width } = useWindowSize();
   const [isCreatingTicket, setIsCreatingTicket] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('Analyzing conversation...');
+  const [isRegenerating, setIsRegenerating] = useState(false)
  
   // Get the current message from the messages array to ensure we always have the latest state
   const currentMessage = useMemo(() => {
@@ -137,13 +138,21 @@ export function MessageActions({
   if (currentMessage.toolInvocations && currentMessage.toolInvocations.length > 0)
     return null;
  
-  const handleRegenerateclick = () => {
+  const handleRegenerateclick = async () => {
+    if (isRegenerating) return;
+
+    setIsRegenerating(true);
     // For regeneration, we need to pass the message with the correct ID
     // The append function in useChat expects to find the message by either:
     // - id (local DB ID for public agent mode)
     // - agent_response_id (external API ID)
     // Pass the entire currentMessage which contains both identifiers
-    append(currentMessage, true);
+    try {
+      await append(currentMessage, true);
+    } finally {
+      setIsRegenerating(false); // ✅ always runs (success OR failure)
+    }
+
   };
  
   const handleUpvoteclick = async () => {
@@ -365,15 +374,24 @@ export function MessageActions({
               {showRetry && (
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button
+                  <Button
                       className="py-1 px-2 h-fit text-muted-foreground !pointer-events-auto"
                       variant="outline"
                       onClick={handleRegenerateclick}
+                      disabled={isRegenerating || isLoading}
                     >
-                      <IconArrowRound />
-                    </Button>
+                      {isRegenerating ? (
+                        <div className="flex items-center space-x-2">
+                          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                        </div>
+                      ) : (
+                        <IconArrowRound />
+                      )}
+                  </Button>
                   </TooltipTrigger>
-                  <TooltipContent>Regenerate Response</TooltipContent>
+                  <TooltipContent>
+                    {isRegenerating ? 'Regenerating...' : 'Regenerate Response'}
+                  </TooltipContent>
                 </Tooltip>
               )}
  

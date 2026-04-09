@@ -74,6 +74,10 @@ function PureMessages({
   const [messageDocumentPairs, setMessageDocumentPairs] = useState<Map<number, Document[]>>(new Map());
 
   useEffect(() => {
+    messages = messages.map(msg => ({
+      ...msg,
+      created_on: msg.created_on || msg.timestamp
+    }));
     if (documents?.length && messages.length) {
       const pairs = getMessageDocumentPairs(messages, documents);
       setMessageDocumentPairs(pairs);
