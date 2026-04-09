@@ -84,6 +84,12 @@ export type ChatThreadAgentResponsesDataV2 = {
   agent_responses: ChatThreadAgentResponsesItemsV2[];
 }
 
+export type DeleteMessageResponse = {
+  success: boolean;
+  message: string;
+  data: Record<string, unknown>;
+}
+
 export type chatFeedbackResponse = {
   id: number;
   is_upvote: boolean;

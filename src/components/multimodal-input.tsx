@@ -226,6 +226,14 @@ function PureMultimodalInput({
       if (response?.data.id) {
         localStorage.setItem('active_thread_id', response?.data?.id.toString());
         handleSetQueryParams(response?.data?.id.toString(), response?.data.title);
+        if ((window as any).setTransitioningState) {
+          (window as any).setTransitioningState(true);
+        }
+        setTimeout(() => {
+          if ((window as any).setTransitioningState) {
+            (window as any).setTransitioningState(false);
+          }
+        }, 100);
         return response?.data?.id;
       } else {
         throw new Error('Failed to create thread');

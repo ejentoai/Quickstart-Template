@@ -47,7 +47,7 @@ interface props {
   setThreads: any;
   groupChatsByDate: (chats: ChatThreadResponse[]) => void;
   isLoading: boolean;
-  updateChatTitle?: (id: number, title: string, externalChatId?: number) => Promise<void>;
+  updateChatTitle?: (id: number, title: string) => Promise<void>;
 }
 interface GroupedChats {
   today: ChatThreadResponse[];
@@ -70,12 +70,16 @@ const ChatItem = ({
   onDelete: (id: any) => void;
   setOpenMobile: (open: boolean) => void;
   threads: ChatThreadResponse[];
-  onEditTitle: (id: number, title: string, externalChatId?:number) => Promise<void>;
+  onEditTitle: (id: number, title: string) => Promise<void>;
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState(chat.title);
   const inputRef = useRef<HTMLInputElement>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  useEffect(() => {
+    setEditedTitle(chat.title);
+  }, [chat.title]);
  
   const handleEditClick = () => {
     setDropdownOpen(false); // Explicitly close the dropdown
@@ -96,7 +100,7 @@ const ChatItem = ({
   const handleTitleSave = async () => {
     if (editedTitle.trim() !== '' && editedTitle !== chat.title) {
       try {
-        await onEditTitle(chat.id,editedTitle,chat.externalApiId ?? undefined);
+        await onEditTitle(chat.id,editedTitle);
         // Title update is handled optimistically by the parent component
       } catch (error) {
         toast.error('Failed to update chat title');
@@ -203,6 +207,7 @@ const ChatItem = ({
               e.preventDefault();
               handleEditClick();
             }}
+            disabled={chat.title === 'New Chat'}
           >
             <PenIcon />
             <span>Edit</span>
@@ -210,7 +215,7 @@ const ChatItem = ({
           <DropdownMenuItem
             className="cursor-pointer text-destructive focus:bg-destructive/15 focus:text-destructive dark:text-red-500"
             onSelect={() => onDelete(chat)}
-            disabled={threads.length === 1}
+            disabled={threads.length === 1 || chat.title === 'New Chat'}
           >
            
             <TrashIcon />
@@ -236,7 +241,7 @@ export function SidebarHistory({ fetchThreads, threads, groupedChats, setThreads
   const title= decryptData(title_encrypted)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [externalChatId, setExternalChatId] = useState<number | null>(null);
+  const externalChatIdRef = useRef<any>(null);
  
   // PUBLIC_AGENT mode: Get session context
   const publicAgentSession = usePublicAgentSession();
@@ -285,9 +290,11 @@ export function SidebarHistory({ fetchThreads, threads, groupedChats, setThreads
     if (isPublicAgent && publicAgentSession) {
       try {
         if (!apiService) throw new Error("API service unavailable");
-        if (!externalChatId) throw new Error("Missing external chat ID for backend deletion");
+        if (!externalChatIdRef.current && deleteId>0) {
+          throw new Error("Missing external chat ID for backend deletion");
+        }
  
-        const nextApiResponse = await apiService.deleteChatThread(externalChatId);
+        const nextApiResponse = await apiService.deleteChatThread(externalChatIdRef.current);
  
         if (!nextApiResponse) throw new Error("Next.js API deletion failed");
  
@@ -303,7 +310,7 @@ export function SidebarHistory({ fetchThreads, threads, groupedChats, setThreads
           if (updatedThreads.length > 0) {
             localStorage.setItem('active_thread_id', updatedThreads[0].id.toString());
             updatedThreads[0].externalApiId?.toString() &&
-              localStorage.setItem('external_thread_id', updatedThreads[0].externalApiId?.toString());
+            localStorage.setItem('external_thread_id', updatedThreads[0].externalApiId?.toString());
             localStorage.removeItem('corpus_connection');
             localStorage.removeItem('corpus_id');
             handleSetQueryParams(updatedThreads[0].id.toString(), updatedThreads[0].title);
@@ -323,8 +330,6 @@ export function SidebarHistory({ fetchThreads, threads, groupedChats, setThreads
  
       return;
     }
- 
-    // Normal mode: delete via Next.js API only
     if (!apiService) return;
  
     try {
@@ -376,18 +381,31 @@ export function SidebarHistory({ fetchThreads, threads, groupedChats, setThreads
     }
   };
  
-  const handleDeleteClick = (chat: any) => {
+  const handleDeleteClick = async (chat: any) => {
     setDeleteId(chat.id);
-    setExternalChatId(chat.externalApiId)
+    if (isPublicAgent) {
+      try {
+        const response = await fetch(`/api/thread/${chat.id}`);
+        if (response.ok) {
+          const threadData = await response.json();
+          if (threadData.externalApiId) {
+            externalChatIdRef.current = threadData.externalApiId;
+          }
+        }
+      } catch (error) {
+        return;
+      }
+    }
     setShowDeleteDialog(true);
   };
  
-  const handleUpdateTitle = async (chatId: number, newTitle: string, externalChatId?: number) => {
+  const handleUpdateTitle = async (chatId: number, newTitle: string) => {
     if (!updateChatTitle) return;
- 
+    
+
     try {
  
-      await updateChatTitle(chatId, newTitle, externalChatId);
+      await updateChatTitle(chatId, newTitle);
  
       const updatedThreads = threads.map(thread => {
         if (thread.id === chatId) {

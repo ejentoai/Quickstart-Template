@@ -125,7 +125,7 @@ interface PreviewMessageProps {
   isCache: boolean;
   setIsCache: Dispatch<SetStateAction<boolean>>;
   showThoughtProcessTemp: boolean;
-  showPairedDocuments : boolean
+  showPairedDocuments : boolean;
 }
  
 /**
@@ -435,7 +435,7 @@ const PurePreviewMessage = ({
                     "bg-primary text-background px-3 py-2 rounded-xl":
                       message.role === "user",
                   })}
-                  style={{ maxWidth: message.role === "user" ? '400px' : '', textWrap: 'wrap', wordBreak: 'break-word', backgroundColor: message.role === 'user' ? '#FF6B35' : '' }}
+                  style={{ maxWidth: message.role === "user" ? '400px' : '', width: '100%',textWrap: 'wrap', wordBreak: 'break-word', backgroundColor: message.role === 'user' ? '#FF6B35' : '' }}
                 >
                   {
                     typeof message.content === 'string' && message.content.includes('error::') ?
@@ -485,7 +485,6 @@ const PurePreviewMessage = ({
               append={append}
               showRetry={showRetry}
               index={index}
-              // hasFinished={isFinished}
             />
           }
         </div>

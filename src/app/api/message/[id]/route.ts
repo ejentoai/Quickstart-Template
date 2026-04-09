@@ -63,7 +63,7 @@ export async function DELETE(
     const numericId = parseInt(id);
 
     await prisma.message.delete({
-      where: { id: numericId },
+      where: { agent_response_id : numericId },
     });
 
     return NextResponse.json({ success: true });
