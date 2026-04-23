@@ -436,7 +436,7 @@ export function AppSidebar() {
     const groups = chats.reduce<GroupedChats>(
       (acc, chat) => {
         const chatDate = new Date(
-          chat.created_on || (chat as any).created_at
+          chat.created_on || (chat as any).created_at || (chat as any).createdAt
         );
  
         if (isToday(chatDate)) {
