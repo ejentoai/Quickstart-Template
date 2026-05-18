@@ -6,6 +6,7 @@ import { Separator } from "@/components/ui/separator";
 import { CardDisclaimer } from "@/components/authentication/cardDisclaimer";
 import ResendOtp from "@/components/authentication/resend-otp";
 import { useState } from "react";
+import { useAuth } from "@/app/context/AuthContext";
 
 interface VerifyOtpProps {
   readonly otpSessionId?: string;
@@ -13,6 +14,7 @@ interface VerifyOtpProps {
 
 export default function VerifyOtp({ otpSessionId }: VerifyOtpProps) {
   const [loading, setLoading] = useState<boolean>(false);
+  const { email } = useAuth();
 
   if (loading) {
     return (
@@ -56,7 +58,7 @@ export default function VerifyOtp({ otpSessionId }: VerifyOtpProps) {
             We emailed you a code
           </CardTitle>
           <CardDescription className="text-xs md:text-base break-words text-[#3B4055] font-normal">
-            We sent an email to sidra.batool@datasciencedojo.com. Enter the code here or tap the button in the email to continue.
+            We sent an email to {email}. Enter the code here or tap the button in the email to continue.
           </CardDescription>
           <CardDescription className="text-center text-xs md:text-base break-words word-wrap text-[#3B4055]">
             If you don&apos;t see the email, check your spam or junk folder.
