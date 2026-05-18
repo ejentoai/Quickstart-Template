@@ -132,6 +132,11 @@ NEXT_PUBLIC_STREAM_CHAT=true
 
 # A JWT Secret Key of your choice for encryption of chatId
 NEXT_PUBLIC_SECRET_KEY=secret-key-for-encryption
+
+# File Upload / Indexing Service (Required only if using file attachment features)
+# These use the same values as EJENTO_API_KEY and its header name
+INDEXING_SERVICE_KEY=your-ocp-apim-subscription-key   # Same value as EJENTO_API_KEY
+INDEXING_SERVICE_HEADER=Ocp-Apim-Subscription-Key
 ```
 
 ### 4. Database Setup
@@ -234,8 +239,8 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 | `NEXT_PUBLIC_AGENT_HEADER_TEXT` | Custom header text for agent | Default header |
 | `NEXT_PUBLIC_STREAM_CHAT` | Enable streaming chat responses | `true` |
 | `NEXT_PUBLIC_SECRET_KEY` | Secret key for encryption | A JWT Secret Key of your choice|
-| `INDEXING_SERVICE_KEY` | Subscription key for the indexing service | `your-indexing-service-subscription-key` |
-| `INDEXING_SERVICE_HEADER` | Header name for the indexing service subscription key | `Ocp-Apim-Subscription-Key` |
+| `INDEXING_SERVICE_KEY` | Subscription key for the indexing service — same value as `EJENTO_API_KEY` (optional, required only for file attachment features) | `your-ocp-apim-subscription-key` |
+| `INDEXING_SERVICE_HEADER` | Header name for the indexing service subscription key — same as the Ejento API header (optional, required only for file attachment features) | `Ocp-Apim-Subscription-Key` |
 
 
 ## 🎯 Application Behavior

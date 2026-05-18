@@ -406,7 +406,7 @@ export default function SettingsPage() {
               <div className="pt-4">
                 <Button
                   onClick={handleSaveAndProceed}
-                  className="w-full"
+                  className="w-full bg-black hover:bg-black/90 text-white"
                   disabled={isSavingConfig || isRedirecting || !canProceed}
                   size="lg"
                 >

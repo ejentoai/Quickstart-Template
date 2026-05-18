@@ -111,7 +111,7 @@ export default function ResendOtp({ otp_session_id, setLoading }: OtpInterfacePr
         className={`font-semibold text-[13px] p-0 h-auto ${
           isResetDisable
             ? "text-gray-400 cursor-not-allowed no-underline"
-            : "text-[#3B4055] hover:text-[#db4a2b] hover:underline"
+            : "text-black hover:text-black/70 hover:underline"
         }`}
       >
         {isResetDisable
