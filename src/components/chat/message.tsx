@@ -35,9 +35,11 @@ import { MessageEditor } from "./message-editor";
 import bot from "../../../public/bot.png";
 import Image from "next/image";
 import DOMPurify from 'dompurify';
-import { ChevronUp, ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronUp, ChevronDown, ChevronRight, FileText, CheckCircle2, XCircle, Clock, Loader2 } from "lucide-react";
 import { getEjentoAccessToken } from "@/cookie";
 import { DocumentBadge } from "../document-badge";
+import type { DeepAgentFile, DeepAgentTodo } from "./hooks/useChat";
+import { DeepAgentFileModal } from "./deep-agent-file-modal";
  
 /**
  * Message Interface - Structure for chat messages
@@ -55,6 +57,12 @@ interface Message {
   currentChat?: boolean;
   /** AI reasoning steps for thought process display */
   reflectionEvents?: string[];
+  /** Deep agent generated files */
+  deepAgentFiles?: DeepAgentFile[];
+  /** Deep agent task todos */
+  deepAgentTodos?: DeepAgentTodo[];
+  /** File artifacts from deep agent end event */
+  artifacts?: { number: number; url: string; type: string; name: string; container: string }[];
 }
  
 /**
@@ -170,6 +178,8 @@ const PurePreviewMessage = ({
   const [mode, setMode] = useState<"view" | "edit">("view"); // Toggle between view and edit modes
   const [showThoughtProcess, setShowThoughtProcess] = useState(showRetry ? showThoughtProcessTemp : false); // Control thought process visibility
   const [expandedEvents, setExpandedEvents] = useState<{[key: number]: boolean}>({}); // Track which thought events are expanded
+  const [showFiles, setShowFiles] = useState(true);
+  const [selectedFile, setSelectedFile] = useState<DeepAgentFile | null>(null);
   const eventRefs = useRef<{[key: number]: HTMLDivElement | null}>({}); // References for measuring content height
   const maxHeight = 100; // Threshold for showing expand/collapse buttons
  
@@ -226,9 +236,18 @@ const PurePreviewMessage = ({
    * @returns Processed and sanitized text ready for display
    */
   function parseText(text: string, path: any) {
-    const sanitizedAnswerHtml = DOMPurify.sanitize(text);
- 
-    let replacedString = sanitizedAnswerHtml
+    // Resolve file:N artifact refs before DOMPurify — file: protocol gets stripped as unsafe.
+    // Route through the Next.js proxy so the request carries the auth cookie.
+    const preProcessed = text?.replace(/\(file:(\d+)\)/g, (match, num) => {
+      const artifact = (message as any).artifacts?.find((a: any) => a.number === parseInt(num, 10));
+      if (!artifact?.name || !artifact?.container) return match;
+      const params = new URLSearchParams({ name: artifact.name, container: artifact.container, format: 'file' });
+      return `(${window.location.origin}/api/citations/get-citation-content?${params.toString()})`;
+    }) ?? text;
+
+    const sanitizedAnswerHtml = DOMPurify.sanitize(preProcessed);
+
+    let replacedString = sanitizedAnswerHtml;
  
     const regexTable = /@([\s\S]*?<table[\s\S]*?<\/table>[\s\S]*?)@/g;
  
@@ -426,8 +445,48 @@ const PurePreviewMessage = ({
             </div>
           )}
  
+          {message.role === "assistant" && (message.deepAgentFiles?.length ?? 0) > 0 && (
+            <div className="w-full max-w-xl">
+              <button
+                type="button"
+                className={`w-full text-left bg-gray-50 hover:bg-gray-100 transition-colors rounded-lg ${showFiles ? 'rounded-b-none' : ''}`}
+                onClick={() => setShowFiles(!showFiles)}
+              >
+                <div className="px-4 py-3 flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700">
+                    Files ({message.deepAgentFiles!.length})
+                  </span>
+                  {showFiles ? (
+                    <ChevronDown className="h-4 w-4 text-gray-500 shrink-0" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 text-gray-500 shrink-0" />
+                  )}
+                </div>
+              </button>
+              {showFiles && (
+                <div className="bg-gray-50 px-4 py-3 rounded-b-lg border-t border-gray-100 space-y-1.5">
+                  {message.deepAgentFiles!.map((file, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setSelectedFile(file)}
+                      className="flex items-center gap-2 w-full rounded-md px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 transition-colors text-left"
+                    >
+                      <FileText className="h-4 w-4 text-gray-400 shrink-0" />
+                      <span className="truncate">{file.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {selectedFile && (
+            <DeepAgentFileModal file={selectedFile} onClose={() => setSelectedFile(null)} />
+          )}
+
           {message.content && mode === "view" && (
-            
+
             <div className="flex flex-row gap-2 items-start justify-end">
               {
                 <div

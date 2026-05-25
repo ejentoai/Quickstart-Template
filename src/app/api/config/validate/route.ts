@@ -33,14 +33,16 @@ async function validateAgent(
   const agentUrl = `${baseUrl}/api/v2/agents/${agentId}`;
   const agentResponse = await axios.get(agentUrl, { headers });
   const agentData = agentResponse.data;
- 
+
+  console.log('[validate] GET /api/v2/agents raw response:', JSON.stringify(agentData, null, 2));
+
   if (!agentData || !agentData.success || !agentData.data) {
     throw {
       status: 404,
       message: agentData?.message || 'Agent could not be retrieved',
     };
   }
- 
+
   return agentData;
 }
  
@@ -120,16 +122,17 @@ export async function POST(request: Request) {
         'Content-Type': 'application/json',
         'Ocp-Apim-Subscription-Key': apiKey,
       };
- 
+
+      let agentInfo: any = null;
       try {
-        const agentData = await validateAgent(baseUrl, agentId, headers);
+        agentInfo = await validateAgent(baseUrl, agentId, headers);
       } catch (error: any) {
         return errorResponse(
           `Agent validation failed: ${error.message}`,
           error.status || 500
         );
       }
- 
+
       // Store credentials in httpOnly cookie
       if (!envDriven) {
         await storeCredentialsCookie({
@@ -138,10 +141,12 @@ export async function POST(request: Request) {
           agentId,
         });
       }
- 
+
       return NextResponse.json({
         success: true,
         message: 'Configuration validated successfully',
+        agentPattern: agentInfo?.data?.pattern ?? null,
+        reactEnabled: agentInfo?.data?.react_enabled ?? false,
       });
     }
  
@@ -200,8 +205,9 @@ export async function POST(request: Request) {
       );
     }
  
+    let agentInfo: any = null;
     try {
-      await validateAgent(baseUrl, agentId, headers);
+      agentInfo = await validateAgent(baseUrl, agentId, headers);
     } catch (error: any) {
       console.error('Agent validation failed:', error);
       return errorResponse(
@@ -252,6 +258,8 @@ export async function POST(request: Request) {
       success: true,
       message: 'Configuration validated successfully',
       userData: userData || null,
+      agentPattern: agentInfo?.data?.pattern ?? null,
+      reactEnabled: agentInfo?.data?.react_enabled ?? false,
     });
   } catch (error) {
     return errorResponse(

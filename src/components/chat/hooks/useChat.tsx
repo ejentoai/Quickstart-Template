@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { decryptData,handleSetQueryParams } from "@/lib/utils";
 import { useApiService } from "@/hooks/useApiService";
+import { useConfig } from "@/app/context/ConfigContext";
 import { useSearchParams} from "next/navigation";
 import { toast } from 'sonner';
 import { isPublicAgentMode } from '@/lib/utils';
@@ -53,8 +54,32 @@ function isResponseForCurrentThread(
   return false;
 }
  
+export interface DeepAgentTodo {
+  content: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'failed';
+}
+
+export interface DeepAgentFile {
+  name: string;
+  content: string;
+  createdAt: string;
+  modifiedAt: string;
+  unread?: boolean;
+}
+
+function mergeOrAppendFile(files: DeepAgentFile[], incoming: DeepAgentFile): DeepAgentFile[] {
+  const idx = files.findIndex(f => f.name === incoming.name);
+  if (idx !== -1) {
+    const updated = [...files];
+    updated[idx] = incoming;
+    return updated;
+  }
+  return [...files, incoming];
+}
+
 export function useChat(arg0: { selectedCorpus: any | null }) {
     const apiService = useApiService();
+    const { isDeepAgent } = useConfig();
     const { selectedCorpus } = arg0;
     const [messages, setMessages] = useState<any>([]);
     const isPublicAgent = isPublicAgentMode();
@@ -84,6 +109,11 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
     const [isCache, setIsCache] = useState(false);
     const [streamError, setStreamError] = useState(false);
     const hasErrorOccurredRef = useRef(false);
+    const [deepAgentTodos, setDeepAgentTodos] = useState<DeepAgentTodo[]>([]);
+    const [deepAgentFiles, setDeepAgentFiles] = useState<DeepAgentFile[]>([]);
+    const deepAgentTodosRef = useRef<DeepAgentTodo[]>([]);
+    const deepAgentFilesRef = useRef<DeepAgentFile[]>([]);
+    const [thinkingMode, setThinkingMode] = useState<'instant' | 'thinking'>('instant');
    
     // Store if this thread has an external API ID
     const [hasExternalApiId, setHasExternalApiId] = useState<boolean>(false);
@@ -144,7 +174,12 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
         reflectionEventsRef: { current: [] },
         reflectionContentsRef: { current: [] },
         thoughtProcessRef: { current: "" },
-        isReflectingRef: { current: false }
+        isReflectingRef: { current: false },
+        deepAgentTodos: [],
+        deepAgentFiles: [],
+        thinkingMode: 'instant' as const,
+        setThinkingMode: () => {},
+        updateThreadWithExternalApiId: async () => {},
       };
     }
  
@@ -216,6 +251,10 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
       reflectionContentsRef.current = [];
       thoughtProcessRef.current = "";
       hasErrorOccurredRef.current = false;
+      deepAgentTodosRef.current = [];
+      deepAgentFilesRef.current = [];
+      setDeepAgentTodos([]);
+      setDeepAgentFiles([]);
       setIsCache(false);
    
       // Modified: Check if there's a question OR documents
@@ -438,15 +477,16 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
               log_intermediate_response: true,
               ...(corpusIds !== null && { corpus_ids: [corpusIds] }),
               retrieve_data_points: true,
+              ...(isDeepAgent && { use_reasoning_middleware: true }),
             },
             caching_enabled: regenerating ? false : true,
-            user_query: userQuestion, // This now contains the default message if files are attached
-            is_file_attached : true
+            user_query: userQuestion,
+            is_file_attached: true,
           };
          
           setStreamContent("");
           streamContentRef.current = "";
-   
+
           abortConnectionRef.current = await apiService.streamChatRequest(
             requestBody,
             {
@@ -468,11 +508,49 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                 let hasError = parsedStreamData?.step === 'error';
                 let thoughtProcess = parsedStreamData?.step === 'tools_stream';
                 const hasReflection = parsedStreamData?.step === "reflection_end" || parsedStreamData?.step === "reflection_skip";
-   
+                const isTaskEvent = parsedStreamData?.step === 'tasks';
+                const isFileEvent = parsedStreamData?.step === 'file';
+
+                if (isTaskEvent) {
+                  if (parsedStreamData?.meta?.todos) {
+                    deepAgentTodosRef.current = parsedStreamData.meta.todos;
+                    setDeepAgentTodos([...parsedStreamData.meta.todos]);
+                  }
+                  return;
+                }
+
+                if (isFileEvent) {
+                  const fileData = parsedStreamData?.meta?.file
+                    ?? parsedStreamData?.meta
+                    ?? parsedStreamData?.output?.file
+                    ?? parsedStreamData?.output
+                    ?? parsedStreamData?.file;
+                  if (fileData?.name) {
+                    const incoming: DeepAgentFile = { ...fileData, unread: true };
+                    deepAgentFilesRef.current = mergeOrAppendFile(deepAgentFilesRef.current, incoming);
+                    setDeepAgentFiles([...deepAgentFilesRef.current]);
+                  }
+                  return;
+                }
+
+                // Deep agent uses start/reasoning/status for thought process steps
+                const isStartEvent = parsedStreamData?.step === 'start';
+                const isReasoningEvent = parsedStreamData?.step === 'reasoning';
+                const isStatusEvent = parsedStreamData?.step === 'status';
+
+                if (isStartEvent || isReasoningEvent || isStatusEvent) {
+                  const eventText = parsedStreamData?.output?.title || parsedStreamData?.message;
+                  if (eventText) {
+                    setStreamEvents([eventText]);
+                    reflectionEventsRef.current = [...reflectionEventsRef.current, eventText];
+                  }
+                  return;
+                }
+
                 if (hasReflection) {
                   reflectionEventsRef.current = [...reflectionEventsRef.current, parsedStreamData?.message];
                 }
-   
+
                 if (thoughtProcess) {
                   isReflectingRef.current = true;
                   thoughtProcessRef.current += parsedStreamData?.delta;
@@ -583,9 +661,11 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                     if (belongsToCurrentThread) {
                       const savedReflectionEvents = [...reflectionEventsRef.current];
                       const savedReflectionContents = [...reflectionContentsRef.current];
-                     
+                      const savedDeepAgentFiles = [...deepAgentFilesRef.current];
+                      const savedDeepAgentTodos = [...deepAgentTodosRef.current];
+
                       // Create a temporary ID for the assistant message
-                      const tempAssistantMessageId = `temp-assistant-${Date.now()}`;      
+                      const tempAssistantMessageId = `temp-assistant-${Date.now()}`;
                       const assistantMessage = {
                         role: "assistant",
                         content: response?.answer,
@@ -598,6 +678,9 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                         references: response?.references,
                         reflectionEvents: savedReflectionEvents,
                         reflectionContents: savedReflectionContents,
+                        deepAgentFiles: savedDeepAgentFiles,
+                        deepAgentTodos: savedDeepAgentTodos,
+                        artifacts: response?.artifacts ?? [],
                         currentChat: true,
                         guardrail_triggered: response?.guardrail_triggered || false,
                         blocked: response?.blocked || false,
@@ -690,7 +773,7 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
                   return;
                 } else {
                   const parsedMsg = parsedStreamData?.step;
-                  if (parsedMsg === 'assistant_stream') {
+                  if (parsedMsg === 'assistant_stream' || parsedMsg === 'model_stream') {
                     setStreamEvents([]);
                     setIsLoading(false);
                     if (isReflectingRef.current) {
@@ -1076,5 +1159,9 @@ export function useChat(arg0: { selectedCorpus: any | null }) {
       thoughtProcessRef,
       isReflectingRef,
       updateThreadWithExternalApiId,
+      deepAgentTodos,
+      deepAgentFiles,
+      thinkingMode,
+      setThinkingMode,
     };
 }
