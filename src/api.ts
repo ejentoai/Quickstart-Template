@@ -14,7 +14,50 @@ import {
   createChatThreadResponse
 } from './model';
 import { getUserId } from './lib/getUserId';
- 
+import { refreshTokens, onRefreshFailed } from './lib/auth/refreshClient';
+
+/**
+ * Reactive 401 handling.
+ *
+ * When an authenticated proxy call returns 401, refresh the tokens once and
+ * retry the original request a single time. If refresh fails, log the user out.
+ * Registered once on the shared axios instance (guarded so dev fast-refresh
+ * doesn't stack duplicate interceptors).
+ */
+if (!(axios as any).__ejentoRefreshInterceptor) {
+  (axios as any).__ejentoRefreshInterceptor = true;
+
+  axios.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+      const authFlowEnabled = process.env.NEXT_PUBLIC_AUTH_FLOW === 'true';
+      const original = error?.config as any;
+      const status = error?.response?.status;
+      const url: string = typeof original?.url === 'string' ? original.url : '';
+
+      const isRefreshable =
+        authFlowEnabled &&
+        status === 401 &&
+        original &&
+        !original._retry &&
+        url.includes('/api/proxy/') &&
+        // login/auth-service routes must never trigger a refresh loop
+        !url.includes('auth-service');
+
+      if (isRefreshable) {
+        original._retry = true;
+        const ok = await refreshTokens();
+        if (ok) {
+          return axios(original);
+        }
+        onRefreshFailed();
+      }
+
+      return Promise.reject(error);
+    }
+  );
+}
+
 /**
  * Unified API Service class that handles all API calls
  *
