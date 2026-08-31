@@ -6,6 +6,7 @@ import { Dispatch, memo, SetStateAction, useEffect, useState } from 'react';
 import { Item } from "@/model";
 import { StreamingMessage } from './streaming-messages';
 import { getMessageDocumentPairs } from '@/lib/utils';
+import type { DeepAgentTodo, DeepAgentFile } from './hooks/useChat';
 
 
 interface MessagesProps {
@@ -39,6 +40,8 @@ interface MessagesProps {
   isReflectingRef: any;
   documents : any[];
   handleSubmit? : any;
+  deepAgentTodos?: DeepAgentTodo[];
+  deepAgentFiles?: DeepAgentFile[];
 }
 
 function PureMessages({
@@ -69,7 +72,9 @@ function PureMessages({
   thoughtProcessRef,
   isReflectingRef,
   documents,
-  handleSubmit
+  handleSubmit,
+  deepAgentTodos = [],
+  deepAgentFiles = [],
 }: Readonly<MessagesProps>) {
   const [messageDocumentPairs, setMessageDocumentPairs] = useState<Map<number, Document[]>>(new Map());
 
@@ -151,6 +156,8 @@ function PureMessages({
           isReflecting={isReflectingRef}
           showThoughtProcess={showThoughtProcess}
           toggleThoughtProcess={toggleThoughtProcess}
+          deepAgentTodos={deepAgentTodos}
+          deepAgentFiles={deepAgentFiles}
         />
       )}
       {isLoadingResponse &&

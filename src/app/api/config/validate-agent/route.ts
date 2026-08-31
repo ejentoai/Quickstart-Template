@@ -105,6 +105,8 @@ export async function POST(request: Request) {
       const agentResponse = await axios.get(agentUrl, { headers });
       const agentData = agentResponse.data;
 
+      console.log('[validate-agent] GET /api/v2/agents raw response:', JSON.stringify(agentData, null, 2));
+
       if (!(agentData?.success && agentData?.data)) {
         const errorMessage = agentData?.message ?? 'Agent could not be retrieved';
         return NextResponse.json(
@@ -120,6 +122,8 @@ export async function POST(request: Request) {
         success: true,
         message: 'Agent validated successfully',
         agentData: agentData.data,
+        agentPattern: agentData.data?.pattern ?? null,
+        reactEnabled: agentData.data?.react_enabled ?? false,
       });
     } catch (error: any) {
       const statusCode = error.response?.status || 500;

@@ -45,7 +45,10 @@ function PureMultimodalInput({
   setIsTextFieldSelected,
   isTextFieldSelected,
   setForceComplete,
-  isFinished
+  isFinished,
+  isDeepAgent,
+  thinkingMode,
+  setThinkingMode,
 }: {
   chatId: string;
   input: string;
@@ -59,6 +62,9 @@ function PureMultimodalInput({
   isTextFieldSelected?: boolean;
   isFinished?: boolean;
   setForceComplete: (value: boolean) => void;
+  isDeepAgent?: boolean;
+  thinkingMode?: 'instant' | 'thinking';
+  setThinkingMode?: (mode: 'instant' | 'thinking') => void;
 }) {
  
   const pollingTimeRef = useRef<NodeJS.Timeout | null>(null);
@@ -789,7 +795,7 @@ function PureMultimodalInput({
         </div>
       )}
  
-      <div className={cx(
+<div className={cx(
         "w-full max-w-3xl flex items-center gap-2 border border-slate-200 rounded-full px-5 py-3 transition-all duration-200 bg-white",
         className
       )}>

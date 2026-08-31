@@ -113,7 +113,7 @@ export default function Chat({
   selectedVisibilityType,
   isReadonly,
 }: ChatProps) {
-  const { isLoading: configLoading } = useConfig();
+  const { isLoading: configLoading, isDeepAgent } = useConfig();
   const apiService = useApiService();
   const [corpus, setCorpus] = useState<any>([]);
   const [documents, setDocuments] = useState<Array<any>>([]);
@@ -144,6 +144,10 @@ export default function Chat({
     reflectionContentsRef,
     thoughtProcessRef,
     isReflectingRef,
+    deepAgentTodos,
+    deepAgentFiles,
+    thinkingMode,
+    setThinkingMode,
   } = useChat({ selectedCorpus });
  
   /**
@@ -557,9 +561,11 @@ export default function Chat({
               isReflectingRef={isReflectingRef}
               documents={documents}
               handleSubmit={handleSubmit}
+              deepAgentTodos={deepAgentTodos}
+              deepAgentFiles={deepAgentFiles}
             />
- 
-            <form className="flex mx-auto my-auto px-4 bg-background pb-4 md:pb-6 gap-2 w-full md:max-w-3xl">            
+
+            <form className="flex mx-auto my-auto px-4 bg-background pb-4 md:pb-6 gap-2 w-full md:max-w-3xl">
               {!isReadonly && messages.length > 0 && (
                 <MultimodalInput
                   chatId={id}
@@ -572,6 +578,9 @@ export default function Chat({
                   setIsTextFieldSelected={() => {}}
                   setForceComplete={() => {}}
                   isFinished={isFinished}
+                  isDeepAgent={isDeepAgent}
+                  thinkingMode={thinkingMode}
+                  setThinkingMode={setThinkingMode}
                 />
               )}
             </form>

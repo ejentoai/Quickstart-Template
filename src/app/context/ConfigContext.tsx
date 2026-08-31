@@ -22,6 +22,8 @@ export interface UserConfig {
   };
   theme?: 'light' | 'dark';
   defaultModel?: string;
+  agentPattern?: { id: string; name: string; description: string };
+  reactEnabled?: boolean;
 }
 
 type ConfigSource = 'environment' | 'database' | 'cookie' | null;
@@ -33,6 +35,7 @@ interface ConfigContextType {
   clearConfig: () => Promise<void>;
   isConfigured: boolean;
   isEnvConfigured: boolean;
+  isDeepAgent: boolean;
   saveConfig: (config : any) => void;
   isLoading: boolean;
   isValidating: boolean;
@@ -116,8 +119,8 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     }
   };
  
-  //this method is used to validate configuration 
-  const validateEnvConfig = async (configToValidate: UserConfig): Promise<boolean> => {
+  //this method is used to validate configuration
+  const validateEnvConfig = async (configToValidate: UserConfig): Promise<{ success: boolean; agentPattern?: any; reactEnabled?: boolean }> => {
 
     setIsValidating(true);
     setValidationError(null);
@@ -146,10 +149,10 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
       }
       if (result.success && stored) {
         setValidationError(null);
-        return true;
+        return { success: true, agentPattern: result.agentPattern ?? null, reactEnabled: result.reactEnabled ?? false };
       } else {
         setValidationError(result.message || 'Validation failed');
-        return false;
+        return { success: false };
       }
     } catch (error: any) {
       let errorMessage = 'Failed to validate configuration';
@@ -159,7 +162,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
         errorMessage = error.message;
       }
       setValidationError(errorMessage);
-      return false;
+      return { success: false };
     } finally {
       setIsValidating(false);
       clearTimeout(timeout);
@@ -226,13 +229,17 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
   
         if (data.config && data.source === 'environment') {
           const envConfig: UserConfig = data.config;
-          const isValid = await validateEnvConfig(envConfig);
-          if (!isValid) {
+          const validationResult = await validateEnvConfig(envConfig);
+          if (!validationResult.success) {
             setConfig(null);
             setConfigSource('environment');
             throw new Error('env variable validation fails');
           }
-          return envConfig;
+          return {
+            ...envConfig,
+            agentPattern: validationResult.agentPattern ?? undefined,
+            reactEnabled: validationResult.reactEnabled ?? undefined,
+          };
         }
   
         if (data.envDrivenEnabled === true && !data.config && data.error) {
@@ -341,8 +348,39 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     loadConfig();
   }, []);
 
+  // After config is loaded from DB/cookie, fetch the agent pattern if not already present
+  useEffect(() => {
+    if (isLoading || !config || config.agentPattern !== undefined) return;
+
+    const fetchAgentPattern = async () => {
+      try {
+        const res = await fetch('/api/config/validate-agent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            config: {
+              baseUrl: config.baseUrl,
+              apiKey: config.apiKey,
+              agentId: config.agentId,
+            },
+          }),
+        });
+        if (!res.ok) return;
+        const result = await res.json();
+        console.log('[ConfigContext] agent pattern fetch result:', result);
+        if (result.success && result.agentPattern) {
+          setConfig(prev => prev ? { ...prev, agentPattern: result.agentPattern, reactEnabled: result.reactEnabled ?? false } : prev);
+        }
+      } catch (err) {
+        console.error('[ConfigContext] failed to fetch agent pattern:', err);
+      }
+    };
+
+    fetchAgentPattern();
+  }, [isLoading, config?.agentId]);
 
   const isEnvConfigured = configSource === 'environment';
+  const isDeepAgent = config?.agentPattern?.name === 'DeepAgent';
 
   const value = useMemo(() => ({
     config,
@@ -351,6 +389,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     clearConfig,
     isConfigured,
     isEnvConfigured,
+    isDeepAgent,
     saveConfig,
     loadConfig,
     isLoading,
@@ -359,12 +398,13 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     setConfigSource,
     setConfig,
   }), [
-    config, 
-    configSource, 
-    isConfigured, 
-    isEnvConfigured, 
-    isLoading, 
-    isValidating, 
+    config,
+    configSource,
+    isConfigured,
+    isEnvConfigured,
+    isDeepAgent,
+    isLoading,
+    isValidating,
     validationError,
     updateConfig,
     clearConfig,

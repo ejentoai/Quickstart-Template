@@ -1,7 +1,7 @@
 'use client'
 
 import { useApiService } from "@/hooks/useApiService";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { setUserToCookie, removeAccessToken, removeEjentoAccessToken, getEjentoAccessToken } from '@/cookie';
 import { Loader2 } from "lucide-react";
@@ -19,10 +19,12 @@ const UserData = () => {
   const ejentoAccessToken = getEjentoAccessToken();
   const envDriven = process.env.NEXT_PUBLIC_ENV_DRIVEN === 'true'
   const publicMode = process.env.NEXT_PUBLIC_AGENT === 'true'
-
-
+  const hasRun = useRef(false);
 
   useEffect(() => {
+    if (hasRun.current || !apiService) return;
+    hasRun.current = true;
+
     const fetchUser = async (): Promise<void> => {
       try {
         if (!apiService) return;
@@ -58,6 +60,10 @@ const UserData = () => {
             removeEjentoAccessToken();
             router.push('/auth/login');
             return;
+          }
+
+          if (validationResult.agentPattern && config) {
+            setConfig({ ...config, agentPattern: validationResult.agentPattern, reactEnabled: validationResult.reactEnabled });
           }
         }
    
@@ -184,7 +190,7 @@ const UserData = () => {
     };
    
     fetchUser();
-  }, [apiService, router, config, isAuthEnabled, setUserId]);
+  }, [apiService]);
 
   if (!apiService && !configLoading) {
     return <ConfigError/>;

@@ -1,10 +1,11 @@
 // import Link from 'next/link';
-import React, { memo, useEffect } from "react";
+import React, { memo } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from 'rehype-raw'
 import he from 'he';
 import { getEjentoAccessToken } from "@/cookie";
+import { FileLink } from "./chat/file-link";
 const handleCitationDownload = (filePath: string) => {
   if (
     filePath &&
@@ -18,14 +19,6 @@ const handleCitationDownload = (filePath: string) => {
     window.open(filePath, "_blank");
   }
 };
-
-// (window as any).handleCitationDownload = (filePath: string) => {
-//   if (filePath && filePath?.length >= 35 && filePath?.length <= 60 && filePath.includes('-') && filePath.split('-')?.length === 6) {
-//     window.open(filePath, '_blank');
-//   } else {
-//     window.open(filePath, '_blank');
-//   }
-// };
 
 const handleDownload = (func: any) => {
   handleCitationDownload(func.slice(24, -2));
@@ -130,16 +123,12 @@ const NonMemoizedMarkdown = ({
     },
     a: (props) => {
       const { node, children, ...rest } = props;
-      // if(node?.children[0]?.value?.length === 1 && node?.children[0]?.value?.match(/\d/)) {
-      //   return <a {...props}>{children}</a>
-      // }
 
-      // return (
-      //   <a href={`${process.env.NEXT_PUBLIC_CITATION_URL}${message?.references?.find((x:any) => number == x.number)?.url}`} target="_blank" className="text-white hover:underline">
-      //     <sup {...props}>{number}</sup>
-      //   </a>
-      // )
-      // }
+      // Deep agent artifact file reference
+      if (props?.href?.toLowerCase().startsWith('file:')) {
+        return <FileLink artifactRef={props.href} artifacts={message?.artifacts} />;
+      }
+
       let number = extractNumberFromUrl(props?.href);
       if (number) {
         let numberUrl = message?.references?.find(
@@ -327,46 +316,6 @@ const NonMemoizedMarkdown = ({
         );
       }
     },
-    // a(props) {
-    //   const { children, ...rest } = props;
-
-    //   if (props.node) {
-    //     const childElement = props.node.children[0] as {
-    //       type: string;
-    //       tagName: string;
-    //       properties: Record<string, any>;
-    //       children: any[];
-    //       position: Record<string, any>;
-    //     };
-
-    //     const childChildren = childElement.children;
-
-    //     if (childChildren?.length > 0 && childChildren[0].type === 'text') {
-    //       const value = childChildren[0].value;
-
-    //       if (props.href) {
-    //         return (
-    //           <a href={props.href} target="_blank">
-    //             <sup className={'sup'}>{value}</sup>
-    //           </a>
-    //         );
-    //       } else if (props.onClick) {
-    //         return (
-    //           <a onClick={() => handleDownload(props.onClick)} target="_blank">
-    //             <sup className={'sup'}>{value}</sup>
-    //           </a>
-    //         );
-    //       }
-    //     } else {
-    //       return <a target="_blank" className={"underline"} {...rest}>{children}</a>;
-    //     }
-    //   } else {
-    //     return <a target="_blank" className={"underline"} {...rest}>{children}</a>;
-    //   }
-    // },
-    // a: ({ node, children, ...props }) => {
-
-    // },
     h1: ({ node, children, ...props }) => {
       return (
         <h1 className="text-3xl font-semibold mt-[0.1rem] mb-2" {...props}>
